@@ -1,0 +1,40 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+*.out
+
+# Dependencies
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+
+# Environment
+.env
+
+# Docker
+Dockerfile
+docker-compose.yml
+config.docker.toml
+.dockerignore

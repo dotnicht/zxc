@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package payload;
+
+option go_package = "zxc/api/payload;payload";
+
+service PayloadService {
+  rpc Create(CreateRequest) returns (CreateResponse);
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc Update(UpdateRequest) returns (UpdateResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc List(ListRequest) returns (ListResponse);
+}
+
+message Payload {
+  string id = 1;
+  string path = 2;
+  string owner_id = 3;
+  string created_at = 4;
+  string updated_at = 5;
+  string start = 6;
+  string stop = 7;
+  string config = 8;
+  string name = 9;
+}
+
+message CreateRequest {
+  string tenant_id = 1;
+  string owner_id = 2;
+  bytes content = 3;
+  string start = 4;
+  string stop = 5;
+  string config = 6;
+  string name = 7;
+}
+
+message CreateResponse {
+  Payload payload = 1;
+}
+
+message GetRequest {
+  string tenant_id = 1;
+  string id = 2;
+}
+
+message GetResponse {
+  Payload payload = 1;
+}
+
+message UpdateRequest {
+  string tenant_id = 1;
+  string id = 2;
+  string path = 3;
+  string start = 4;
+  string stop = 5;
+  string config = 6;
+}
+
+message UpdateResponse {
+  Payload payload = 1;
+}
+
+message DeleteRequest {
+  string tenant_id = 1;
+  string id = 2;
+}
+
+message DeleteResponse {
+  bool success = 1;
+}
+
+message ListRequest {
+  string tenant_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListResponse {
+  repeated Payload payloads = 1;
+  int32 total = 2;
+}

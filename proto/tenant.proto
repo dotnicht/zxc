@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package tenant;
+
+option go_package = "zxc/api/tenant;tenant";
+
+service TenantService {
+  rpc Create(CreateRequest) returns (CreateResponse);
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc Update(UpdateRequest) returns (UpdateResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc List(ListRequest) returns (ListResponse);
+  rpc Search(SearchRequest) returns (SearchResponse);
+}
+
+message Tenant {
+  string id = 1;
+  string name = 2;
+  string database = 3;
+  string storage = 4;
+  string created_at = 5;
+  string updated_at = 6;
+  string owner_id = 7;
+}
+
+message CreateRequest {
+  string name = 1;
+  string database = 2;
+  string storage = 3;
+}
+
+message CreateResponse {
+  Tenant tenant = 1;
+}
+
+message GetRequest {
+  string id = 1;
+}
+
+message GetResponse {
+  Tenant tenant = 1;
+}
+
+message UpdateRequest {
+  string id = 1;
+  string name = 2;
+  string database = 3;
+  string storage = 4;
+  string owner_id = 5;
+}
+
+message UpdateResponse {
+  Tenant tenant = 1;
+}
+
+message DeleteRequest {
+  string id = 1;
+}
+
+message DeleteResponse {
+  bool success = 1;
+}
+
+message ListRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message ListResponse {
+  repeated Tenant tenants = 1;
+  int32 total = 2;
+}
+
+message SearchRequest {
+  string query = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message SearchResponse {
+  repeated Tenant tenants = 1;
+  int32 total = 2;
+}

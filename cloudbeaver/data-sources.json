@@ -1,0 +1,31 @@
+{
+  "folders": {},
+  "connections": {
+    "postgresql-zxc": {
+      "provider": "postgresql",
+      "driver": "postgres-jdbc",
+      "name": "zxc",
+      "save-password": true,
+      "show-system-objects": true,
+      "provider-properties": {
+        "@dbeaver-show-non-default-db@": "true",
+        "@dbeaver-show-template-db@": "false",
+        "@dbeaver-show-unavailable-db@": "false",
+        "show-database-statistics": "true",
+        "@dbeaver-read-all-data-types-db@": "false",
+        "read-keys-with-columns": "false",
+        "@dbeaver-use-prepared-statements-db@": "false",
+        "postgresql.dd.plain.string": "false",
+        "postgresql.dd.tag.string": "false"
+      },
+      "configuration": {
+        "host": "postgres",
+        "port": "5432",
+        "database": "zxc",
+        "user": "postgres",
+        "password": "postgres",
+        "configurationType": "MANUAL"
+      }
+    }
+  }
+}

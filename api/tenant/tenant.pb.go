@@ -1,0 +1,729 @@
+package tenant
+import (
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
+)
+const (
+	_ = protoimpl.EnforceVersion(20 - protoimpl.MinVersion)
+	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
+)
+type Tenant struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Database      string                 `protobuf:"bytes,3,opt,name=database,proto3" json:"database,omitempty"`
+	Storage       string                 `protobuf:"bytes,4,opt,name=storage,proto3" json:"storage,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     string                 `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	OwnerId       string                 `protobuf:"bytes,7,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+func (x *Tenant) Reset() {
+	*x = Tenant{}
+	mi := &file_proto_tenant_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+func (x *Tenant) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+func (*Tenant) ProtoMessage() {}
+func (x *Tenant) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tenant_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+func (*Tenant) Descriptor() ([]byte, []int) {
+	return file_proto_tenant_proto_rawDescGZIP(), []int{0}
+}
+func (x *Tenant) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+func (x *Tenant) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+func (x *Tenant) GetDatabase() string {
+	if x != nil {
+		return x.Database
+	}
+	return ""
+}
+func (x *Tenant) GetStorage() string {
+	if x != nil {
+		return x.Storage
+	}
+	return ""
+}
+func (x *Tenant) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+func (x *Tenant) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+func (x *Tenant) GetOwnerId() string {
+	if x != nil {
+		return x.OwnerId
+	}
+	return ""
+}
+type CreateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Database      string                 `protobuf:"bytes,2,opt,name=database,proto3" json:"database,omitempty"`
+	Storage       string                 `protobuf:"bytes,3,opt,name=storage,proto3" json:"storage,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+func (x *CreateRequest) Reset() {
+	*x = CreateRequest{}
+	mi := &file_proto_tenant_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+func (x *CreateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+func (*CreateRequest) ProtoMessage() {}
+func (x *CreateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tenant_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+func (*CreateRequest) Descriptor() ([]byte, []int) {
+	return file_proto_tenant_proto_rawDescGZIP(), []int{1}
+}
+func (x *CreateRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+func (x *CreateRequest) GetDatabase() string {
+	if x != nil {
+		return x.Database
+	}
+	return ""
+}
+func (x *CreateRequest) GetStorage() string {
+	if x != nil {
+		return x.Storage
+	}
+	return ""
+}
+type CreateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tenant        *Tenant                `protobuf:"bytes,1,opt,name=tenant,proto3" json:"tenant,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+func (x *CreateResponse) Reset() {
+	*x = CreateResponse{}
+	mi := &file_proto_tenant_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+func (x *CreateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+func (*CreateResponse) ProtoMessage() {}
+func (x *CreateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tenant_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+func (*CreateResponse) Descriptor() ([]byte, []int) {
+	return file_proto_tenant_proto_rawDescGZIP(), []int{2}
+}
+func (x *CreateResponse) GetTenant() *Tenant {
+	if x != nil {
+		return x.Tenant
+	}
+	return nil
+}
+type GetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+func (x *GetRequest) Reset() {
+	*x = GetRequest{}
+	mi := &file_proto_tenant_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+func (x *GetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+func (*GetRequest) ProtoMessage() {}
+func (x *GetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tenant_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+func (*GetRequest) Descriptor() ([]byte, []int) {
+	return file_proto_tenant_proto_rawDescGZIP(), []int{3}
+}
+func (x *GetRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+type GetResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tenant        *Tenant                `protobuf:"bytes,1,opt,name=tenant,proto3" json:"tenant,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+func (x *GetResponse) Reset() {
+	*x = GetResponse{}
+	mi := &file_proto_tenant_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+func (x *GetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+func (*GetResponse) ProtoMessage() {}
+func (x *GetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tenant_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+func (*GetResponse) Descriptor() ([]byte, []int) {
+	return file_proto_tenant_proto_rawDescGZIP(), []int{4}
+}
+func (x *GetResponse) GetTenant() *Tenant {
+	if x != nil {
+		return x.Tenant
+	}
+	return nil
+}
+type UpdateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Database      string                 `protobuf:"bytes,3,opt,name=database,proto3" json:"database,omitempty"`
+	Storage       string                 `protobuf:"bytes,4,opt,name=storage,proto3" json:"storage,omitempty"`
+	OwnerId       string                 `protobuf:"bytes,5,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+func (x *UpdateRequest) Reset() {
+	*x = UpdateRequest{}
+	mi := &file_proto_tenant_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+func (x *UpdateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+func (*UpdateRequest) ProtoMessage() {}
+func (x *UpdateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tenant_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+func (*UpdateRequest) Descriptor() ([]byte, []int) {
+	return file_proto_tenant_proto_rawDescGZIP(), []int{5}
+}
+func (x *UpdateRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+func (x *UpdateRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+func (x *UpdateRequest) GetDatabase() string {
+	if x != nil {
+		return x.Database
+	}
+	return ""
+}
+func (x *UpdateRequest) GetStorage() string {
+	if x != nil {
+		return x.Storage
+	}
+	return ""
+}
+func (x *UpdateRequest) GetOwnerId() string {
+	if x != nil {
+		return x.OwnerId
+	}
+	return ""
+}
+type UpdateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tenant        *Tenant                `protobuf:"bytes,1,opt,name=tenant,proto3" json:"tenant,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+func (x *UpdateResponse) Reset() {
+	*x = UpdateResponse{}
+	mi := &file_proto_tenant_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+func (x *UpdateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+func (*UpdateResponse) ProtoMessage() {}
+func (x *UpdateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tenant_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+func (*UpdateResponse) Descriptor() ([]byte, []int) {
+	return file_proto_tenant_proto_rawDescGZIP(), []int{6}
+}
+func (x *UpdateResponse) GetTenant() *Tenant {
+	if x != nil {
+		return x.Tenant
+	}
+	return nil
+}
+type DeleteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+func (x *DeleteRequest) Reset() {
+	*x = DeleteRequest{}
+	mi := &file_proto_tenant_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+func (x *DeleteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+func (*DeleteRequest) ProtoMessage() {}
+func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tenant_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+func (*DeleteRequest) Descriptor() ([]byte, []int) {
+	return file_proto_tenant_proto_rawDescGZIP(), []int{7}
+}
+func (x *DeleteRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+type DeleteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+func (x *DeleteResponse) Reset() {
+	*x = DeleteResponse{}
+	mi := &file_proto_tenant_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+func (x *DeleteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+func (*DeleteResponse) ProtoMessage() {}
+func (x *DeleteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tenant_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+func (*DeleteResponse) Descriptor() ([]byte, []int) {
+	return file_proto_tenant_proto_rawDescGZIP(), []int{8}
+}
+func (x *DeleteResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+type ListRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+func (x *ListRequest) Reset() {
+	*x = ListRequest{}
+	mi := &file_proto_tenant_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+func (x *ListRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+func (*ListRequest) ProtoMessage() {}
+func (x *ListRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tenant_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+func (*ListRequest) Descriptor() ([]byte, []int) {
+	return file_proto_tenant_proto_rawDescGZIP(), []int{9}
+}
+func (x *ListRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+func (x *ListRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+type ListResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tenants       []*Tenant              `protobuf:"bytes,1,rep,name=tenants,proto3" json:"tenants,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+func (x *ListResponse) Reset() {
+	*x = ListResponse{}
+	mi := &file_proto_tenant_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+func (x *ListResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+func (*ListResponse) ProtoMessage() {}
+func (x *ListResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tenant_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+func (*ListResponse) Descriptor() ([]byte, []int) {
+	return file_proto_tenant_proto_rawDescGZIP(), []int{10}
+}
+func (x *ListResponse) GetTenants() []*Tenant {
+	if x != nil {
+		return x.Tenants
+	}
+	return nil
+}
+func (x *ListResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+type SearchRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+func (x *SearchRequest) Reset() {
+	*x = SearchRequest{}
+	mi := &file_proto_tenant_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+func (x *SearchRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+func (*SearchRequest) ProtoMessage() {}
+func (x *SearchRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tenant_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+func (*SearchRequest) Descriptor() ([]byte, []int) {
+	return file_proto_tenant_proto_rawDescGZIP(), []int{11}
+}
+func (x *SearchRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+func (x *SearchRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+func (x *SearchRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+type SearchResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tenants       []*Tenant              `protobuf:"bytes,1,rep,name=tenants,proto3" json:"tenants,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+func (x *SearchResponse) Reset() {
+	*x = SearchResponse{}
+	mi := &file_proto_tenant_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+func (x *SearchResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+func (*SearchResponse) ProtoMessage() {}
+func (x *SearchResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tenant_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+func (*SearchResponse) Descriptor() ([]byte, []int) {
+	return file_proto_tenant_proto_rawDescGZIP(), []int{12}
+}
+func (x *SearchResponse) GetTenants() []*Tenant {
+	if x != nil {
+		return x.Tenants
+	}
+	return nil
+}
+func (x *SearchResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+var File_proto_tenant_proto protoreflect.FileDescriptor
+const file_proto_tenant_proto_rawDesc = "" +
+	"\n" +
+	"\x12proto/tenant.proto\x12\x06tenant\"\xbb\x01\n" +
+	"\x06Tenant\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
+	"\bdatabase\x18\x03 \x01(\tR\bdatabase\x12\x18\n" +
+	"\astorage\x18\x04 \x01(\tR\astorage\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x06 \x01(\tR\tupdatedAt\x12\x19\n" +
+	"\bowner_id\x18\a \x01(\tR\aownerId\"Y\n" +
+	"\rCreateRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
+	"\bdatabase\x18\x02 \x01(\tR\bdatabase\x12\x18\n" +
+	"\astorage\x18\x03 \x01(\tR\astorage\"8\n" +
+	"\x0eCreateResponse\x12&\n" +
+	"\x06tenant\x18\x01 \x01(\v2\x0e.tenant.TenantR\x06tenant\"\x1c\n" +
+	"\n" +
+	"GetRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"5\n" +
+	"\vGetResponse\x12&\n" +
+	"\x06tenant\x18\x01 \x01(\v2\x0e.tenant.TenantR\x06tenant\"\x84\x01\n" +
+	"\rUpdateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
+	"\bdatabase\x18\x03 \x01(\tR\bdatabase\x12\x18\n" +
+	"\astorage\x18\x04 \x01(\tR\astorage\x12\x19\n" +
+	"\bowner_id\x18\x05 \x01(\tR\aownerId\"8\n" +
+	"\x0eUpdateResponse\x12&\n" +
+	"\x06tenant\x18\x01 \x01(\v2\x0e.tenant.TenantR\x06tenant\"\x1f\n" +
+	"\rDeleteRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"*\n" +
+	"\x0eDeleteResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\">\n" +
+	"\vListRequest\x12\x12\n" +
+	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"N\n" +
+	"\fListResponse\x12(\n" +
+	"\atenants\x18\x01 \x03(\v2\x0e.tenant.TenantR\atenants\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"V\n" +
+	"\rSearchRequest\x12\x14\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\x12\x12\n" +
+	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"P\n" +
+	"\x0eSearchResponse\x12(\n" +
+	"\atenants\x18\x01 \x03(\v2\x0e.tenant.TenantR\atenants\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total2\xd6\x02\n" +
+	"\rTenantService\x127\n" +
+	"\x06Create\x12\x15.tenant.CreateRequest\x1a\x16.tenant.CreateResponse\x12.\n" +
+	"\x03Get\x12\x12.tenant.GetRequest\x1a\x13.tenant.GetResponse\x127\n" +
+	"\x06Update\x12\x15.tenant.UpdateRequest\x1a\x16.tenant.UpdateResponse\x127\n" +
+	"\x06Delete\x12\x15.tenant.DeleteRequest\x1a\x16.tenant.DeleteResponse\x121\n" +
+	"\x04List\x12\x13.tenant.ListRequest\x1a\x14.tenant.ListResponse\x127\n" +
+	"\x06Search\x12\x15.tenant.SearchRequest\x1a\x16.tenant.SearchResponseB\x17Z\x15zxc/api/tenant;tenantb\x06proto3"
+var (
+	file_proto_tenant_proto_rawDescOnce sync.Once
+	file_proto_tenant_proto_rawDescData []byte
+)
+func file_proto_tenant_proto_rawDescGZIP() []byte {
+	file_proto_tenant_proto_rawDescOnce.Do(func() {
+		file_proto_tenant_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_tenant_proto_rawDesc), len(file_proto_tenant_proto_rawDesc)))
+	})
+	return file_proto_tenant_proto_rawDescData
+}
+var file_proto_tenant_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_proto_tenant_proto_goTypes = []any{
+	(*Tenant)(nil),         
+	(*CreateRequest)(nil),  
+	(*CreateResponse)(nil), 
+	(*GetRequest)(nil),     
+	(*GetResponse)(nil),    
+	(*UpdateRequest)(nil),  
+	(*UpdateResponse)(nil), 
+	(*DeleteRequest)(nil),  
+	(*DeleteResponse)(nil), 
+	(*ListRequest)(nil),    
+	(*ListResponse)(nil),   
+	(*SearchRequest)(nil),  
+	(*SearchResponse)(nil), 
+}
+var file_proto_tenant_proto_depIdxs = []int32{
+	0,  
+	0,  
+	0,  
+	0,  
+	0,  
+	1,  
+	3,  
+	5,  
+	7,  
+	9,  
+	11, 
+	2,  
+	4,  
+	6,  
+	8,  
+	10, 
+	12, 
+	11, 
+	5,  
+	5,  
+	5,  
+	0,  
+}
+func init() { file_proto_tenant_proto_init() }
+func file_proto_tenant_proto_init() {
+	if File_proto_tenant_proto != nil {
+		return
+	}
+	type x struct{}
+	out := protoimpl.TypeBuilder{
+		File: protoimpl.DescBuilder{
+			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_tenant_proto_rawDesc), len(file_proto_tenant_proto_rawDesc)),
+			NumEnums:      0,
+			NumMessages:   13,
+			NumExtensions: 0,
+			NumServices:   1,
+		},
+		GoTypes:           file_proto_tenant_proto_goTypes,
+		DependencyIndexes: file_proto_tenant_proto_depIdxs,
+		MessageInfos:      file_proto_tenant_proto_msgTypes,
+	}.Build()
+	File_proto_tenant_proto = out.File
+	file_proto_tenant_proto_goTypes = nil
+	file_proto_tenant_proto_depIdxs = nil
+}

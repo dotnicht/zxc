@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package release;
+
+option go_package = "zxc/api/release;release";
+
+service ReleaseService {
+  rpc Create(CreateRequest) returns (CreateResponse);
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc Deploy(DeployRequest) returns (DeployResponse);
+  rpc List(ListRequest) returns (ListResponse);
+  rpc Search(SearchRequest) returns (SearchResponse);
+}
+
+message Release {
+  string id = 1;
+  string status = 2;
+  string owner_id = 3;
+  string created_at = 4;
+  string updated_at = 5;
+  string target_id = 6;
+  string payload_id = 7;
+  string changed_by_id = 8;
+}
+
+message GetRequest {
+  string tenant_id = 1;
+  string id = 2;
+}
+
+message GetResponse {
+  Release release = 1;
+}
+
+message CreateRequest {
+  string tenant_id = 1;
+  string owner_id = 2;
+  string status = 3;
+  string target_id = 4;
+  string payload_id = 5;
+}
+
+message CreateResponse {
+  Release release = 1;
+}
+
+message DeployRequest {
+  string tenant_id = 1;
+  string id = 2;
+  string user_id = 3;
+}
+
+message DeployResponse {
+  Release release = 1;
+}
+
+message ListRequest {
+  string tenant_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListResponse {
+  repeated Release releases = 1;
+  int32 total = 2;
+}
+
+message SearchRequest {
+  string tenant_id = 1;
+  string query = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message SearchResponse {
+  repeated Release releases = 1;
+  int32 total = 2;
+}

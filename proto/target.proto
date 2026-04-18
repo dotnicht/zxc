@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package target;
+
+option go_package = "zxc/api/target;target";
+
+service TargetService {
+  rpc Create(CreateRequest) returns (CreateResponse);
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc Update(UpdateRequest) returns (UpdateResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc List(ListRequest) returns (ListResponse);
+  rpc Search(SearchRequest) returns (SearchResponse);
+}
+
+message Target {
+  string id = 1;
+  string address = 2;
+  string owner_id = 3;
+  string created_at = 4;
+  string updated_at = 5;
+  string user = 6;
+  string key = 7;
+  string status = 8;
+}
+
+message CreateRequest {
+  string tenant_id = 1;
+  string owner_id = 2;
+  string address = 3;
+  string user = 4;
+  string key = 5;
+}
+
+message CreateResponse {
+  Target target = 1;
+}
+
+message GetRequest {
+  string tenant_id = 1;
+  string id = 2;
+}
+
+message GetResponse {
+  Target target = 1;
+}
+
+message UpdateRequest {
+  string tenant_id = 1;
+  string id = 2;
+  string address = 3;
+  string user = 4;
+  string key = 5;
+}
+
+message UpdateResponse {
+  Target target = 1;
+}
+
+message DeleteRequest {
+  string tenant_id = 1;
+  string id = 2;
+}
+
+message DeleteResponse {
+  bool success = 1;
+}
+
+message ListRequest {
+  string tenant_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListResponse {
+  repeated Target targets = 1;
+  int32 total = 2;
+}
+
+message SearchRequest {
+  string tenant_id = 1;
+  string query = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message SearchResponse {
+  repeated Target targets = 1;
+  int32 total = 2;
+}

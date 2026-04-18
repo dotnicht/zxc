@@ -1,0 +1,28 @@
+FROM alpine:3.19
+
+RUN apk add --no-cache openssh unzip bash curl
+
+# generate host keys
+RUN ssh-keygen -A
+
+# create deploy user (no password, key auth only)
+RUN adduser -D -s /bin/sh deploy && \
+    passwd -d deploy && \
+    mkdir -p /home/deploy/.ssh && \
+    chmod 700 /home/deploy/.ssh && \
+    chown deploy:deploy /home/deploy/.ssh
+
+COPY test/fixtures/id_ed25519.pub /home/deploy/.ssh/authorized_keys
+RUN chown deploy:deploy /home/deploy/.ssh/authorized_keys && \
+    chmod 600 /home/deploy/.ssh/authorized_keys
+
+# deployment target directory
+RUN mkdir -p /opt/app && chown deploy:deploy /opt/app
+
+# allow key auth, disallow passwords
+RUN printf '\nPasswordAuthentication no\nPubkeyAuthentication yes\nAllowUsers deploy\n' \
+    >> /etc/ssh/sshd_config
+
+EXPOSE 22
+
+CMD ["/usr/sbin/sshd", "-D", "-e"]
