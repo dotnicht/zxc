@@ -11,7 +11,6 @@ import (
 	"gorm.io/gorm"
 	"zxc/api/user"
 	"zxc/internal/db"
-	"zxc/internal/middleware"
 	"zxc/internal/models"
 )
 
@@ -26,25 +25,9 @@ func NewUser(db *gorm.DB, cache *db.Cache) *User {
 }
 
 func (s *User) openTenantDB(ctx context.Context, tenantIDStr string) (*gorm.DB, error) {
-	tenantID, err := uuid.Parse(tenantIDStr)
+	_, tenant, _, err := authenticatedTenant(ctx, tenantIDStr)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid tenant_id: must be a valid UUID")
-	}
-
-	if t, ok := middleware.TenantFromContext(ctx, tenantID); ok {
-		conn, err := s.cache.Get(t.Database)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to connect to tenant database: %v", err)
-		}
-		return conn, nil
-	}
-
-	var tenant models.Tenant
-	if err := s.db.WithContext(ctx).First(&tenant, "id = ?", tenantID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Error(codes.NotFound, "tenant not found")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to get tenant: %v", err)
+		return nil, err
 	}
 
 	conn, err := s.cache.Get(tenant.Database)

@@ -19,14 +19,15 @@ import (
 	"zxc/api/user"
 	"zxc/internal/config"
 	"zxc/internal/db"
-	"zxc/internal/logger"
 	"zxc/internal/middleware"
 	"zxc/internal/models"
 	"zxc/internal/service"
 )
 
 func main() {
-	logger.Init()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})))
 
 	configPath := flag.String("config", "config.toml", "path to configuration file")
 	flag.Parse()
@@ -76,7 +77,7 @@ func main() {
 	grpcServer := grpc.NewServer(
 		grpc.Creds(creds),
 		grpc.ChainUnaryInterceptor(
-			middleware.User(cache, database),
+			middleware.User(cache, database, root.ID),
 		),
 	)
 	user.RegisterUserServiceServer(grpcServer, userSvc)

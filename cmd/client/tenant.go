@@ -29,7 +29,11 @@ func tenantAddCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			resp, err := st.tenant.Create(ctx, &tenant.CreateRequest{Name: name})
+			authContext, err := rootAuthCtx(ctx)
+			if err != nil {
+				return err
+			}
+			resp, err := st.tenant.Create(authContext, &tenant.CreateRequest{Name: name})
 			if err != nil {
 				return err
 			}
@@ -59,7 +63,11 @@ func tenantGetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			resp, err := st.tenant.Get(ctx, &tenant.GetRequest{Id: id})
+			authContext, err := rootAuthCtx(ctx)
+			if err != nil {
+				return err
+			}
+			resp, err := st.tenant.Get(authContext, &tenant.GetRequest{Id: id})
 			if err != nil {
 				return err
 			}
@@ -89,7 +97,11 @@ func tenantListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			resp, err := st.tenant.List(ctx, &tenant.ListRequest{Page: page, PageSize: size})
+			authContext, err := rootAuthCtx(ctx)
+			if err != nil {
+				return err
+			}
+			resp, err := st.tenant.List(authContext, &tenant.ListRequest{Page: page, PageSize: size})
 			if err != nil {
 				return err
 			}
@@ -116,7 +128,11 @@ func tenantSearchCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			resp, err := st.tenant.Search(ctx, &tenant.SearchRequest{Query: query, Page: page, PageSize: size})
+			authContext, err := rootAuthCtx(ctx)
+			if err != nil {
+				return err
+			}
+			resp, err := st.tenant.Search(authContext, &tenant.SearchRequest{Query: query, Page: page, PageSize: size})
 			if err != nil {
 				return err
 			}
@@ -144,7 +160,11 @@ func tenantUpdateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			resp, err := st.tenant.Update(ctx, &tenant.UpdateRequest{Id: id, Name: name})
+			authContext, err := rootAuthCtx(ctx)
+			if err != nil {
+				return err
+			}
+			resp, err := st.tenant.Update(authContext, &tenant.UpdateRequest{Id: id, Name: name})
 			if err != nil {
 				return err
 			}
@@ -176,7 +196,11 @@ func tenantDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			_, err := st.tenant.Delete(ctx, &tenant.DeleteRequest{Id: id})
+			authContext, err := rootAuthCtx(ctx)
+			if err != nil {
+				return err
+			}
+			_, err = st.tenant.Delete(authContext, &tenant.DeleteRequest{Id: id})
 			if err != nil {
 				return err
 			}

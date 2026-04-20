@@ -33,7 +33,11 @@ func userAddCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.user.Create(ctx, &user.CreateRequest{
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.user.Create(authContext, &user.CreateRequest{
 				TenantId: tenantID,
 				Name:     name,
 			})
@@ -69,7 +73,11 @@ func userGetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.user.Get(ctx, &user.GetRequest{TenantId: tenantID, Id: id})
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.user.Get(authContext, &user.GetRequest{TenantId: tenantID, Id: id})
 			if err != nil {
 				return err
 			}
@@ -103,7 +111,11 @@ func userListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.user.List(ctx, &user.ListRequest{TenantId: tenantID, Page: page, PageSize: size})
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.user.List(authContext, &user.ListRequest{TenantId: tenantID, Page: page, PageSize: size})
 			if err != nil {
 				return err
 			}
@@ -136,7 +148,11 @@ func userSearchCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.user.Search(ctx, &user.SearchRequest{TenantId: tenantID, Query: query, Page: page, PageSize: size})
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.user.Search(authContext, &user.SearchRequest{TenantId: tenantID, Query: query, Page: page, PageSize: size})
 			if err != nil {
 				return err
 			}
@@ -170,7 +186,11 @@ func userUpdateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.user.Update(ctx, &user.UpdateRequest{TenantId: tenantID, Id: id, Name: name})
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.user.Update(authContext, &user.UpdateRequest{TenantId: tenantID, Id: id, Name: name})
 			if err != nil {
 				return err
 			}
@@ -205,7 +225,11 @@ func userDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			_, err = st.user.Delete(ctx, &user.DeleteRequest{TenantId: tenantID, Id: id})
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			_, err = st.user.Delete(authContext, &user.DeleteRequest{TenantId: tenantID, Id: id})
 			if err != nil {
 				return err
 			}

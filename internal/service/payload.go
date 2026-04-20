@@ -17,7 +17,6 @@ import (
 	"zxc/api/payload"
 	"zxc/internal/consts"
 	"zxc/internal/db"
-	"zxc/internal/middleware"
 	"zxc/internal/models"
 	"zxc/internal/storage"
 )
@@ -78,26 +77,17 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 		return nil, status.Errorf(codes.InvalidArgument, "invalid payload zip: %v", err)
 	}
 
-	ownerID, err := uuid.Parse(req.OwnerId)
+	authUserID, err := authenticatedUserID(ctx)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid owner_id: must be a valid UUID")
+		return nil, err
+	}
+	if req.OwnerId != "" && req.OwnerId != authUserID.String() {
+		return nil, status.Error(codes.PermissionDenied, "owner_id must match authenticated user")
 	}
 
-	tenantID, err := uuid.Parse(req.TenantId)
+	_, ten, _, err := authenticatedTenant(ctx, req.TenantId)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid tenant_id: must be a valid UUID")
-	}
-
-	var ten models.Tenant
-	if t, ok := middleware.TenantFromContext(ctx, tenantID); ok {
-		ten = *t
-	} else {
-		if err := s.db.WithContext(ctx).First(&ten, "id = ?", tenantID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, status.Error(codes.NotFound, "tenant not found")
-			}
-			return nil, status.Errorf(codes.Internal, "failed to get tenant: %v", err)
-		}
+		return nil, err
 	}
 
 	tenantDB, err := s.cache.Get(ten.Database)
@@ -124,7 +114,7 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 	p := &models.Payload{
 		ID:      payloadID,
 		Path:    scriptPath,
-		OwnerID: ownerID,
+		OwnerID: authUserID,
 		Config:  req.Config,
 		Start:   req.Start,
 		Stop:    req.Stop,
@@ -241,25 +231,9 @@ func (s *Payload) List(ctx context.Context, req *payload.ListRequest) (*payload.
 }
 
 func (s *Payload) openTenantDB(ctx context.Context, tenantIDStr string) (*gorm.DB, error) {
-	tenantID, err := uuid.Parse(tenantIDStr)
+	_, ten, _, err := authenticatedTenant(ctx, tenantIDStr)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid tenant_id: must be a valid UUID")
-	}
-
-	if t, ok := middleware.TenantFromContext(ctx, tenantID); ok {
-		conn, err := s.cache.Get(t.Database)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to connect to tenant database: %v", err)
-		}
-		return conn, nil
-	}
-
-	var ten models.Tenant
-	if err := s.db.WithContext(ctx).First(&ten, "id = ?", tenantID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Error(codes.NotFound, "tenant not found")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to get tenant: %v", err)
+		return nil, err
 	}
 
 	conn, err := s.cache.Get(ten.Database)

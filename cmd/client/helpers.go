@@ -7,11 +7,29 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"google.golang.org/grpc/metadata"
 	"zxc/api/tenant"
 )
 
 func newCtx() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), 10*time.Second)
+}
+
+func authCtx(ctx context.Context, tenantID string) (context.Context, error) {
+	if st.cfg.UserID == "" {
+		return nil, fmt.Errorf("user_id must be set in config")
+	}
+	return metadata.AppendToOutgoingContext(ctx,
+		"x-tenant-id", tenantID,
+		"x-user-id", st.cfg.UserID,
+	), nil
+}
+
+func rootAuthCtx(ctx context.Context) (context.Context, error) {
+	if st.cfg.UserID == "" {
+		return nil, fmt.Errorf("user_id must be set in config")
+	}
+	return metadata.AppendToOutgoingContext(ctx, "x-user-id", st.cfg.UserID), nil
 }
 
 func resolveTenant(ctx context.Context, client tenant.TenantServiceClient, name string) (string, error) {

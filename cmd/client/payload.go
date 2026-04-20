@@ -34,11 +34,15 @@ func payloadAddCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
 			content, err := os.ReadFile(file)
 			if err != nil {
 				return fmt.Errorf("read file %s: %w", file, err)
 			}
-			resp, err := st.payload.Create(ctx, &payload.CreateRequest{
+			resp, err := st.payload.Create(authContext, &payload.CreateRequest{
 				TenantId: tenantID,
 				OwnerId:  userID,
 				Content:  content,
@@ -79,7 +83,11 @@ func payloadGetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.payload.Get(ctx, &payload.GetRequest{TenantId: tenantID, Id: id})
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.payload.Get(authContext, &payload.GetRequest{TenantId: tenantID, Id: id})
 			if err != nil {
 				return err
 			}
@@ -107,7 +115,11 @@ func payloadListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.payload.List(ctx, &payload.ListRequest{TenantId: tenantID, Page: page, PageSize: size})
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.payload.List(authContext, &payload.ListRequest{TenantId: tenantID, Page: page, PageSize: size})
 			if err != nil {
 				return err
 			}
@@ -139,7 +151,11 @@ func payloadUpdateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.payload.Update(ctx, &payload.UpdateRequest{
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.payload.Update(authContext, &payload.UpdateRequest{
 				TenantId: tenantID,
 				Id:       id,
 				Path:     path,
@@ -190,7 +206,11 @@ func payloadDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			_, err = st.payload.Delete(ctx, &payload.DeleteRequest{TenantId: tenantID, Id: id})
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			_, err = st.payload.Delete(authContext, &payload.DeleteRequest{TenantId: tenantID, Id: id})
 			if err != nil {
 				return err
 			}

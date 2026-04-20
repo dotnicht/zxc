@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"zxc/api/payload"
 	"zxc/api/release"
 	"zxc/api/target"
@@ -26,6 +27,7 @@ const (
 	workerName   = "zxc-worker"
 	projectRoot  = ".."
 	certsDir     = projectRoot + "/test/certs"
+	rootUserID   = "00000000-0000-0000-0000-000000000001"
 )
 
 func logStep(format string, args ...any) {
@@ -104,6 +106,17 @@ func buildFixtureZip(t *testing.T) []byte {
 	return buf.Bytes()
 }
 
+func rootAuthCtx(ctx context.Context) context.Context {
+	return metadata.AppendToOutgoingContext(ctx, "x-user-id", rootUserID)
+}
+
+func tenantAuthCtx(ctx context.Context, tenantID, userID string) context.Context {
+	return metadata.AppendToOutgoingContext(ctx,
+		"x-tenant-id", tenantID,
+		"x-user-id", userID,
+	)
+}
+
 func setupTenantWithDeps(t *testing.T, ctx context.Context, conn *grpc.ClientConn, ts int64, idx int) (tenantID, ownerID, targetID, payloadID string) {
 	t.Helper()
 	tenantClient := tenant.NewTenantServiceClient(conn)
@@ -113,7 +126,7 @@ func setupTenantWithDeps(t *testing.T, ctx context.Context, conn *grpc.ClientCon
 
 	tenantName := fmt.Sprintf("inttenant%d_%d", ts, idx)
 	t.Logf("creating tenant %q", tenantName)
-	tResp, err := tenantClient.Create(ctx, &tenant.CreateRequest{Name: tenantName})
+	tResp, err := tenantClient.Create(rootAuthCtx(ctx), &tenant.CreateRequest{Name: tenantName})
 	if err != nil {
 		t.Fatalf("create tenant: %v", err)
 	}
@@ -121,7 +134,8 @@ func setupTenantWithDeps(t *testing.T, ctx context.Context, conn *grpc.ClientCon
 	t.Logf("tenant created: id=%s", tenantID)
 
 	t.Logf("listing users for tenant %s", tenantID)
-	uResp, err := userClient.List(ctx, &user.ListRequest{TenantId: tenantID, PageSize: 10})
+	authContext := tenantAuthCtx(ctx, tenantID, rootUserID)
+	uResp, err := userClient.List(authContext, &user.ListRequest{TenantId: tenantID, PageSize: 10})
 	if err != nil {
 		t.Fatalf("list users: %v", err)
 	}
@@ -130,6 +144,7 @@ func setupTenantWithDeps(t *testing.T, ctx context.Context, conn *grpc.ClientCon
 	}
 	ownerID = uResp.Users[0].Id
 	t.Logf("tenant owner resolved: user_id=%s", ownerID)
+	authContext = tenantAuthCtx(ctx, tenantID, ownerID)
 
 	t.Log("loading SSH key fixture")
 	sshKey, err := os.ReadFile(projectRoot + "/test/fixtures/id_ed25519")
@@ -137,7 +152,7 @@ func setupTenantWithDeps(t *testing.T, ctx context.Context, conn *grpc.ClientCon
 		t.Fatalf("read id_ed25519: %v", err)
 	}
 	t.Log("creating deploy target")
-	tgResp, err := targetClient.Create(ctx, &target.CreateRequest{
+	tgResp, err := targetClient.Create(authContext, &target.CreateRequest{
 		TenantId: tenantID,
 		OwnerId:  ownerID,
 		Address:  "zxc-target",
@@ -152,7 +167,7 @@ func setupTenantWithDeps(t *testing.T, ctx context.Context, conn *grpc.ClientCon
 
 	zipContent := buildFixtureZip(t)
 	t.Logf("creating payload (%d bytes)", len(zipContent))
-	pResp, err := plClient.Create(ctx, &payload.CreateRequest{
+	pResp, err := plClient.Create(authContext, &payload.CreateRequest{
 		TenantId: tenantID,
 		OwnerId:  ownerID,
 		Content:  zipContent,
@@ -181,9 +196,10 @@ func TestE2E(t *testing.T) {
 	t.Logf("fixture setup complete: tenant=%s owner=%s target=%s payload=%s", tenantID, ownerID, targetID, payloadID)
 
 	releaseClient := release.NewReleaseServiceClient(conn)
+	authContext := tenantAuthCtx(ctx, tenantID, ownerID)
 
 	t.Log("creating release")
-	createResp, err := releaseClient.Create(ctx, &release.CreateRequest{
+	createResp, err := releaseClient.Create(authContext, &release.CreateRequest{
 		TenantId:  tenantID,
 		OwnerId:   ownerID,
 		TargetId:  targetID,
@@ -196,7 +212,7 @@ func TestE2E(t *testing.T) {
 	t.Logf("release created: id=%s status=%s", releaseID, createResp.Release.Status)
 
 	t.Logf("triggering deploy for release %s", releaseID)
-	deployResp, err := releaseClient.Deploy(ctx, &release.DeployRequest{
+	deployResp, err := releaseClient.Deploy(authContext, &release.DeployRequest{
 		TenantId: tenantID,
 		Id:       releaseID,
 		UserId:   ownerID,
@@ -216,7 +232,7 @@ func TestE2E(t *testing.T) {
 		var last string
 		var prev string
 		for time.Now().Before(deadline) {
-			getResp, err := releaseClient.Get(ctx, &release.GetRequest{TenantId: tenantID, Id: releaseID})
+			getResp, err := releaseClient.Get(authContext, &release.GetRequest{TenantId: tenantID, Id: releaseID})
 			if err != nil {
 				t.Fatalf("Get: %v", err)
 			}

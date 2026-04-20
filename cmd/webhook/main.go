@@ -13,12 +13,13 @@ import (
 
 	"zxc/internal/config"
 	"zxc/internal/db"
-	"zxc/internal/logger"
 	"zxc/internal/request"
 )
 
 func main() {
-	logger.Init()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})))
 
 	configPath := flag.String("config", "config.toml", "path to configuration file")
 	port := flag.Int("port", 8080, "http server port")
