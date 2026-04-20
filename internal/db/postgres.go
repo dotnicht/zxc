@@ -36,9 +36,6 @@ func NewConnection(dsn string) (*gorm.DB, error) {
 
 func RunRootMigrations(db *gorm.DB) error {
 	slog.Info("Running root database migrations")
-	if err := db.Exec(`ALTER TABLE IF EXISTS targets RENAME TO routes`).Error; err != nil {
-		return fmt.Errorf("failed to rename routes table: %w", err)
-	}
 	if err := db.AutoMigrate(&models.Tenant{}, &models.User{}, &models.Route{}, &models.Event{}, &models.Command{}); err != nil {
 		return fmt.Errorf("failed to run root migrations: %w", err)
 	}
@@ -57,9 +54,6 @@ func RunRootMigrations(db *gorm.DB) error {
 
 func RunTenantMigrations(db *gorm.DB) error {
 	slog.Info("Running tenant database migrations")
-	if err := db.Exec(`ALTER TABLE IF EXISTS servers RENAME TO targets`).Error; err != nil {
-		return fmt.Errorf("failed to rename targets table: %w", err)
-	}
 	if err := db.AutoMigrate(&models.User{}, &models.Request{}, &models.Target{}, &models.Payload{}, &models.Release{}); err != nil {
 		return fmt.Errorf("failed to run tenant migrations: %w", err)
 	}
