@@ -56,6 +56,9 @@ func (w *ReleaseMarkAliveWorker) Work(ctx context.Context, job *workflow.Job[Rel
 		if sinceDeploy := time.Since(release.UpdatedAt); sinceDeploy < 3*time.Second {
 			return workflow.Snooze(3*time.Second - sinceDeploy)
 		}
+		if err := authorizeReleaseTransition(ctx, &tenant, models.ReleaseDeployed, models.ReleaseAlive); err != nil {
+			return err
+		}
 		result := db.WithContext(ctx).Model(&models.Release{}).
 			Where("id = ? AND status = ?", release.ID, models.ReleaseDeployed).
 			Update("status", models.ReleaseAlive)
@@ -64,12 +67,6 @@ func (w *ReleaseMarkAliveWorker) Work(ctx context.Context, job *workflow.Job[Rel
 		}
 		if result.RowsAffected == 0 {
 			return nil
-		}
-		if err := authorizeReleaseTransition(ctx, &tenant, models.ReleaseDeployed, models.ReleaseAlive); err != nil {
-			revertErr := db.WithContext(ctx).Model(&models.Release{}).
-				Where("id = ? AND status = ?", release.ID, models.ReleaseAlive).
-				Update("status", models.ReleaseDeployed).Error
-			return errors.Join(err, revertErr)
 		}
 		if err := w.store.RootTransaction(ctx, func(tx *gorm.DB) error {
 			return w.store.RecordEvent(ctx, tx, workflow.EventInput{

@@ -147,6 +147,12 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 		slog.Error("record target online event", "target_id", release.Target.ID, "error", err)
 	}
 
+	if release.Status == models.ReleaseWait {
+		if err := authorizeReleaseTransition(ctx, &tenant, models.ReleaseWait, models.ReleaseDeployed); err != nil {
+			return err
+		}
+	}
+
 	result := db.WithContext(ctx).Model(&models.Release{}).
 		Where("id = ? AND status = ?", release.ID, models.ReleaseWait).
 		Updates(map[string]any{
@@ -157,20 +163,7 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 		return result.Error
 	}
 
-	var current models.Release
-	if err := db.WithContext(ctx).Select("status").First(&current, "id = ?", release.ID).Error; err != nil {
-		return err
-	}
 	if result.RowsAffected > 0 {
-		if err := authorizeReleaseTransition(ctx, &tenant, models.ReleaseWait, models.ReleaseDeployed); err != nil {
-			revertErr := db.WithContext(ctx).Model(&models.Release{}).
-				Where("id = ? AND status = ?", release.ID, models.ReleaseDeployed).
-				Updates(map[string]any{
-					"status":        models.ReleaseWait,
-					"changed_by_id": job.Args.ChangedByID,
-				}).Error
-			return errors.Join(err, revertErr)
-		}
 		if err := w.store.RootTransaction(ctx, func(tx *gorm.DB) error {
 			if err := w.store.RecordEvent(ctx, tx, workflow.EventInput{
 				Kind:          "release_deployed",
@@ -208,13 +201,17 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 		}
 	}
 
-	if current.Status == models.ReleaseAlive {
-		return nil
-	}
 	return nil
 }
 
 func (w *DeployWorker) markReleaseDead(ctx context.Context, db *gorm.DB, args DeployReleaseArgs, previousStatus string) error {
+	var tenant models.Tenant
+	if err := w.rootDB.WithContext(ctx).First(&tenant, "id = ?", args.TenantID).Error; err != nil {
+		return err
+	}
+	if err := authorizeReleaseTransition(ctx, &tenant, previousStatus, models.ReleaseDead); err != nil {
+		return err
+	}
 	result := db.WithContext(ctx).Model(&models.Release{}).
 		Where("id = ? AND status <> ?", args.ReleaseID, models.ReleaseDead).
 		Updates(map[string]any{
@@ -226,19 +223,6 @@ func (w *DeployWorker) markReleaseDead(ctx context.Context, db *gorm.DB, args De
 	}
 	if result.RowsAffected == 0 {
 		return nil
-	}
-	var tenant models.Tenant
-	if err := w.rootDB.WithContext(ctx).First(&tenant, "id = ?", args.TenantID).Error; err != nil {
-		return err
-	}
-	if err := authorizeReleaseTransition(ctx, &tenant, previousStatus, models.ReleaseDead); err != nil {
-		revertErr := db.WithContext(ctx).Model(&models.Release{}).
-			Where("id = ? AND status = ?", args.ReleaseID, models.ReleaseDead).
-			Updates(map[string]any{
-				"status":        previousStatus,
-				"changed_by_id": args.ChangedByID,
-			}).Error
-		return errors.Join(err, revertErr)
 	}
 	if err := w.store.RootTransaction(ctx, func(tx *gorm.DB) error {
 		return w.store.RecordEvent(ctx, tx, workflow.EventInput{

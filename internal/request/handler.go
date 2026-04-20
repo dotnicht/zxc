@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"zxc/internal/db"
+	"zxc/internal/jobs"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
 )
@@ -104,7 +105,6 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	releaseKey := releaseID.String()
 	requestKey := record.ID.String()
-	tenantKey := route.TenantID.String()
 	if err := h.store.RootTransaction(r.Context(), func(tx *gorm.DB) error {
 		if err := h.store.RecordEvent(r.Context(), tx, workflow.EventInput{
 			Kind:          "webhook_received",
@@ -125,10 +125,10 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 			AggregateType: "release",
 			AggregateID:   releaseKey,
 			TenantID:      &route.TenantID,
-			Payload: map[string]any{
-				"tenant_id":  tenantKey,
-				"release_id": releaseKey,
-				"body":       json.RawMessage(body),
+			Payload: jobs.ReleaseMarkAliveArgs{
+				TenantID:  route.TenantID,
+				ReleaseID: releaseID,
+				Body:      json.RawMessage(body),
 			},
 			DedupeKey: "release-mark-alive:" + releaseKey,
 		})

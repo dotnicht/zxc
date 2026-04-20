@@ -29,5 +29,5 @@ type Target struct {
 }
 
 func (Target) TableName() string {
-	return "servers"
+	return "targets"
 }
