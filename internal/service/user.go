@@ -102,9 +102,17 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 	if err != nil {
 		return nil, err
 	}
+
+	var current models.User
+	if err := tenantDB.First(&current, "id = ?", userID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "user not found")
+		}
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to load user: %v", err))
+	}
 	if _, err := authorizeAction(ctx, "user.update", tenant, authz.Resource{
 		Type:    "user",
-		OwnerID: userID.String(),
+		OwnerID: current.ID.String(),
 	}, authz.Related{}); err != nil {
 		return nil, err
 	}

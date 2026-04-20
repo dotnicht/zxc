@@ -11,7 +11,6 @@ decision := {
 	"reveal_secret": reveal_secret,
 	"reason": reason,
 }
-if true
 
 is_root if input.subject.is_root
 

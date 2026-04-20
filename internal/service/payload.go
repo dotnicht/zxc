@@ -91,17 +91,12 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 		return nil, err
 	}
 
-	ten, _, err := authenticatedTenant(ctx, tenantID)
+	ten, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
 	if _, err := authorizeAction(ctx, "payload.create", ten, authz.Resource{Type: "payload"}, authz.Related{}); err != nil {
 		return nil, err
-	}
-
-	tenantDB, err := s.cache.Get(ten.Database)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to connect to tenant database: %v", err)
 	}
 
 	payloadID := uuid.New()

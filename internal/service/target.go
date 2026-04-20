@@ -77,11 +77,14 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to persist target creation: %v", errors.Join(err, cleanupErr))
 	}
 
-	protoTarget, err := s.targetToProto(ctx, tenant, t)
+	decision, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
+		Type:    "target",
+		OwnerID: t.OwnerID.String(),
+	}, authz.Related{})
 	if err != nil {
 		return nil, err
 	}
-	return &target.CreateResponse{Target: protoTarget}, nil
+	return &target.CreateResponse{Target: s.targetToProto(t, decision.RevealSecret)}, nil
 }
 
 func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetResponse, error) {
@@ -107,11 +110,14 @@ func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetRe
 		}
 		return nil, status.Errorf(codes.Internal, "failed to get target: %v", err)
 	}
-	protoTarget, err := s.targetToProto(ctx, tenant, &t)
+	decision, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
+		Type:    "target",
+		OwnerID: t.OwnerID.String(),
+	}, authz.Related{})
 	if err != nil {
 		return nil, err
 	}
-	return &target.GetResponse{Target: protoTarget}, nil
+	return &target.GetResponse{Target: s.targetToProto(&t, decision.RevealSecret)}, nil
 }
 
 func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target.UpdateResponse, error) {
@@ -188,11 +194,14 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to persist target update: %v", errors.Join(err, revertErr))
 	}
 
-	protoTarget, err := s.targetToProto(ctx, tenant, &updated)
+	decision, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
+		Type:    "target",
+		OwnerID: updated.OwnerID.String(),
+	}, authz.Related{})
 	if err != nil {
 		return nil, err
 	}
-	return &target.UpdateResponse{Target: protoTarget}, nil
+	return &target.UpdateResponse{Target: s.targetToProto(&updated, decision.RevealSecret)}, nil
 }
 
 func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target.DeleteResponse, error) {
@@ -288,11 +297,14 @@ func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.Lis
 
 	protoTargets := make([]*target.Target, len(targets))
 	for i, t := range targets {
-		protoTarget, err := s.targetToProto(ctx, tenant, t)
+		d, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
+			Type:    "target",
+			OwnerID: t.OwnerID.String(),
+		}, authz.Related{})
 		if err != nil {
 			return nil, err
 		}
-		protoTargets[i] = protoTarget
+		protoTargets[i] = s.targetToProto(t, d.RevealSecret)
 	}
 
 	return &target.ListResponse{Targets: protoTargets, Total: int32(total)}, nil
@@ -338,11 +350,14 @@ func (s *Target) Search(ctx context.Context, req *target.SearchRequest) (*target
 
 	protoTargets := make([]*target.Target, len(targets))
 	for i, t := range targets {
-		protoTarget, err := s.targetToProto(ctx, tenant, t)
+		d, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
+			Type:    "target",
+			OwnerID: t.OwnerID.String(),
+		}, authz.Related{})
 		if err != nil {
 			return nil, err
 		}
-		protoTargets[i] = protoTarget
+		protoTargets[i] = s.targetToProto(t, d.RevealSecret)
 	}
 
 	return &target.SearchResponse{Targets: protoTargets, Total: int32(total)}, nil
@@ -361,19 +376,12 @@ func targetToProto(t *models.Target) *target.Target {
 	}
 }
 
-func (s *Target) targetToProto(ctx context.Context, tenant *models.Tenant, t *models.Target) (*target.Target, error) {
-	decision, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
-		Type:    "target",
-		OwnerID: t.OwnerID.String(),
-	}, authz.Related{})
-	if err != nil {
-		return nil, err
+func (s *Target) targetToProto(t *models.Target, reveal bool) *target.Target {
+	p := targetToProto(t)
+	if !reveal {
+		p.Key = ""
 	}
-	protoTarget := targetToProto(t)
-	if !decision.RevealSecret {
-		protoTarget.Key = ""
-	}
-	return protoTarget, nil
+	return p
 }
 
 func (s *Target) enqueueProbe(ctx context.Context, tx *gorm.DB, tenantID uuid.UUID, targetID uuid.UUID) error {

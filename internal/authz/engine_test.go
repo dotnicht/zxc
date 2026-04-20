@@ -104,6 +104,56 @@ func TestEmbeddedPolicy(t *testing.T) {
 			},
 			wantAllow: true,
 		},
+		{
+			name: "system may transition wait to deployed",
+			input: Input{
+				Subject:  Subject{ID: "system", System: true},
+				Action:   "release.transition",
+				Tenant:   Tenant{ID: "tenant-1", OwnerID: "owner"},
+				Resource: Resource{Type: "release", Status: "wait", NextStatus: "deployed"},
+			},
+			wantAllow: true,
+		},
+		{
+			name: "system may transition wait to dead",
+			input: Input{
+				Subject:  Subject{ID: "system", System: true},
+				Action:   "release.transition",
+				Tenant:   Tenant{ID: "tenant-1", OwnerID: "owner"},
+				Resource: Resource{Type: "release", Status: "wait", NextStatus: "dead"},
+			},
+			wantAllow: true,
+		},
+		{
+			name: "system may transition deployed to dead",
+			input: Input{
+				Subject:  Subject{ID: "system", System: true},
+				Action:   "release.transition",
+				Tenant:   Tenant{ID: "tenant-1", OwnerID: "owner"},
+				Resource: Resource{Type: "release", Status: "deployed", NextStatus: "dead"},
+			},
+			wantAllow: true,
+		},
+		{
+			name: "system may transition alive to dead",
+			input: Input{
+				Subject:  Subject{ID: "system", System: true},
+				Action:   "release.transition",
+				Tenant:   Tenant{ID: "tenant-1", OwnerID: "owner"},
+				Resource: Resource{Type: "release", Status: "alive", NextStatus: "dead"},
+			},
+			wantAllow: true,
+		},
+		{
+			name: "system cannot transition alive to wait",
+			input: Input{
+				Subject:  Subject{ID: "system", System: true},
+				Action:   "release.transition",
+				Tenant:   Tenant{ID: "tenant-1", OwnerID: "owner"},
+				Resource: Resource{Type: "release", Status: "alive", NextStatus: "wait"},
+			},
+			wantAllow: false,
+		},
 	}
 
 	for _, tc := range testCases {
