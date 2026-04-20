@@ -48,21 +48,30 @@ func (w *ReleaseHealthWorker) Work(ctx context.Context, job *workflow.Job[Releas
 	case models.ReleaseAlive, models.ReleaseDead:
 		return nil
 	case models.ReleaseWait, models.ReleaseDeployed:
+		previousStatus := release.Status
 		result := db.WithContext(ctx).Model(&models.Release{}).
 			Where("id = ? AND status IN ?", release.ID, []string{models.ReleaseWait, models.ReleaseDeployed}).
 			Update("status", models.ReleaseDead)
 		if result.Error != nil || result.RowsAffected == 0 {
 			return result.Error
 		}
-		return w.store.RecordEvent(ctx, nil, workflow.EventInput{
-			Kind:          "release_health_timeout",
-			AggregateType: "release",
-			AggregateID:   release.ID.String(),
-			TenantID:      &job.Args.TenantID,
-			Payload: map[string]any{
-				"release_id": release.ID.String(),
-			},
-		})
+		if err := w.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+			return w.store.RecordEvent(ctx, tx, workflow.EventInput{
+				Kind:          "release_health_timeout",
+				AggregateType: "release",
+				AggregateID:   release.ID.String(),
+				TenantID:      &job.Args.TenantID,
+				Payload: map[string]any{
+					"release_id": release.ID.String(),
+				},
+			})
+		}); err != nil {
+			revertErr := db.WithContext(ctx).Model(&models.Release{}).
+				Where("id = ? AND status = ?", release.ID, models.ReleaseDead).
+				Update("status", previousStatus).Error
+			return errors.Join(err, revertErr)
+		}
+		return nil
 	default:
 		return nil
 	}

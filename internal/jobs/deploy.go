@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -121,7 +122,7 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 		StartCmd: release.Payload.Start,
 	}); err != nil {
 		if job.Attempt >= job.MaxAttempts {
-			if err := w.markReleaseDead(ctx, db, job.Args); err != nil {
+			if err := w.markReleaseDead(ctx, db, job.Args, release.Status); err != nil {
 				slog.Error("failed to mark release dead after deploy failure", "release_id", job.Args.ReleaseID, "error", err)
 			}
 		}
@@ -161,32 +162,40 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 		return err
 	}
 	if result.RowsAffected > 0 {
-		if err := w.store.RecordEvent(ctx, nil, workflow.EventInput{
-			Kind:          "release_deployed",
-			AggregateType: "release",
-			AggregateID:   release.ID.String(),
-			TenantID:      &job.Args.TenantID,
-			Payload: map[string]any{
-				"release_id":    release.ID.String(),
-				"changed_by_id": job.Args.ChangedByID.String(),
-			},
+		if err := w.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+			if err := w.store.RecordEvent(ctx, tx, workflow.EventInput{
+				Kind:          "release_deployed",
+				AggregateType: "release",
+				AggregateID:   release.ID.String(),
+				TenantID:      &job.Args.TenantID,
+				Payload: map[string]any{
+					"release_id":    release.ID.String(),
+					"changed_by_id": job.Args.ChangedByID.String(),
+				},
+			}); err != nil {
+				return err
+			}
+			return w.store.EnqueueCommand(ctx, tx, workflow.CommandInput{
+				Kind:          "release_health_timeout",
+				AggregateType: "release",
+				AggregateID:   release.ID.String(),
+				TenantID:      &job.Args.TenantID,
+				Payload: ReleaseHealthTimeoutArgs{
+					TenantID:  job.Args.TenantID,
+					ReleaseID: release.ID,
+				},
+				RunAt:       time.Now().UTC().Add(2 * time.Minute),
+				MaxAttempts: 1,
+				DedupeKey:   "release-health:" + release.ID.String(),
+			})
 		}); err != nil {
-			return err
-		}
-		if err := w.store.EnqueueCommand(ctx, nil, workflow.CommandInput{
-			Kind:          "release_health_timeout",
-			AggregateType: "release",
-			AggregateID:   release.ID.String(),
-			TenantID:      &job.Args.TenantID,
-			Payload: ReleaseHealthTimeoutArgs{
-				TenantID:  job.Args.TenantID,
-				ReleaseID: release.ID,
-			},
-			RunAt:       time.Now().UTC().Add(2 * time.Minute),
-			MaxAttempts: 1,
-			DedupeKey:   "release-health:" + release.ID.String(),
-		}); err != nil {
-			return err
+			revertErr := db.WithContext(ctx).Model(&models.Release{}).
+				Where("id = ? AND status = ?", release.ID, models.ReleaseDeployed).
+				Updates(map[string]any{
+					"status":        models.ReleaseWait,
+					"changed_by_id": job.Args.ChangedByID,
+				}).Error
+			return errors.Join(err, revertErr)
 		}
 	}
 
@@ -196,7 +205,7 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 	return nil
 }
 
-func (w *DeployWorker) markReleaseDead(ctx context.Context, db *gorm.DB, args DeployReleaseArgs) error {
+func (w *DeployWorker) markReleaseDead(ctx context.Context, db *gorm.DB, args DeployReleaseArgs, previousStatus string) error {
 	result := db.WithContext(ctx).Model(&models.Release{}).
 		Where("id = ? AND status <> ?", args.ReleaseID, models.ReleaseDead).
 		Updates(map[string]any{
@@ -209,16 +218,27 @@ func (w *DeployWorker) markReleaseDead(ctx context.Context, db *gorm.DB, args De
 	if result.RowsAffected == 0 {
 		return nil
 	}
-	return w.store.RecordEvent(ctx, nil, workflow.EventInput{
-		Kind:          "release_failed",
-		AggregateType: "release",
-		AggregateID:   args.ReleaseID.String(),
-		TenantID:      &args.TenantID,
-		Payload: map[string]any{
-			"release_id":    args.ReleaseID.String(),
-			"changed_by_id": args.ChangedByID.String(),
-		},
-	})
+	if err := w.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+		return w.store.RecordEvent(ctx, tx, workflow.EventInput{
+			Kind:          "release_failed",
+			AggregateType: "release",
+			AggregateID:   args.ReleaseID.String(),
+			TenantID:      &args.TenantID,
+			Payload: map[string]any{
+				"release_id":    args.ReleaseID.String(),
+				"changed_by_id": args.ChangedByID.String(),
+			},
+		})
+	}); err != nil {
+		revertErr := db.WithContext(ctx).Model(&models.Release{}).
+			Where("id = ? AND status = ?", args.ReleaseID, models.ReleaseDead).
+			Updates(map[string]any{
+				"status":        previousStatus,
+				"changed_by_id": args.ChangedByID,
+			}).Error
+		return errors.Join(err, revertErr)
+	}
+	return nil
 }
 
 func injectConfig(zipContent []byte, config, releaseID, webhookURL, key string) ([]byte, error) {

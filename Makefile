@@ -1,67 +1,88 @@
-.PHONY: proto build run test test-integration test-all clean docker-up docker-down docker-build docker-logs deps cloudbeaver-sync
+.PHONY: proto build build-server build-worker build-webhook build-migrator build-storageui \
+	run run-worker run-webhook run-storageui migrate migrate-dry-run \
+	test test-integration test-all clean \
+	docker-up docker-down docker-clean docker-build docker-logs docker-restart \
+	deps cloudbeaver-sync
+
+GO ?= go
+PROTOC ?= protoc
+CONFIG ?= config.toml
+BIN_DIR ?= bin
+DOCKER_COMPOSE ?= $(shell if command -v docker-compose >/dev/null 2>&1; then echo docker-compose; else echo "docker compose"; fi)
+
+PROTO_FILES := \
+	proto/user.proto \
+	proto/tenant.proto \
+	proto/release.proto \
+	proto/target.proto \
+	proto/payload.proto
 
 proto:
-	protoc --go_out=. --go_opt=module=zxc \
+	$(foreach file,$(PROTO_FILES),$(PROTOC) --go_out=. --go_opt=module=zxc \
 	  --go-grpc_out=. --go-grpc_opt=module=zxc \
-	  proto/user.proto
-	protoc --go_out=. --go_opt=module=zxc \
-	  --go-grpc_out=. --go-grpc_opt=module=zxc \
-	  proto/tenant.proto
-	protoc --go_out=. --go_opt=module=zxc \
-	  --go-grpc_out=. --go-grpc_opt=module=zxc \
-	  proto/release.proto
-	protoc --go_out=. --go_opt=module=zxc \
-	  --go-grpc_out=. --go-grpc_opt=module=zxc \
-	  proto/target.proto
-	protoc --go_out=. --go_opt=module=zxc \
-	  --go-grpc_out=. --go-grpc_opt=module=zxc \
-	  proto/payload.proto
+	  $(file);)
 
-build: proto
-	go build -o bin/server cmd/server/main.go
-	go build -o bin/worker cmd/worker/main.go
-	go build -o bin/migrate cmd/migrator/main.go
-	go build -o bin/storageui cmd/storageui/main.go
+build: proto build-server build-worker build-webhook build-migrator build-storageui
 
-run: build
-	./bin/server -config config.toml
+build-server:
+	$(GO) build -o $(BIN_DIR)/server ./cmd/server
 
-run-worker: build
-	./bin/worker -config config.toml
+build-worker:
+	$(GO) build -o $(BIN_DIR)/worker ./cmd/worker
 
-migrate: build
-	./bin/migrate -config config.toml
+build-webhook:
+	$(GO) build -o $(BIN_DIR)/webhook ./cmd/webhook
 
-migrate-dry-run: build
-	./bin/migrate -config config.toml -dry-run
+build-migrator:
+	$(GO) build -o $(BIN_DIR)/migrator ./cmd/migrator
+
+build-storageui:
+	$(GO) build -o $(BIN_DIR)/storageui ./cmd/storageui
+
+run: build-server
+	./$(BIN_DIR)/server -config $(CONFIG)
+
+run-worker: build-worker
+	./$(BIN_DIR)/worker -config $(CONFIG)
+
+run-webhook: build-webhook
+	./$(BIN_DIR)/webhook -config $(CONFIG)
+
+run-storageui: build-storageui
+	./$(BIN_DIR)/storageui -config $(CONFIG)
+
+migrate: build-migrator
+	./$(BIN_DIR)/migrator -config $(CONFIG)
+
+migrate-dry-run: build-migrator
+	./$(BIN_DIR)/migrator -config $(CONFIG) -dry-run
 
 test:
-	go test -v -short ./internal/... ./cmd/...
+	$(GO) test -v -short ./internal/... ./cmd/...
 
 test-integration:
-	go test -v -timeout 600s ./test/...
+	$(GO) test -v -timeout 600s ./test/...
 
-test-all:
-	go test -v -timeout 600s ./test/...
+test-all: test test-integration
 
 clean:
-	rm -rf bin/
+	rm -rf $(BIN_DIR)/
 	rm -rf api/
 
 docker-up:
-	docker-compose up -d
+	$(DOCKER_COMPOSE) up -d
 
 docker-down:
-	docker-compose down
+	$(DOCKER_COMPOSE) down
 
 docker-clean:
-	docker-compose down -v
+	$(DOCKER_COMPOSE) down -v
 
 docker-build:
-	docker-compose build
+	$(DOCKER_COMPOSE) build
 
 docker-logs:
-	docker-compose logs -f
+	$(DOCKER_COMPOSE) logs -f
 
 docker-restart: docker-down docker-build docker-up
 
@@ -69,6 +90,6 @@ cloudbeaver-sync:
 	sh scripts/sync-cloudbeaver-datasources.sh
 
 deps:
-	go mod download
-	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	$(GO) mod download
+	$(GO) install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	$(GO) install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest

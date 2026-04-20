@@ -90,26 +90,28 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 		return nil, status.Errorf(codes.Internal, "failed to create release: %v", err)
 	}
 
-	route := &models.Route{ID: rel.ID, TenantID: tenant.ID}
-	if err := s.db.Create(route).Error; err != nil {
-		tenantDB.Delete(&models.Release{}, "id = ?", rel.ID)
-		return nil, status.Errorf(codes.Internal, "failed to create route: %v", err)
-	}
-	if err := s.store.RecordEvent(ctx, nil, workflow.EventInput{
-		Kind:          "release_created",
-		AggregateType: "release",
-		AggregateID:   rel.ID.String(),
-		TenantID:      &tenant.ID,
-		Payload: map[string]any{
-			"release_id":    rel.ID.String(),
-			"owner_id":      rel.OwnerID.String(),
-			"target_id":     targetID.String(),
-			"payload_id":    payloadID.String(),
-			"changed_by_id": rel.ChangedByID.String(),
-			"status":        rel.Status,
-		},
+	if err := s.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+		route := &models.Route{ID: rel.ID, TenantID: tenant.ID}
+		if err := tx.Create(route).Error; err != nil {
+			return err
+		}
+		return s.store.RecordEvent(ctx, tx, workflow.EventInput{
+			Kind:          "release_created",
+			AggregateType: "release",
+			AggregateID:   rel.ID.String(),
+			TenantID:      &tenant.ID,
+			Payload: map[string]any{
+				"release_id":    rel.ID.String(),
+				"owner_id":      rel.OwnerID.String(),
+				"target_id":     targetID.String(),
+				"payload_id":    payloadID.String(),
+				"changed_by_id": rel.ChangedByID.String(),
+				"status":        rel.Status,
+			},
+		})
 	}); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to record release event: %v", err)
+		cleanupErr := tenantDB.Unscoped().Delete(&models.Release{}, "id = ?", rel.ID).Error
+		return nil, status.Errorf(codes.Internal, "failed to persist release root state: %v", errors.Join(err, cleanupErr))
 	}
 
 	return &release.CreateResponse{Release: releaseToProto(rel)}, nil
@@ -175,34 +177,36 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 	if result.RowsAffected == 0 {
 		return nil, status.Error(codes.NotFound, "release not found")
 	}
-	if err := s.store.RecordEvent(ctx, nil, workflow.EventInput{
-		Kind:          "release_deploy_requested",
-		AggregateType: "release",
-		AggregateID:   releaseID.String(),
-		TenantID:      &tenant.ID,
-		Payload: map[string]any{
-			"release_id": releaseID.String(),
-			"user_id":    authUserID.String(),
-		},
+	if err := s.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+		if err := s.store.RecordEvent(ctx, tx, workflow.EventInput{
+			Kind:          "release_deploy_requested",
+			AggregateType: "release",
+			AggregateID:   releaseID.String(),
+			TenantID:      &tenant.ID,
+			Payload: map[string]any{
+				"release_id": releaseID.String(),
+				"user_id":    authUserID.String(),
+			},
+		}); err != nil {
+			return err
+		}
+		return s.store.EnqueueCommand(ctx, tx, workflow.CommandInput{
+			Kind:          "deploy_release",
+			AggregateType: "release",
+			AggregateID:   releaseID.String(),
+			TenantID:      &tenant.ID,
+			Payload: jobs.DeployReleaseArgs{
+				TenantID:    tenant.ID,
+				ReleaseID:   releaseID,
+				ChangedByID: authUserID,
+			},
+			DedupeKey: "release-deploy:" + releaseID.String(),
+		})
 	}); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to record deploy event: %v", err)
-	}
-	if err := s.store.EnqueueCommand(ctx, nil, workflow.CommandInput{
-		Kind:          "deploy_release",
-		AggregateType: "release",
-		AggregateID:   releaseID.String(),
-		TenantID:      &tenant.ID,
-		Payload: jobs.DeployReleaseArgs{
-			TenantID:    tenant.ID,
-			ReleaseID:   releaseID,
-			ChangedByID: authUserID,
-		},
-		DedupeKey: "release-deploy:" + releaseID.String(),
-	}); err != nil {
-		tenantDB.Model(&models.Release{}).
+		revertErr := tenantDB.Model(&models.Release{}).
 			Where("id = ? AND status = ?", releaseID, models.ReleaseWait).
-			Updates(map[string]any{"status": models.ReleaseUnknown, "changed_by_id": authUserID})
-		return nil, status.Errorf(codes.Internal, "failed to enqueue deploy command: %v", err)
+			Updates(map[string]any{"status": models.ReleaseUnknown, "changed_by_id": authUserID}).Error
+		return nil, status.Errorf(codes.Internal, "failed to persist deploy request: %v", errors.Join(err, revertErr))
 	}
 
 	var rel models.Release

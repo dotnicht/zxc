@@ -53,21 +53,24 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 	if err := tenantDB.Create(t).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create target: %v", err)
 	}
-	if err := s.store.RecordEvent(ctx, nil, workflow.EventInput{
-		Kind:          "target_created",
-		AggregateType: "target",
-		AggregateID:   t.ID.String(),
-		TenantID:      &tenantID,
-		Payload: map[string]any{
-			"target_id": t.ID.String(),
-			"address":   t.Address,
-			"user":      t.User,
-		},
+	if err := s.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+		if err := s.store.RecordEvent(ctx, tx, workflow.EventInput{
+			Kind:          "target_created",
+			AggregateType: "target",
+			AggregateID:   t.ID.String(),
+			TenantID:      &tenantID,
+			Payload: map[string]any{
+				"target_id": t.ID.String(),
+				"address":   t.Address,
+				"user":      t.User,
+			},
+		}); err != nil {
+			return err
+		}
+		return s.enqueueProbe(ctx, tx, tenantID, t.ID)
 	}); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to record target event: %v", err)
-	}
-	if err := s.enqueueProbe(ctx, tenantID, t.ID); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to schedule target probe: %v", err)
+		cleanupErr := tenantDB.Unscoped().Delete(&models.Target{}, "id = ?", t.ID).Error
+		return nil, status.Errorf(codes.Internal, "failed to persist target creation: %v", errors.Join(err, cleanupErr))
 	}
 
 	return &target.CreateResponse{Target: targetToProto(t)}, nil
@@ -120,6 +123,14 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		return nil, err
 	}
 
+	var previous models.Target
+	if err := tenantDB.First(&previous, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "target not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to load previous target state: %v", err)
+	}
+
 	result := tenantDB.Model(&models.Target{}).Where("id = ?", id).Updates(&models.Target{Address: req.Address, User: req.User, Key: req.Key})
 	if result.Error != nil {
 		return nil, status.Errorf(codes.Internal, "failed to update target: %v", result.Error)
@@ -132,21 +143,32 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 	if err := tenantDB.First(&updated, "id = ?", id).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated target: %v", err)
 	}
-	if err := s.store.RecordEvent(ctx, nil, workflow.EventInput{
-		Kind:          "target_updated",
-		AggregateType: "target",
-		AggregateID:   updated.ID.String(),
-		TenantID:      &tenantID,
-		Payload: map[string]any{
-			"target_id": updated.ID.String(),
-			"address":   updated.Address,
-			"user":      updated.User,
-		},
+	if err := s.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+		if err := s.store.RecordEvent(ctx, tx, workflow.EventInput{
+			Kind:          "target_updated",
+			AggregateType: "target",
+			AggregateID:   updated.ID.String(),
+			TenantID:      &tenantID,
+			Payload: map[string]any{
+				"target_id": updated.ID.String(),
+				"address":   updated.Address,
+				"user":      updated.User,
+			},
+		}); err != nil {
+			return err
+		}
+		return s.enqueueProbe(ctx, tx, tenantID, updated.ID)
 	}); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to record target event: %v", err)
-	}
-	if err := s.enqueueProbe(ctx, tenantID, updated.ID); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to schedule target probe: %v", err)
+		revertErr := tenantDB.Model(&models.Target{}).Where("id = ?", id).Updates(map[string]any{
+			"address":      previous.Address,
+			"user":         previous.User,
+			"key":          previous.Key,
+			"status":       previous.Status,
+			"deploying":    previous.Deploying,
+			"deploying_at": previous.DeployingAt,
+			"owner_id":     previous.OwnerID,
+		}).Error
+		return nil, status.Errorf(codes.Internal, "failed to persist target update: %v", errors.Join(err, revertErr))
 	}
 
 	return &target.UpdateResponse{Target: targetToProto(&updated)}, nil
@@ -168,6 +190,14 @@ func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target
 		return nil, err
 	}
 
+	var existing models.Target
+	if err := tenantDB.First(&existing, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "target not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to load target: %v", err)
+	}
+
 	result := tenantDB.Where("id = ?", id).Delete(&models.Target{})
 	if result.Error != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete target: %v", result.Error)
@@ -175,16 +205,22 @@ func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target
 	if result.RowsAffected == 0 {
 		return nil, status.Error(codes.NotFound, "target not found")
 	}
-	if err := s.store.RecordEvent(ctx, nil, workflow.EventInput{
-		Kind:          "target_deleted",
-		AggregateType: "target",
-		AggregateID:   id.String(),
-		TenantID:      &tenantID,
-		Payload: map[string]any{
-			"target_id": id.String(),
-		},
+	if err := s.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+		return s.store.RecordEvent(ctx, tx, workflow.EventInput{
+			Kind:          "target_deleted",
+			AggregateType: "target",
+			AggregateID:   id.String(),
+			TenantID:      &tenantID,
+			Payload: map[string]any{
+				"target_id": id.String(),
+			},
+		})
 	}); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to record target event: %v", err)
+		revertErr := tenantDB.Unscoped().Model(&models.Target{}).Where("id = ?", existing.ID).Updates(map[string]any{
+			"deleted_at": nil,
+			"updated_at": existing.UpdatedAt,
+		}).Error
+		return nil, status.Errorf(codes.Internal, "failed to persist target deletion: %v", errors.Join(err, revertErr))
 	}
 
 	return &target.DeleteResponse{Success: true}, nil
@@ -284,8 +320,8 @@ func targetToProto(t *models.Target) *target.Target {
 	}
 }
 
-func (s *Target) enqueueProbe(ctx context.Context, tenantID uuid.UUID, targetID uuid.UUID) error {
-	return s.store.EnqueueCommand(ctx, nil, workflow.CommandInput{
+func (s *Target) enqueueProbe(ctx context.Context, tx *gorm.DB, tenantID uuid.UUID, targetID uuid.UUID) error {
+	return s.store.EnqueueCommand(ctx, tx, workflow.CommandInput{
 		Kind:          "probe_target",
 		AggregateType: "target",
 		AggregateID:   targetID.String(),

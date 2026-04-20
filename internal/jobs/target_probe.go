@@ -53,23 +53,31 @@ func (w *TargetProbeWorker) Work(ctx context.Context, job *workflow.Job[TargetPr
 		eventKind = "target_probe_failed"
 	}
 
+	previousStatus := target.Status
 	if err := db.WithContext(ctx).Model(&models.Target{}).
 		Where("id = ? AND status <> ?", target.ID, newStatus).
 		Update("status", newStatus).Error; err != nil {
 		return err
 	}
 
-	if err := w.store.RecordEvent(ctx, nil, workflow.EventInput{
-		Kind:          eventKind,
-		AggregateType: "target",
-		AggregateID:   target.ID.String(),
-		TenantID:      &job.Args.TenantID,
-		Payload: map[string]any{
-			"target_id": target.ID.String(),
-			"status":    newStatus,
-		},
-	}); err != nil {
-		return err
+	if previousStatus != newStatus {
+		if err := w.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+			return w.store.RecordEvent(ctx, tx, workflow.EventInput{
+				Kind:          eventKind,
+				AggregateType: "target",
+				AggregateID:   target.ID.String(),
+				TenantID:      &job.Args.TenantID,
+				Payload: map[string]any{
+					"target_id": target.ID.String(),
+					"status":    newStatus,
+				},
+			})
+		}); err != nil {
+			revertErr := db.WithContext(ctx).Model(&models.Target{}).
+				Where("id = ? AND status = ?", target.ID, newStatus).
+				Update("status", previousStatus).Error
+			return errors.Join(err, revertErr)
+		}
 	}
 
 	return workflow.Snooze(30 * time.Second)

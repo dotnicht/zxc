@@ -65,16 +65,24 @@ func (w *ReleaseMarkAliveWorker) Work(ctx context.Context, job *workflow.Job[Rel
 		if result.RowsAffected == 0 {
 			return nil
 		}
-		return w.store.RecordEvent(ctx, nil, workflow.EventInput{
-			Kind:          "release_alive",
-			AggregateType: "release",
-			AggregateID:   release.ID.String(),
-			TenantID:      &job.Args.TenantID,
-			Payload: map[string]any{
-				"release_id": release.ID.String(),
-				"body":       job.Args.Body,
-			},
-		})
+		if err := w.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+			return w.store.RecordEvent(ctx, tx, workflow.EventInput{
+				Kind:          "release_alive",
+				AggregateType: "release",
+				AggregateID:   release.ID.String(),
+				TenantID:      &job.Args.TenantID,
+				Payload: map[string]any{
+					"release_id": release.ID.String(),
+					"body":       job.Args.Body,
+				},
+			})
+		}); err != nil {
+			revertErr := db.WithContext(ctx).Model(&models.Release{}).
+				Where("id = ? AND status = ?", release.ID, models.ReleaseAlive).
+				Update("status", models.ReleaseDeployed).Error
+			return errors.Join(err, revertErr)
+		}
+		return nil
 	default:
 		return nil
 	}

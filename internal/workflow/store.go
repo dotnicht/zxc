@@ -21,6 +21,12 @@ func NewStore(db *gorm.DB) *Store {
 	return &Store{db: db}
 }
 
+func (s *Store) RootTransaction(ctx context.Context, fn func(tx *gorm.DB) error) error {
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return fn(tx.WithContext(ctx))
+	})
+}
+
 type EventInput struct {
 	Kind          string
 	AggregateType string

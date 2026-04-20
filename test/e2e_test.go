@@ -3,6 +3,7 @@ package test
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -28,6 +29,7 @@ var (
 	clientCfgRoot  string
 	absCertsDir    string
 	absProjectRoot string
+	composeCmd     []string
 )
 
 func logStep(format string, args ...any) {
@@ -41,33 +43,39 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
+	var err error
+	composeCmd, err = dockerComposeCommand()
+	if err != nil {
+		fmt.Printf("resolve docker compose command failed: %v\n", err)
+		os.Exit(1)
+	}
+
 	logStep("stopping any previous docker-compose stack")
-	down := exec.Command("docker-compose", "down", "-v", "--remove-orphans")
-	down.Dir = projectRoot
-	down.Run()
+	runCompose(projectRoot, "down", "-v", "--remove-orphans")
 
 	logStep("starting docker-compose stack")
-	up := exec.Command("docker-compose", "up", "-d", "--build")
-	up.Dir = projectRoot
-	if out, err := up.CombinedOutput(); err != nil {
-		fmt.Printf("docker-compose up failed:\n%s\n%v\n", out, err)
+	if out, err := runCompose(projectRoot, "up", "-d", "--build"); err != nil {
+		fmt.Printf("docker compose up failed:\n%s\n%v\n", out, err)
 		os.Exit(1)
 	}
 
 	logStep("waiting for migrator container %q to finish", migratorName)
 	if err := waitForMigrator(migratorName, 120*time.Second); err != nil {
+		printComposeDiagnostics()
 		fmt.Printf("migrator did not complete: %v\n", err)
 		os.Exit(1)
 	}
 
 	logStep("waiting for gRPC endpoint %s", grpcAddr)
 	if err := waitForGRPC(grpcAddr, 60*time.Second); err != nil {
+		printComposeDiagnostics()
 		fmt.Printf("gRPC server not ready: %v\n", err)
 		os.Exit(1)
 	}
 
 	logStep("waiting for worker container %q to be running", workerName)
 	if err := waitForContainer(workerName, 60*time.Second); err != nil {
+		printComposeDiagnostics()
 		fmt.Printf("worker not running: %v\n", err)
 		os.Exit(1)
 	}
@@ -105,8 +113,43 @@ func TestMain(m *testing.M) {
 	}
 
 	code := m.Run()
+	runCompose(projectRoot, "down", "-v", "--remove-orphans")
 	_ = os.RemoveAll(tmpDir)
 	os.Exit(code)
+}
+
+func dockerComposeCommand() ([]string, error) {
+	if _, err := exec.LookPath("docker-compose"); err == nil {
+		return []string{"docker-compose"}, nil
+	}
+	if _, err := exec.LookPath("docker"); err == nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, "docker", "compose", "version")
+		if err := cmd.Run(); err == nil {
+			return []string{"docker", "compose"}, nil
+		}
+	}
+	return nil, fmt.Errorf("neither docker-compose nor docker compose is available")
+}
+
+func runCompose(dir string, args ...string) ([]byte, error) {
+	if len(composeCmd) == 0 {
+		return nil, fmt.Errorf("docker compose command is not initialized")
+	}
+	cmdArgs := append(append([]string{}, composeCmd[1:]...), args...)
+	cmd := exec.Command(composeCmd[0], cmdArgs...)
+	cmd.Dir = dir
+	return cmd.CombinedOutput()
+}
+
+func printComposeDiagnostics() {
+	if out, err := runCompose(projectRoot, "ps"); err == nil {
+		fmt.Printf("docker compose ps:\n%s\n", out)
+	}
+	if out, err := runCompose(projectRoot, "logs", "--tail=200"); err == nil {
+		fmt.Printf("docker compose logs --tail=200:\n%s\n", out)
+	}
 }
 
 func buildFixtureZip(t *testing.T) []byte {

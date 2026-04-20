@@ -2,6 +2,7 @@ package request
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -104,34 +105,36 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	releaseKey := releaseID.String()
 	requestKey := record.ID.String()
 	tenantKey := route.TenantID.String()
-	if err := h.store.RecordEvent(r.Context(), nil, workflow.EventInput{
-		Kind:          "webhook_received",
-		AggregateType: "release",
-		AggregateID:   releaseKey,
-		TenantID:      &route.TenantID,
-		Payload: map[string]any{
-			"release_id": releaseKey,
-			"request_id": requestKey,
-			"body":       json.RawMessage(body),
-		},
-	}); err != nil {
-		http.Error(w, "failed to record event", http.StatusInternalServerError)
-		return
-	}
+	if err := h.store.RootTransaction(r.Context(), func(tx *gorm.DB) error {
+		if err := h.store.RecordEvent(r.Context(), tx, workflow.EventInput{
+			Kind:          "webhook_received",
+			AggregateType: "release",
+			AggregateID:   releaseKey,
+			TenantID:      &route.TenantID,
+			Payload: map[string]any{
+				"release_id": releaseKey,
+				"request_id": requestKey,
+				"body":       json.RawMessage(body),
+			},
+		}); err != nil {
+			return err
+		}
 
-	if err := h.store.EnqueueCommand(r.Context(), nil, workflow.CommandInput{
-		Kind:          "release_mark_alive",
-		AggregateType: "release",
-		AggregateID:   releaseKey,
-		TenantID:      &route.TenantID,
-		Payload: map[string]any{
-			"tenant_id":  tenantKey,
-			"release_id": releaseKey,
-			"body":       json.RawMessage(body),
-		},
-		DedupeKey: "release-mark-alive:" + releaseKey,
+		return h.store.EnqueueCommand(r.Context(), tx, workflow.CommandInput{
+			Kind:          "release_mark_alive",
+			AggregateType: "release",
+			AggregateID:   releaseKey,
+			TenantID:      &route.TenantID,
+			Payload: map[string]any{
+				"tenant_id":  tenantKey,
+				"release_id": releaseKey,
+				"body":       json.RawMessage(body),
+			},
+			DedupeKey: "release-mark-alive:" + releaseKey,
+		})
 	}); err != nil {
-		http.Error(w, "failed to enqueue release update", http.StatusInternalServerError)
+		cleanupErr := tenantDB.Unscoped().Delete(&models.Request{}, "id = ?", record.ID).Error
+		http.Error(w, errors.Join(err, cleanupErr).Error(), http.StatusInternalServerError)
 		return
 	}
 
