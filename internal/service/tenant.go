@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -113,9 +112,9 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 }
 
 func (s *Tenant) Get(ctx context.Context, req *tenant.GetRequest) (*tenant.GetResponse, error) {
-	id, err := uuid.Parse(req.Id)
+	id, err := parseUUID(req.Id, "id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid tenant ID")
+		return nil, err
 	}
 
 	var t models.Tenant
@@ -130,9 +129,9 @@ func (s *Tenant) Get(ctx context.Context, req *tenant.GetRequest) (*tenant.GetRe
 }
 
 func (s *Tenant) Update(ctx context.Context, req *tenant.UpdateRequest) (*tenant.UpdateResponse, error) {
-	id, err := uuid.Parse(req.Id)
+	id, err := parseUUID(req.Id, "id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid tenant ID")
+		return nil, err
 	}
 
 	var t models.Tenant
@@ -156,9 +155,9 @@ func (s *Tenant) Update(ctx context.Context, req *tenant.UpdateRequest) (*tenant
 		t.Storage = req.Storage
 	}
 	if req.OwnerId != "" {
-		ownerID, err := uuid.Parse(req.OwnerId)
+		ownerID, err := parseUUID(req.OwnerId, "owner_id")
 		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "invalid owner_id: must be a valid UUID")
+			return nil, err
 		}
 		t.OwnerID = ownerID
 	}
@@ -174,9 +173,9 @@ func (s *Tenant) Update(ctx context.Context, req *tenant.UpdateRequest) (*tenant
 }
 
 func (s *Tenant) Delete(ctx context.Context, req *tenant.DeleteRequest) (*tenant.DeleteResponse, error) {
-	id, err := uuid.Parse(req.Id)
+	id, err := parseUUID(req.Id, "id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid tenant ID")
+		return nil, err
 	}
 
 	result := s.db.WithContext(ctx).Delete(&models.Tenant{}, "id = ?", id)

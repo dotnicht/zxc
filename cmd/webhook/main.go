@@ -14,6 +14,7 @@ import (
 	"zxc/internal/config"
 	"zxc/internal/db"
 	"zxc/internal/request"
+	"zxc/internal/workflow"
 )
 
 func main() {
@@ -37,10 +38,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	h := request.NewHandler(database)
+	handler := request.NewHandler(database, workflow.NewStore(database))
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/webhooks", h.Create)
+	mux.HandleFunc("/webhooks", handler.Create)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", *port),

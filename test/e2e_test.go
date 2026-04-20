@@ -3,22 +3,15 @@ package test
 import (
 	"archive/zip"
 	"bytes"
-	"context"
 	"fmt"
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
-	"zxc/api/payload"
-	"zxc/api/release"
-	"zxc/api/target"
-	"zxc/api/tenant"
-	"zxc/api/user"
 )
 
 const (
@@ -28,6 +21,13 @@ const (
 	projectRoot  = ".."
 	certsDir     = projectRoot + "/test/certs"
 	rootUserID   = "00000000-0000-0000-0000-000000000001"
+)
+
+var (
+	clientBinPath  string
+	clientCfgRoot  string
+	absCertsDir    string
+	absProjectRoot string
 )
 
 func logStep(format string, args ...any) {
@@ -73,23 +73,40 @@ func TestMain(m *testing.M) {
 	}
 
 	logStep("integration environment is ready; starting tests")
-	os.Exit(m.Run())
-}
+	tmpDir, err := os.MkdirTemp("", "zxc-client-e2e-*")
+	if err != nil {
+		fmt.Printf("create temp dir failed: %v\n", err)
+		os.Exit(1)
+	}
+	clientCfgRoot = filepath.Join(tmpDir, "home")
+	clientBinPath = filepath.Join(tmpDir, "zxc-client")
+	absProjectRoot, err = filepath.Abs(projectRoot)
+	if err != nil {
+		fmt.Printf("resolve project root failed: %v\n", err)
+		os.Exit(1)
+	}
+	absCertsDir, err = filepath.Abs(certsDir)
+	if err != nil {
+		fmt.Printf("resolve cert dir failed: %v\n", err)
+		os.Exit(1)
+	}
 
-func newIntConn(t *testing.T) *grpc.ClientConn {
-	t.Helper()
-	creds, err := clientTLSCreds(certsDir)
-	if err != nil {
-		t.Fatalf("load TLS creds: %v", err)
+	logStep("building client binary at %s", clientBinPath)
+	build := exec.Command("go", "build", "-o", clientBinPath, "./cmd/client")
+	build.Dir = projectRoot
+	if out, err := build.CombinedOutput(); err != nil {
+		fmt.Printf("build client failed:\n%s\n%v\n", out, err)
+		os.Exit(1)
 	}
-	conn, err := grpc.NewClient(grpcAddr,
-		grpc.WithTransportCredentials(creds),
-		grpc.WithDisableServiceConfig(),
-	)
-	if err != nil {
-		t.Fatalf("dial gRPC: %v", err)
+
+	if err := writeClientConfig(rootUserID); err != nil {
+		fmt.Printf("write initial client config failed: %v\n", err)
+		os.Exit(1)
 	}
-	return conn
+
+	code := m.Run()
+	_ = os.RemoveAll(tmpDir)
+	os.Exit(code)
 }
 
 func buildFixtureZip(t *testing.T) []byte {
@@ -106,79 +123,124 @@ func buildFixtureZip(t *testing.T) []byte {
 	return buf.Bytes()
 }
 
-func rootAuthCtx(ctx context.Context) context.Context {
-	return metadata.AppendToOutgoingContext(ctx, "x-user-id", rootUserID)
-}
-
-func tenantAuthCtx(ctx context.Context, tenantID, userID string) context.Context {
-	return metadata.AppendToOutgoingContext(ctx,
-		"x-tenant-id", tenantID,
-		"x-user-id", userID,
-	)
-}
-
-func setupTenantWithDeps(t *testing.T, ctx context.Context, conn *grpc.ClientConn, ts int64, idx int) (tenantID, ownerID, targetID, payloadID string) {
-	t.Helper()
-	tenantClient := tenant.NewTenantServiceClient(conn)
-	userClient := user.NewUserServiceClient(conn)
-	targetClient := target.NewTargetServiceClient(conn)
-	plClient := payload.NewPayloadServiceClient(conn)
-
-	tenantName := fmt.Sprintf("inttenant%d_%d", ts, idx)
-	t.Logf("creating tenant %q", tenantName)
-	tResp, err := tenantClient.Create(rootAuthCtx(ctx), &tenant.CreateRequest{Name: tenantName})
-	if err != nil {
-		t.Fatalf("create tenant: %v", err)
+func writeClientConfig(userID string) error {
+	cfgDir := filepath.Join(clientConfigBaseDir(), "zxc")
+	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
+		return err
 	}
-	tenantID = tResp.Tenant.Id
+	body := fmt.Sprintf(`address = "localhost:50051"
+userid = %q
+timeout = "60s"
+
+[tls]
+ca = %q
+cert = %q
+key = %q
+`, userID,
+		filepath.Join(absCertsDir, "ca.crt"),
+		filepath.Join(absCertsDir, "client.crt"),
+		filepath.Join(absCertsDir, "client.key"),
+	)
+	return os.WriteFile(filepath.Join(cfgDir, "client.toml"), []byte(body), 0o644)
+}
+
+func clientConfigBaseDir() string {
+	switch runtime.GOOS {
+	case "darwin":
+		return filepath.Join(clientCfgRoot, "Library", "Application Support")
+	case "windows":
+		return filepath.Join(clientCfgRoot, "AppData", "Roaming")
+	default:
+		return filepath.Join(clientCfgRoot, ".config")
+	}
+}
+
+func runClient(t *testing.T, args ...string) string {
+	t.Helper()
+	cmd := exec.Command(clientBinPath, args...)
+	cmd.Dir = projectRoot
+	cmd.Env = append(os.Environ(),
+		"HOME="+clientCfgRoot,
+		"XDG_CONFIG_HOME="+filepath.Join(clientCfgRoot, ".config"),
+	)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("client %s failed:\n%s\n%v", strings.Join(args, " "), out, err)
+	}
+	return string(out)
+}
+
+func parseKVOutput(t *testing.T, out string) map[string]string {
+	t.Helper()
+	parsed := make(map[string]string)
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			continue
+		}
+		key := fields[0]
+		value := strings.Join(fields[1:], " ")
+		parsed[key] = value
+	}
+	return parsed
+}
+
+func firstDataID(t *testing.T, out string) string {
+	t.Helper()
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected table output with data rows, got:\n%s", out)
+	}
+	fields := strings.Fields(lines[1])
+	if len(fields) == 0 {
+		t.Fatalf("failed to parse first data row from:\n%s", out)
+	}
+	return fields[0]
+}
+
+func setupTenantWithDeps(t *testing.T, ts int64, idx int) (tenantID, ownerID, targetID, payloadID, tenantName string) {
+	t.Helper()
+	tenantName = fmt.Sprintf("inttenant%d_%d", ts, idx)
+	t.Logf("creating tenant %q", tenantName)
+	tenantAdd := parseKVOutput(t, runClient(t, "tenant", "add", "--name", tenantName))
+	tenantID = tenantAdd["id"]
 	t.Logf("tenant created: id=%s", tenantID)
 
 	t.Logf("listing users for tenant %s", tenantID)
-	authContext := tenantAuthCtx(ctx, tenantID, rootUserID)
-	uResp, err := userClient.List(authContext, &user.ListRequest{TenantId: tenantID, PageSize: 10})
-	if err != nil {
-		t.Fatalf("list users: %v", err)
-	}
-	if uResp.Total == 0 {
-		t.Fatalf("no users in tenant")
-	}
-	ownerID = uResp.Users[0].Id
-	t.Logf("tenant owner resolved: user_id=%s", ownerID)
-	authContext = tenantAuthCtx(ctx, tenantID, ownerID)
+	ownerID = firstDataID(t, runClient(t, "user", "list", "--tenant", tenantName, "--size", "10"))
+	t.Logf("tenant owner resolved: userid=%s", ownerID)
 
 	t.Log("loading SSH key fixture")
-	sshKey, err := os.ReadFile(projectRoot + "/test/fixtures/id_ed25519")
-	if err != nil {
-		t.Fatalf("read id_ed25519: %v", err)
-	}
 	t.Log("creating deploy target")
-	tgResp, err := targetClient.Create(authContext, &target.CreateRequest{
-		TenantId: tenantID,
-		OwnerId:  ownerID,
-		Address:  "zxc-target",
-		User:     "deploy",
-		Key:      string(sshKey),
-	})
-	if err != nil {
-		t.Fatalf("create target: %v", err)
-	}
-	targetID = tgResp.Target.Id
-	t.Logf("target created: id=%s address=%s", targetID, tgResp.Target.Address)
+	targetAdd := parseKVOutput(t, runClient(t,
+		"target", "add",
+		"--tenant", tenantName,
+		"--address", "zxc-target",
+		"--user", "deploy",
+		"--key", filepath.Join(absProjectRoot, "test/fixtures/id_ed25519"),
+	))
+	targetID = targetAdd["id"]
+	t.Logf("target created: id=%s address=%s", targetID, targetAdd["address"])
 
 	zipContent := buildFixtureZip(t)
-	t.Logf("creating payload (%d bytes)", len(zipContent))
-	pResp, err := plClient.Create(authContext, &payload.CreateRequest{
-		TenantId: tenantID,
-		OwnerId:  ownerID,
-		Content:  zipContent,
-		Name:     "payload.zip",
-		Config:   "script.conf",
-		Start:    "bash ~/script.sh",
-	})
-	if err != nil {
-		t.Fatalf("create payload: %v", err)
+	tmpZip := filepath.Join(t.TempDir(), "payload.zip")
+	if err := os.WriteFile(tmpZip, zipContent, 0o644); err != nil {
+		t.Fatalf("write payload fixture zip: %v", err)
 	}
-	payloadID = pResp.Payload.Id
+	t.Logf("creating payload (%d bytes)", len(zipContent))
+	payloadAdd := parseKVOutput(t, runClient(t,
+		"payload", "add",
+		"--tenant", tenantName,
+		"--file", tmpZip,
+		"--config", "script.conf",
+		"--start", "bash ~/script.sh",
+		"--stop", "true",
+	))
+	payloadID = payloadAdd["id"]
 	t.Logf("payload created: id=%s", payloadID)
 
 	return
@@ -186,63 +248,68 @@ func setupTenantWithDeps(t *testing.T, ctx context.Context, conn *grpc.ClientCon
 
 func TestE2E(t *testing.T) {
 	started := time.Now()
-	t.Log("opening mTLS gRPC connection")
-	conn := newIntConn(t)
-	defer conn.Close()
-	ctx := context.Background()
 	ts := time.Now().UnixNano()
 
-	tenantID, ownerID, targetID, payloadID := setupTenantWithDeps(t, ctx, conn, ts, 0)
+	tenantID, ownerID, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 0)
 	t.Logf("fixture setup complete: tenant=%s owner=%s target=%s payload=%s", tenantID, ownerID, targetID, payloadID)
 
-	releaseClient := release.NewReleaseServiceClient(conn)
-	authContext := tenantAuthCtx(ctx, tenantID, ownerID)
-
 	t.Log("creating release")
-	createResp, err := releaseClient.Create(authContext, &release.CreateRequest{
-		TenantId:  tenantID,
-		OwnerId:   ownerID,
-		TargetId:  targetID,
-		PayloadId: payloadID,
-	})
-	if err != nil {
-		t.Fatalf("Create: %v", err)
-	}
-	releaseID := createResp.Release.Id
-	t.Logf("release created: id=%s status=%s", releaseID, createResp.Release.Status)
+	releaseAdd := parseKVOutput(t, runClient(t,
+		"release", "add",
+		"--tenant", tenantName,
+		"--target", targetID,
+		"--payload", payloadID,
+	))
+	releaseID := releaseAdd["id"]
+	t.Logf("release created: id=%s status=%s", releaseID, releaseAdd["status"])
 
 	t.Logf("triggering deploy for release %s", releaseID)
-	deployResp, err := releaseClient.Deploy(authContext, &release.DeployRequest{
-		TenantId: tenantID,
-		Id:       releaseID,
-		UserId:   ownerID,
-	})
-	if err != nil {
-		t.Fatalf("Deploy: %v", err)
+	deployResp := parseKVOutput(t, runClient(t,
+		"release", "deploy",
+		"--tenant", tenantName,
+		"--id", releaseID,
+	))
+	if deployResp["status"] != "wait" {
+		t.Fatalf("expected 'wait', got %q", deployResp["status"])
 	}
-	if deployResp.Release.Status != "wait" {
-		t.Fatalf("expected 'wait', got %q", deployResp.Release.Status)
-	}
-	t.Logf("deploy accepted: release status=%s", deployResp.Release.Status)
+	t.Logf("deploy accepted: release status=%s", deployResp["status"])
 
-	pollFor := func(target string, timeout time.Duration) string {
+	statusRank := func(status string) int {
+		switch status {
+		case "unknown":
+			return 0
+		case "wait":
+			return 1
+		case "deployed":
+			return 2
+		case "alive":
+			return 3
+		case "dead":
+			return -1
+		default:
+			return -2
+		}
+	}
+
+	pollForAtLeast := func(target string, timeout time.Duration) string {
 		t.Helper()
-		t.Logf("polling for release status %q with timeout %s", target, timeout)
+		t.Logf("polling for release status at least %q with timeout %s", target, timeout)
 		deadline := time.Now().Add(timeout)
 		var last string
 		var prev string
 		for time.Now().Before(deadline) {
-			getResp, err := releaseClient.Get(authContext, &release.GetRequest{TenantId: tenantID, Id: releaseID})
-			if err != nil {
-				t.Fatalf("Get: %v", err)
-			}
-			last = getResp.Release.Status
+			getResp := parseKVOutput(t, runClient(t,
+				"release", "get",
+				"--tenant", tenantName,
+				"--id", releaseID,
+			))
+			last = getResp["status"]
 			if last != prev {
 				t.Logf("release %s status changed: %q", releaseID, last)
 				prev = last
 			}
-			if last == target {
-				t.Logf("release %s reached %q", releaseID, target)
+			if statusRank(last) >= statusRank(target) {
+				t.Logf("release %s reached %q or later state %q", releaseID, target, last)
 				return last
 			}
 			time.Sleep(2 * time.Second)
@@ -251,10 +318,10 @@ func TestE2E(t *testing.T) {
 		return last
 	}
 
-	if s := pollFor("deployed", 90*time.Second); s != "deployed" {
+	if s := pollForAtLeast("deployed", 90*time.Second); statusRank(s) < statusRank("deployed") {
 		t.Fatalf("release did not reach 'deployed' within 90s, last status: %q", s)
 	}
-	if s := pollFor("alive", 60*time.Second); s != "alive" {
+	if s := pollForAtLeast("alive", 60*time.Second); s != "alive" {
 		t.Fatalf("release did not reach 'alive' within 60s, last status: %q", s)
 	}
 

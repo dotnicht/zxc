@@ -81,11 +81,16 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 	if err != nil {
 		return nil, err
 	}
-	if req.OwnerId != "" && req.OwnerId != authUserID.String() {
-		return nil, status.Error(codes.PermissionDenied, "owner_id must match authenticated user")
+	if err := requireAuthenticatedUser(req.OwnerId, authUserID, "owner_id"); err != nil {
+		return nil, err
 	}
 
-	_, ten, _, err := authenticatedTenant(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	ten, _, err := authenticatedTenant(ctx, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -127,12 +132,17 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 }
 
 func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.GetResponse, error) {
-	id, err := uuid.Parse(req.Id)
+	id, err := parseUUID(req.Id, "id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid id: must be a valid UUID")
+		return nil, err
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -149,12 +159,17 @@ func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.Ge
 }
 
 func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payload.UpdateResponse, error) {
-	id, err := uuid.Parse(req.Id)
+	id, err := parseUUID(req.Id, "id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid id: must be a valid UUID")
+		return nil, err
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -176,12 +191,17 @@ func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payl
 }
 
 func (s *Payload) Delete(ctx context.Context, req *payload.DeleteRequest) (*payload.DeleteResponse, error) {
-	id, err := uuid.Parse(req.Id)
+	id, err := parseUUID(req.Id, "id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid id: must be a valid UUID")
+		return nil, err
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +226,12 @@ func (s *Payload) List(ctx context.Context, req *payload.ListRequest) (*payload.
 		pageSize = 10
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -228,19 +253,6 @@ func (s *Payload) List(ctx context.Context, req *payload.ListRequest) (*payload.
 	}
 
 	return &payload.ListResponse{Payloads: protoPayloads, Total: int32(total)}, nil
-}
-
-func (s *Payload) openTenantDB(ctx context.Context, tenantIDStr string) (*gorm.DB, error) {
-	_, ten, _, err := authenticatedTenant(ctx, tenantIDStr)
-	if err != nil {
-		return nil, err
-	}
-
-	conn, err := s.cache.Get(ten.Database)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to connect to tenant database: %v", err)
-	}
-	return conn, nil
 }
 
 func payloadToProto(p *models.Payload) *payload.Payload {

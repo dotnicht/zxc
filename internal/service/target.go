@@ -10,20 +10,23 @@ import (
 	"gorm.io/gorm"
 	"zxc/api/target"
 	"zxc/internal/db"
+	"zxc/internal/jobs"
 	"zxc/internal/models"
+	"zxc/internal/workflow"
 )
 
-type TargetSvc struct {
+type Target struct {
 	target.UnimplementedTargetServiceServer
 	db    *gorm.DB
 	cache *db.Cache
+	store *workflow.Store
 }
 
-func NewTargetSvc(db *gorm.DB, cache *db.Cache) *TargetSvc {
-	return &TargetSvc{db: db, cache: cache}
+func NewTarget(db *gorm.DB, cache *db.Cache, store *workflow.Store) *Target {
+	return &Target{db: db, cache: cache, store: store}
 }
 
-func (s *TargetSvc) Create(ctx context.Context, req *target.CreateRequest) (*target.CreateResponse, error) {
+func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target.CreateResponse, error) {
 	if req.Address == "" {
 		return nil, status.Error(codes.InvalidArgument, "address is required")
 	}
@@ -32,11 +35,16 @@ func (s *TargetSvc) Create(ctx context.Context, req *target.CreateRequest) (*tar
 	if err != nil {
 		return nil, err
 	}
-	if req.OwnerId != "" && req.OwnerId != authUserID.String() {
-		return nil, status.Error(codes.PermissionDenied, "owner_id must match authenticated user")
+	if err := requireAuthenticatedUser(req.OwnerId, authUserID, "owner_id"); err != nil {
+		return nil, err
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -45,17 +53,38 @@ func (s *TargetSvc) Create(ctx context.Context, req *target.CreateRequest) (*tar
 	if err := tenantDB.Create(t).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create target: %v", err)
 	}
+	if err := s.store.RecordEvent(ctx, nil, workflow.EventInput{
+		Kind:          "target_created",
+		AggregateType: "target",
+		AggregateID:   t.ID.String(),
+		TenantID:      &tenantID,
+		Payload: map[string]any{
+			"target_id": t.ID.String(),
+			"address":   t.Address,
+			"user":      t.User,
+		},
+	}); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to record target event: %v", err)
+	}
+	if err := s.enqueueProbe(ctx, tenantID, t.ID); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to schedule target probe: %v", err)
+	}
 
 	return &target.CreateResponse{Target: targetToProto(t)}, nil
 }
 
-func (s *TargetSvc) Get(ctx context.Context, req *target.GetRequest) (*target.GetResponse, error) {
-	id, err := uuid.Parse(req.Id)
+func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetResponse, error) {
+	id, err := parseUUID(req.Id, "id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid id: must be a valid UUID")
+		return nil, err
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -71,17 +100,22 @@ func (s *TargetSvc) Get(ctx context.Context, req *target.GetRequest) (*target.Ge
 	return &target.GetResponse{Target: targetToProto(&t)}, nil
 }
 
-func (s *TargetSvc) Update(ctx context.Context, req *target.UpdateRequest) (*target.UpdateResponse, error) {
-	id, err := uuid.Parse(req.Id)
+func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target.UpdateResponse, error) {
+	id, err := parseUUID(req.Id, "id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid id: must be a valid UUID")
+		return nil, err
 	}
 
 	if req.Address == "" {
 		return nil, status.Error(codes.InvalidArgument, "address is required")
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -98,17 +132,38 @@ func (s *TargetSvc) Update(ctx context.Context, req *target.UpdateRequest) (*tar
 	if err := tenantDB.First(&updated, "id = ?", id).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated target: %v", err)
 	}
+	if err := s.store.RecordEvent(ctx, nil, workflow.EventInput{
+		Kind:          "target_updated",
+		AggregateType: "target",
+		AggregateID:   updated.ID.String(),
+		TenantID:      &tenantID,
+		Payload: map[string]any{
+			"target_id": updated.ID.String(),
+			"address":   updated.Address,
+			"user":      updated.User,
+		},
+	}); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to record target event: %v", err)
+	}
+	if err := s.enqueueProbe(ctx, tenantID, updated.ID); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to schedule target probe: %v", err)
+	}
 
 	return &target.UpdateResponse{Target: targetToProto(&updated)}, nil
 }
 
-func (s *TargetSvc) Delete(ctx context.Context, req *target.DeleteRequest) (*target.DeleteResponse, error) {
-	id, err := uuid.Parse(req.Id)
+func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target.DeleteResponse, error) {
+	id, err := parseUUID(req.Id, "id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid id: must be a valid UUID")
+		return nil, err
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -120,11 +175,22 @@ func (s *TargetSvc) Delete(ctx context.Context, req *target.DeleteRequest) (*tar
 	if result.RowsAffected == 0 {
 		return nil, status.Error(codes.NotFound, "target not found")
 	}
+	if err := s.store.RecordEvent(ctx, nil, workflow.EventInput{
+		Kind:          "target_deleted",
+		AggregateType: "target",
+		AggregateID:   id.String(),
+		TenantID:      &tenantID,
+		Payload: map[string]any{
+			"target_id": id.String(),
+		},
+	}); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to record target event: %v", err)
+	}
 
 	return &target.DeleteResponse{Success: true}, nil
 }
 
-func (s *TargetSvc) List(ctx context.Context, req *target.ListRequest) (*target.ListResponse, error) {
+func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.ListResponse, error) {
 	page, pageSize := req.Page, req.PageSize
 	if page < 1 {
 		page = 1
@@ -133,7 +199,12 @@ func (s *TargetSvc) List(ctx context.Context, req *target.ListRequest) (*target.
 		pageSize = 10
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +228,7 @@ func (s *TargetSvc) List(ctx context.Context, req *target.ListRequest) (*target.
 	return &target.ListResponse{Targets: protoTargets, Total: int32(total)}, nil
 }
 
-func (s *TargetSvc) Search(ctx context.Context, req *target.SearchRequest) (*target.SearchResponse, error) {
+func (s *Target) Search(ctx context.Context, req *target.SearchRequest) (*target.SearchResponse, error) {
 	if req.Query == "" {
 		return nil, status.Error(codes.InvalidArgument, "search query is required")
 	}
@@ -170,7 +241,12 @@ func (s *TargetSvc) Search(ctx context.Context, req *target.SearchRequest) (*tar
 		pageSize = 10
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -195,19 +271,6 @@ func (s *TargetSvc) Search(ctx context.Context, req *target.SearchRequest) (*tar
 	return &target.SearchResponse{Targets: protoTargets, Total: int32(total)}, nil
 }
 
-func (s *TargetSvc) openTenantDB(ctx context.Context, tenantIDStr string) (*gorm.DB, error) {
-	_, tenant, _, err := authenticatedTenant(ctx, tenantIDStr)
-	if err != nil {
-		return nil, err
-	}
-
-	conn, err := s.cache.Get(tenant.Database)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to connect to tenant database: %v", err)
-	}
-	return conn, nil
-}
-
 func targetToProto(t *models.Target) *target.Target {
 	return &target.Target{
 		Id:        t.ID.String(),
@@ -219,4 +282,18 @@ func targetToProto(t *models.Target) *target.Target {
 		CreatedAt: t.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: t.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
+}
+
+func (s *Target) enqueueProbe(ctx context.Context, tenantID uuid.UUID, targetID uuid.UUID) error {
+	return s.store.EnqueueCommand(ctx, nil, workflow.CommandInput{
+		Kind:          "probe_target",
+		AggregateType: "target",
+		AggregateID:   targetID.String(),
+		TenantID:      &tenantID,
+		Payload: jobs.TargetProbeArgs{
+			TenantID: tenantID,
+			TargetID: targetID,
+		},
+		DedupeKey: "target-probe:" + targetID.String(),
+	})
 }

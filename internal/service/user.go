@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -24,25 +23,17 @@ func NewUser(db *gorm.DB, cache *db.Cache) *User {
 	return &User{db: db, cache: cache}
 }
 
-func (s *User) openTenantDB(ctx context.Context, tenantIDStr string) (*gorm.DB, error) {
-	_, tenant, _, err := authenticatedTenant(ctx, tenantIDStr)
-	if err != nil {
-		return nil, err
-	}
-
-	conn, err := s.cache.Get(tenant.Database)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to connect to tenant database: %v", err)
-	}
-	return conn, nil
-}
-
 func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.CreateResponse, error) {
 	if req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -56,12 +47,17 @@ func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.Creat
 }
 
 func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse, error) {
-	userID, err := uuid.Parse(req.Id)
+	userID, err := parseUUID(req.Id, "id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid id format (must be a valid UUID)")
+		return nil, err
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -78,16 +74,21 @@ func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse
 }
 
 func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.UpdateResponse, error) {
-	userID, err := uuid.Parse(req.Id)
+	userID, err := parseUUID(req.Id, "id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid id format (must be a valid UUID)")
+		return nil, err
 	}
 
 	if req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -109,12 +110,17 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 }
 
 func (s *User) Delete(ctx context.Context, req *user.DeleteRequest) (*user.DeleteResponse, error) {
-	userID, err := uuid.Parse(req.Id)
+	userID, err := parseUUID(req.Id, "id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid id format (must be a valid UUID)")
+		return nil, err
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +145,12 @@ func (s *User) List(ctx context.Context, req *user.ListRequest) (*user.ListRespo
 		pageSize = 10
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +187,12 @@ func (s *User) Search(ctx context.Context, req *user.SearchRequest) (*user.Searc
 		pageSize = 10
 	}
 
-	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
