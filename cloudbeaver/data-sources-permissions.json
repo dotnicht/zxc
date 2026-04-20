@@ -1,3 +1,5 @@
 {
+  "postgresql-inttenant1776632401638232000_0": ["admin", "user"],
+  "postgresql-postgres": ["admin", "user"],
   "postgresql-zxc": ["admin", "user"]
 }

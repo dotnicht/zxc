@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -23,6 +24,18 @@ type Client struct {
 	mc           *minio.Client
 	cfg          Config
 	objectPrefix string
+}
+
+type BucketInfo struct {
+	Name      string
+	CreatedAt time.Time
+}
+
+type ObjectInfo struct {
+	Key          string
+	Size         int64
+	LastModified time.Time
+	IsDir        bool
 }
 
 func NewClient(cfg Config) (*Client, error) {
@@ -113,6 +126,43 @@ func ClientFromConnectionString(connStr string) (*Client, string, error) {
 	}
 	client.objectPrefix = objectPrefix
 	return client, bucketName, nil
+}
+
+func (c *Client) ListBuckets(ctx context.Context) ([]BucketInfo, error) {
+	buckets, err := c.mc.ListBuckets(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list buckets: %w", err)
+	}
+
+	out := make([]BucketInfo, 0, len(buckets))
+	for _, b := range buckets {
+		out = append(out, BucketInfo{
+			Name:      b.Name,
+			CreatedAt: b.CreationDate,
+		})
+	}
+	return out, nil
+}
+
+func (c *Client) ListObjects(ctx context.Context, bucket, prefix string, recursive bool) ([]ObjectInfo, error) {
+	opts := minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: recursive,
+	}
+
+	objects := make([]ObjectInfo, 0)
+	for obj := range c.mc.ListObjects(ctx, bucket, opts) {
+		if obj.Err != nil {
+			return nil, fmt.Errorf("list objects %s/%s: %w", bucket, prefix, obj.Err)
+		}
+		objects = append(objects, ObjectInfo{
+			Key:          obj.Key,
+			Size:         obj.Size,
+			LastModified: obj.LastModified,
+			IsDir:        strings.HasSuffix(obj.Key, "/"),
+		})
+	}
+	return objects, nil
 }
 
 func (c *Client) Upload(ctx context.Context, bucket, objectPath string, r io.Reader, size int64, contentType string) error {

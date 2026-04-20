@@ -1,4 +1,4 @@
-.PHONY: proto build run test test-integration test-all clean docker-up docker-down docker-build docker-logs deps
+.PHONY: proto build run test test-integration test-all clean docker-up docker-down docker-build docker-logs deps cloudbeaver-sync
 
 proto:
 	protoc --go_out=. --go_opt=module=zxc \
@@ -21,6 +21,7 @@ build: proto
 	go build -o bin/server cmd/server/main.go
 	go build -o bin/worker cmd/worker/main.go
 	go build -o bin/migrate cmd/migrator/main.go
+	go build -o bin/storageui cmd/storageui/main.go
 
 run: build
 	./bin/server -config config.toml
@@ -63,6 +64,9 @@ docker-logs:
 	docker-compose logs -f
 
 docker-restart: docker-down docker-build docker-up
+
+cloudbeaver-sync:
+	sh scripts/sync-cloudbeaver-datasources.sh
 
 deps:
 	go mod download
