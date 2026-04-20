@@ -7,14 +7,13 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"path"
 	"net/url"
 	"os"
+	"path"
 	"sort"
 	"strings"
 
 	"zxc/internal/config"
-	"zxc/internal/logger"
 	"zxc/internal/storage"
 )
 
@@ -210,7 +209,9 @@ var pageTmpl = template.Must(template.New("page").Parse(`<!doctype html>
 </html>`))
 
 func main() {
-	logger.Init()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})))
 
 	configPath := flag.String("config", "config.toml", "path to configuration file")
 	port := flag.String("port", "19001", "http listen port")

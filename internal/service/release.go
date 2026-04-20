@@ -10,7 +10,6 @@ import (
 	"gorm.io/gorm"
 	"zxc/api/release"
 	"zxc/internal/db"
-	"zxc/internal/middleware"
 	"zxc/internal/models"
 )
 
@@ -33,38 +32,24 @@ func NewRelease(db *gorm.DB, cache *db.Cache) *Release {
 }
 
 func (s *Release) resolveTenant(ctx context.Context, tenantIDStr string) (*models.Tenant, *gorm.DB, error) {
-	tenantID, err := uuid.Parse(tenantIDStr)
+	_, tenant, _, err := authenticatedTenant(ctx, tenantIDStr)
 	if err != nil {
-		return nil, nil, status.Error(codes.InvalidArgument, "invalid tenant_id: must be a valid UUID")
+		return nil, nil, err
 	}
-
-	if t, ok := middleware.TenantFromContext(ctx, tenantID); ok {
-		tenantDB, err := s.cache.Get(t.Database)
-		if err != nil {
-			return nil, nil, status.Errorf(codes.Internal, "failed to connect to tenant database: %v", err)
-		}
-		return t, tenantDB, nil
-	}
-
-	var tenant models.Tenant
-	if err := s.db.WithContext(ctx).First(&tenant, "id = ?", tenantID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil, status.Error(codes.NotFound, "tenant not found")
-		}
-		return nil, nil, status.Errorf(codes.Internal, "failed to get tenant: %v", err)
-	}
-
 	tenantDB, err := s.cache.Get(tenant.Database)
 	if err != nil {
 		return nil, nil, status.Errorf(codes.Internal, "failed to connect to tenant database: %v", err)
 	}
-	return &tenant, tenantDB, nil
+	return tenant, tenantDB, nil
 }
 
 func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*release.CreateResponse, error) {
-	ownerID, err := uuid.Parse(req.OwnerId)
+	authUserID, err := authenticatedUserID(ctx)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid owner_id: must be a valid UUID")
+		return nil, err
+	}
+	if req.OwnerId != "" && req.OwnerId != authUserID.String() {
+		return nil, status.Error(codes.PermissionDenied, "owner_id must match authenticated user")
 	}
 
 	targetID, err := uuid.Parse(req.TargetId)
@@ -101,10 +86,10 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 
 	rel := &models.Release{
 		Status:      releaseStatus,
-		OwnerID:     ownerID,
+		OwnerID:     authUserID,
 		TargetID:    &targetID,
 		PayloadID:   &payloadID,
-		ChangedByID: ownerID,
+		ChangedByID: authUserID,
 	}
 	if err := tenantDB.Create(rel).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create release: %v", err)
@@ -147,9 +132,12 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 		return nil, status.Error(codes.InvalidArgument, "invalid id: must be a valid UUID")
 	}
 
-	userID, err := uuid.Parse(req.UserId)
+	authUserID, err := authenticatedUserID(ctx)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid user_id: must be a valid UUID")
+		return nil, err
+	}
+	if req.UserId != "" && req.UserId != authUserID.String() {
+		return nil, status.Error(codes.PermissionDenied, "user_id must match authenticated user")
 	}
 
 	_, tenantDB, err := s.resolveTenant(ctx, req.TenantId)
@@ -159,7 +147,7 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 
 	result := tenantDB.Model(&models.Release{}).
 		Where("id = ? AND status = ?", releaseID, models.ReleaseUnknown).
-		Updates(map[string]any{"status": models.ReleaseWait, "changed_by_id": userID})
+		Updates(map[string]any{"status": models.ReleaseWait, "changed_by_id": authUserID})
 	if result.Error != nil {
 		return nil, status.Errorf(codes.Internal, "failed to update release: %v", result.Error)
 	}

@@ -15,7 +15,6 @@ import (
 	"zxc/api/tenant"
 	"zxc/api/user"
 	"zxc/internal/config"
-	"zxc/internal/logger"
 )
 
 type clientConfig struct {
@@ -46,7 +45,9 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 		if cfg.Log {
-			logger.Init()
+			slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+				Level: slog.LevelInfo,
+			})))
 			slog.Info("client starting", "user_id", cfg.UserID, "address", cfg.Address)
 		}
 		creds, err := cfg.TLS.ClientCreds()

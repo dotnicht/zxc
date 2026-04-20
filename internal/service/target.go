@@ -10,7 +10,6 @@ import (
 	"gorm.io/gorm"
 	"zxc/api/target"
 	"zxc/internal/db"
-	"zxc/internal/middleware"
 	"zxc/internal/models"
 )
 
@@ -29,9 +28,12 @@ func (s *TargetSvc) Create(ctx context.Context, req *target.CreateRequest) (*tar
 		return nil, status.Error(codes.InvalidArgument, "address is required")
 	}
 
-	ownerID, err := uuid.Parse(req.OwnerId)
+	authUserID, err := authenticatedUserID(ctx)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid owner_id: must be a valid UUID")
+		return nil, err
+	}
+	if req.OwnerId != "" && req.OwnerId != authUserID.String() {
+		return nil, status.Error(codes.PermissionDenied, "owner_id must match authenticated user")
 	}
 
 	tenantDB, err := s.openTenantDB(ctx, req.TenantId)
@@ -39,7 +41,7 @@ func (s *TargetSvc) Create(ctx context.Context, req *target.CreateRequest) (*tar
 		return nil, err
 	}
 
-	t := &models.Target{Address: req.Address, User: req.User, Key: req.Key, OwnerID: ownerID}
+	t := &models.Target{Address: req.Address, User: req.User, Key: req.Key, OwnerID: authUserID}
 	if err := tenantDB.Create(t).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create target: %v", err)
 	}
@@ -194,25 +196,9 @@ func (s *TargetSvc) Search(ctx context.Context, req *target.SearchRequest) (*tar
 }
 
 func (s *TargetSvc) openTenantDB(ctx context.Context, tenantIDStr string) (*gorm.DB, error) {
-	tenantID, err := uuid.Parse(tenantIDStr)
+	_, tenant, _, err := authenticatedTenant(ctx, tenantIDStr)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid tenant_id: must be a valid UUID")
-	}
-
-	if t, ok := middleware.TenantFromContext(ctx, tenantID); ok {
-		conn, err := s.cache.Get(t.Database)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to connect to tenant database: %v", err)
-		}
-		return conn, nil
-	}
-
-	var tenant models.Tenant
-	if err := s.db.WithContext(ctx).First(&tenant, "id = ?", tenantID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Error(codes.NotFound, "tenant not found")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to get tenant: %v", err)
+		return nil, err
 	}
 
 	conn, err := s.cache.Get(tenant.Database)

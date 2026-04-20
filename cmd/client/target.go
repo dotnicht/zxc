@@ -34,11 +34,15 @@ func targetAddCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
 			keyContent, err := os.ReadFile(key)
 			if err != nil {
 				return fmt.Errorf("read key %s: %w", key, err)
 			}
-			resp, err := st.target.Create(ctx, &target.CreateRequest{
+			resp, err := st.target.Create(authContext, &target.CreateRequest{
 				TenantId: tenantID,
 				OwnerId:  userID,
 				Address:  address,
@@ -75,7 +79,11 @@ func targetGetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.target.Get(ctx, &target.GetRequest{TenantId: tenantID, Id: id})
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.target.Get(authContext, &target.GetRequest{TenantId: tenantID, Id: id})
 			if err != nil {
 				return err
 			}
@@ -103,7 +111,11 @@ func targetListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.target.List(ctx, &target.ListRequest{TenantId: tenantID, Page: page, PageSize: size})
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.target.List(authContext, &target.ListRequest{TenantId: tenantID, Page: page, PageSize: size})
 			if err != nil {
 				return err
 			}
@@ -136,7 +148,11 @@ func targetSearchCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.target.Search(ctx, &target.SearchRequest{TenantId: tenantID, Query: query, Page: page, PageSize: size})
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.target.Search(authContext, &target.SearchRequest{TenantId: tenantID, Query: query, Page: page, PageSize: size})
 			if err != nil {
 				return err
 			}
@@ -170,6 +186,10 @@ func targetUpdateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
 			var keyContent string
 			if key != "" {
 				kb, err := os.ReadFile(key)
@@ -178,7 +198,7 @@ func targetUpdateCmd() *cobra.Command {
 				}
 				keyContent = string(kb)
 			}
-			resp, err := st.target.Update(ctx, &target.UpdateRequest{TenantId: tenantID, Id: id, Address: address, User: user, Key: keyContent})
+			resp, err := st.target.Update(authContext, &target.UpdateRequest{TenantId: tenantID, Id: id, Address: address, User: user, Key: keyContent})
 			if err != nil {
 				return err
 			}
@@ -221,7 +241,11 @@ func targetDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			_, err = st.target.Delete(ctx, &target.DeleteRequest{TenantId: tenantID, Id: id})
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			_, err = st.target.Delete(authContext, &target.DeleteRequest{TenantId: tenantID, Id: id})
 			if err != nil {
 				return err
 			}

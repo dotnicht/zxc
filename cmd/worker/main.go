@@ -14,12 +14,13 @@ import (
 	"zxc/internal/config"
 	"zxc/internal/db"
 	"zxc/internal/jobs"
-	"zxc/internal/logger"
 	"zxc/internal/queue"
 )
 
 func main() {
-	logger.Init()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})))
 
 	configPath := flag.String("config", "config.toml", "path to configuration file")
 	flag.Parse()

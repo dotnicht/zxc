@@ -32,7 +32,11 @@ func releaseAddCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.release.Create(ctx, &release.CreateRequest{
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.release.Create(authContext, &release.CreateRequest{
 				TenantId:  tenantID,
 				OwnerId:   userID,
 				TargetId:  targetID,
@@ -67,7 +71,11 @@ func releaseGetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.release.Get(ctx, &release.GetRequest{TenantId: tenantID, Id: id})
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.release.Get(authContext, &release.GetRequest{TenantId: tenantID, Id: id})
 			if err != nil {
 				return err
 			}
@@ -95,7 +103,11 @@ func releaseListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.release.List(ctx, &release.ListRequest{TenantId: tenantID, Page: page, PageSize: size})
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.release.List(authContext, &release.ListRequest{TenantId: tenantID, Page: page, PageSize: size})
 			if err != nil {
 				return err
 			}
@@ -128,7 +140,11 @@ func releaseSearchCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.release.Search(ctx, &release.SearchRequest{TenantId: tenantID, Query: query, Page: page, PageSize: size})
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.release.Search(authContext, &release.SearchRequest{TenantId: tenantID, Query: query, Page: page, PageSize: size})
 			if err != nil {
 				return err
 			}
@@ -162,7 +178,11 @@ func releaseDeployCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.release.Deploy(ctx, &release.DeployRequest{
+			authContext, err := authCtx(ctx, tenantID)
+			if err != nil {
+				return err
+			}
+			resp, err := st.release.Deploy(authContext, &release.DeployRequest{
 				TenantId: tenantID,
 				Id:       id,
 				UserId:   userID,
