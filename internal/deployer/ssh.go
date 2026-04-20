@@ -49,7 +49,7 @@ func Deploy(ctx context.Context, req Request) error {
 	defer client.Close()
 
 	if req.StopCmd != "" {
-		if err := runCmd(ctx, client, req.StopCmd); err != nil {
+		if err := run(ctx, client, req.StopCmd); err != nil {
 			return fmt.Errorf("stop: %w", err)
 		}
 	}
@@ -59,14 +59,14 @@ func Deploy(ctx context.Context, req Request) error {
 	if err := upload(ctx, client, req.Payload, remotePath); err != nil {
 		return fmt.Errorf("upload: %w", err)
 	}
-	defer runCmd(ctx, client, "rm -f "+remotePath)
+	defer run(ctx, client, "rm -f "+remotePath)
 
-	if err := runCmd(ctx, client, fmt.Sprintf("unzip -o %s -d ~", remotePath)); err != nil {
+	if err := run(ctx, client, fmt.Sprintf("unzip -o %s -d ~", remotePath)); err != nil {
 		return fmt.Errorf("extract: %w", err)
 	}
 
 	if req.StartCmd != "" {
-		if err := runCmd(ctx, client, req.StartCmd); err != nil {
+		if err := run(ctx, client, req.StartCmd); err != nil {
 			return fmt.Errorf("start: %w", err)
 		}
 	}
@@ -102,7 +102,7 @@ func Ping(ctx context.Context, host, user string, key []byte) error {
 	return nil
 }
 
-func runCmd(ctx context.Context, client *gossh.Client, cmd string) error {
+func run(ctx context.Context, client *gossh.Client, cmd string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
