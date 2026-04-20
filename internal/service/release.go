@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"zxc/api/release"
 	"zxc/internal/db"
+	"zxc/internal/jobs"
 	"zxc/internal/models"
+	"zxc/internal/workflow"
 )
 
 var validReleaseStatuses = map[string]bool{
@@ -25,22 +26,11 @@ type Release struct {
 	release.UnimplementedReleaseServiceServer
 	db    *gorm.DB
 	cache *db.Cache
+	store *workflow.Store
 }
 
-func NewRelease(db *gorm.DB, cache *db.Cache) *Release {
-	return &Release{db: db, cache: cache}
-}
-
-func (s *Release) resolveTenant(ctx context.Context, tenantIDStr string) (*models.Tenant, *gorm.DB, error) {
-	_, tenant, _, err := authenticatedTenant(ctx, tenantIDStr)
-	if err != nil {
-		return nil, nil, err
-	}
-	tenantDB, err := s.cache.Get(tenant.Database)
-	if err != nil {
-		return nil, nil, status.Errorf(codes.Internal, "failed to connect to tenant database: %v", err)
-	}
-	return tenant, tenantDB, nil
+func NewRelease(db *gorm.DB, cache *db.Cache, store *workflow.Store) *Release {
+	return &Release{db: db, cache: cache, store: store}
 }
 
 func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*release.CreateResponse, error) {
@@ -48,18 +38,23 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 	if err != nil {
 		return nil, err
 	}
-	if req.OwnerId != "" && req.OwnerId != authUserID.String() {
-		return nil, status.Error(codes.PermissionDenied, "owner_id must match authenticated user")
+	if err := requireAuthenticatedUser(req.OwnerId, authUserID, "owner_id"); err != nil {
+		return nil, err
 	}
 
-	targetID, err := uuid.Parse(req.TargetId)
+	targetID, err := parseUUID(req.TargetId, "target_id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid target_id: must be a valid UUID")
+		return nil, err
 	}
 
-	payloadID, err := uuid.Parse(req.PayloadId)
+	payloadID, err := parseUUID(req.PayloadId, "payload_id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid payload_id: must be a valid UUID")
+		return nil, err
+	}
+
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
 	}
 
 	releaseStatus := req.Status
@@ -69,7 +64,7 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 		return nil, status.Errorf(codes.InvalidArgument, "invalid status %q: must be one of unknown, deployed, dead, alive", releaseStatus)
 	}
 
-	tenant, tenantDB, err := s.resolveTenant(ctx, req.TenantId)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -100,17 +95,38 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 		tenantDB.Delete(&models.Release{}, "id = ?", rel.ID)
 		return nil, status.Errorf(codes.Internal, "failed to create route: %v", err)
 	}
+	if err := s.store.RecordEvent(ctx, nil, workflow.EventInput{
+		Kind:          "release_created",
+		AggregateType: "release",
+		AggregateID:   rel.ID.String(),
+		TenantID:      &tenant.ID,
+		Payload: map[string]any{
+			"release_id":    rel.ID.String(),
+			"owner_id":      rel.OwnerID.String(),
+			"target_id":     targetID.String(),
+			"payload_id":    payloadID.String(),
+			"changed_by_id": rel.ChangedByID.String(),
+			"status":        rel.Status,
+		},
+	}); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to record release event: %v", err)
+	}
 
 	return &release.CreateResponse{Release: releaseToProto(rel)}, nil
 }
 
 func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.GetResponse, error) {
-	releaseID, err := uuid.Parse(req.Id)
+	releaseID, err := parseUUID(req.Id, "id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid id: must be a valid UUID")
+		return nil, err
 	}
 
-	_, tenantDB, err := s.resolveTenant(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -127,20 +143,25 @@ func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.Ge
 }
 
 func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*release.DeployResponse, error) {
-	releaseID, err := uuid.Parse(req.Id)
+	releaseID, err := parseUUID(req.Id, "id")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid id: must be a valid UUID")
+		return nil, err
 	}
 
 	authUserID, err := authenticatedUserID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if req.UserId != "" && req.UserId != authUserID.String() {
-		return nil, status.Error(codes.PermissionDenied, "user_id must match authenticated user")
+	if err := requireAuthenticatedUser(req.UserId, authUserID, "user_id"); err != nil {
+		return nil, err
 	}
 
-	_, tenantDB, err := s.resolveTenant(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -153,6 +174,35 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 	}
 	if result.RowsAffected == 0 {
 		return nil, status.Error(codes.NotFound, "release not found")
+	}
+	if err := s.store.RecordEvent(ctx, nil, workflow.EventInput{
+		Kind:          "release_deploy_requested",
+		AggregateType: "release",
+		AggregateID:   releaseID.String(),
+		TenantID:      &tenant.ID,
+		Payload: map[string]any{
+			"release_id": releaseID.String(),
+			"user_id":    authUserID.String(),
+		},
+	}); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to record deploy event: %v", err)
+	}
+	if err := s.store.EnqueueCommand(ctx, nil, workflow.CommandInput{
+		Kind:          "deploy_release",
+		AggregateType: "release",
+		AggregateID:   releaseID.String(),
+		TenantID:      &tenant.ID,
+		Payload: jobs.DeployReleaseArgs{
+			TenantID:    tenant.ID,
+			ReleaseID:   releaseID,
+			ChangedByID: authUserID,
+		},
+		DedupeKey: "release-deploy:" + releaseID.String(),
+	}); err != nil {
+		tenantDB.Model(&models.Release{}).
+			Where("id = ? AND status = ?", releaseID, models.ReleaseWait).
+			Updates(map[string]any{"status": models.ReleaseUnknown, "changed_by_id": authUserID})
+		return nil, status.Errorf(codes.Internal, "failed to enqueue deploy command: %v", err)
 	}
 
 	var rel models.Release
@@ -172,7 +222,12 @@ func (s *Release) List(ctx context.Context, req *release.ListRequest) (*release.
 		pageSize = 10
 	}
 
-	_, tenantDB, err := s.resolveTenant(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +264,12 @@ func (s *Release) Search(ctx context.Context, req *release.SearchRequest) (*rele
 		pageSize = 10
 	}
 
-	_, tenantDB, err := s.resolveTenant(ctx, req.TenantId)
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}

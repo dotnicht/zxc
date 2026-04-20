@@ -30,11 +30,7 @@ func payloadAddCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			tenantID, userID, err := tenantAndUser(ctx, tenant)
-			if err != nil {
-				return err
-			}
-			authContext, err := authCtx(ctx, tenantID)
+			authContext, tenantID, userID, err := tenantOwnerCtx(ctx, tenant)
 			if err != nil {
 				return err
 			}
@@ -79,11 +75,7 @@ func payloadGetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			tenantID, err := resolveTenant(ctx, st.tenant, tenant)
-			if err != nil {
-				return err
-			}
-			authContext, err := authCtx(ctx, tenantID)
+			authContext, tenantID, err := tenantCtx(ctx, tenant)
 			if err != nil {
 				return err
 			}
@@ -111,11 +103,7 @@ func payloadListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			tenantID, err := resolveTenant(ctx, st.tenant, tenant)
-			if err != nil {
-				return err
-			}
-			authContext, err := authCtx(ctx, tenantID)
+			authContext, tenantID, err := tenantCtx(ctx, tenant)
 			if err != nil {
 				return err
 			}
@@ -147,11 +135,7 @@ func payloadUpdateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			tenantID, err := resolveTenant(ctx, st.tenant, tenant)
-			if err != nil {
-				return err
-			}
-			authContext, err := authCtx(ctx, tenantID)
+			authContext, tenantID, err := tenantCtx(ctx, tenant)
 			if err != nil {
 				return err
 			}
@@ -202,11 +186,7 @@ func payloadDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			tenantID, err := resolveTenant(ctx, st.tenant, tenant)
-			if err != nil {
-				return err
-			}
-			authContext, err := authCtx(ctx, tenantID)
+			authContext, tenantID, err := tenantCtx(ctx, tenant)
 			if err != nil {
 				return err
 			}

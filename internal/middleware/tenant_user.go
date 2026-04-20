@@ -27,9 +27,9 @@ func User(cache *db.Cache, rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServ
 			return nil, status.Error(codes.Unauthenticated, "x-user-id metadata is required")
 		}
 
-		userID, err := uuid.Parse(userIDs[0])
+		userID, err := metadataUUID(md, "x-user-id")
 		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "x-user-id must be a valid UUID")
+			return nil, err
 		}
 
 		if len(tenantIDs) == 0 {
@@ -47,9 +47,9 @@ func User(cache *db.Cache, rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServ
 			return handler(contextWithUser(ctx, &rootUser), req)
 		}
 
-		tenantID, err := uuid.Parse(tenantIDs[0])
+		tenantID, err := metadataUUID(md, "x-tenant-id")
 		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "x-tenant-id must be a valid UUID")
+			return nil, err
 		}
 
 		var tenant models.Tenant

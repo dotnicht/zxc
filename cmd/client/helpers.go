@@ -12,28 +12,47 @@ import (
 )
 
 func newCtx() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), 10*time.Second)
+	timeout := 10 * time.Second
+	if st.cfg != nil && st.cfg.Timeout != "" {
+		if parsed, err := time.ParseDuration(st.cfg.Timeout); err == nil && parsed > 0 {
+			timeout = parsed
+		}
+	}
+	return context.WithTimeout(context.Background(), timeout)
+}
+
+func userID() (string, error) {
+	if st.cfg.UserID == "" {
+		return "", fmt.Errorf("userid must be set in config")
+	}
+	return st.cfg.UserID, nil
 }
 
 func authCtx(ctx context.Context, tenantID string) (context.Context, error) {
-	if st.cfg.UserID == "" {
-		return nil, fmt.Errorf("user_id must be set in config")
+	userID, err := userID()
+	if err != nil {
+		return nil, err
 	}
 	return metadata.AppendToOutgoingContext(ctx,
 		"x-tenant-id", tenantID,
-		"x-user-id", st.cfg.UserID,
+		"x-user-id", userID,
 	), nil
 }
 
 func rootAuthCtx(ctx context.Context) (context.Context, error) {
-	if st.cfg.UserID == "" {
-		return nil, fmt.Errorf("user_id must be set in config")
+	userID, err := userID()
+	if err != nil {
+		return nil, err
 	}
-	return metadata.AppendToOutgoingContext(ctx, "x-user-id", st.cfg.UserID), nil
+	return metadata.AppendToOutgoingContext(ctx, "x-user-id", userID), nil
 }
 
-func resolveTenant(ctx context.Context, client tenant.TenantServiceClient, name string) (string, error) {
-	resp, err := client.Search(ctx, &tenant.SearchRequest{Query: name, Page: 1, PageSize: 10})
+func resolveTenant(ctx context.Context, name string) (string, error) {
+	authContext, err := rootAuthCtx(ctx)
+	if err != nil {
+		return "", err
+	}
+	resp, err := st.tenant.Search(authContext, &tenant.SearchRequest{Query: name, Page: 1, PageSize: 10})
 	if err != nil {
 		return "", fmt.Errorf("searching tenants: %w", err)
 	}
@@ -45,15 +64,28 @@ func resolveTenant(ctx context.Context, client tenant.TenantServiceClient, name 
 	return "", fmt.Errorf("tenant %q not found", name)
 }
 
-func tenantAndUser(ctx context.Context, tenantName string) (string, string, error) {
-	if st.cfg.UserID == "" {
-		return "", "", fmt.Errorf("user_id must be set in config")
-	}
-	tenantID, err := resolveTenant(ctx, st.tenant, tenantName)
+func tenantCtx(ctx context.Context, tenantName string) (context.Context, string, error) {
+	tenantID, err := resolveTenant(ctx, tenantName)
 	if err != nil {
-		return "", "", err
+		return nil, "", err
 	}
-	return tenantID, st.cfg.UserID, nil
+	authContext, err := authCtx(ctx, tenantID)
+	if err != nil {
+		return nil, "", err
+	}
+	return authContext, tenantID, nil
+}
+
+func tenantOwnerCtx(ctx context.Context, tenantName string) (context.Context, string, string, error) {
+	authContext, tenantID, err := tenantCtx(ctx, tenantName)
+	if err != nil {
+		return nil, "", "", err
+	}
+	userID, err := userID()
+	if err != nil {
+		return nil, "", "", err
+	}
+	return authContext, tenantID, userID, nil
 }
 
 func newTabWriter() *tabwriter.Writer {

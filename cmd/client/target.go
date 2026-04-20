@@ -30,11 +30,7 @@ func targetAddCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			tenantID, userID, err := tenantAndUser(ctx, tenant)
-			if err != nil {
-				return err
-			}
-			authContext, err := authCtx(ctx, tenantID)
+			authContext, tenantID, userID, err := tenantOwnerCtx(ctx, tenant)
 			if err != nil {
 				return err
 			}
@@ -75,11 +71,7 @@ func targetGetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			tenantID, err := resolveTenant(ctx, st.tenant, tenant)
-			if err != nil {
-				return err
-			}
-			authContext, err := authCtx(ctx, tenantID)
+			authContext, tenantID, err := tenantCtx(ctx, tenant)
 			if err != nil {
 				return err
 			}
@@ -107,11 +99,7 @@ func targetListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			tenantID, err := resolveTenant(ctx, st.tenant, tenant)
-			if err != nil {
-				return err
-			}
-			authContext, err := authCtx(ctx, tenantID)
+			authContext, tenantID, err := tenantCtx(ctx, tenant)
 			if err != nil {
 				return err
 			}
@@ -144,11 +132,7 @@ func targetSearchCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			tenantID, err := resolveTenant(ctx, st.tenant, tenant)
-			if err != nil {
-				return err
-			}
-			authContext, err := authCtx(ctx, tenantID)
+			authContext, tenantID, err := tenantCtx(ctx, tenant)
 			if err != nil {
 				return err
 			}
@@ -182,11 +166,7 @@ func targetUpdateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			tenantID, err := resolveTenant(ctx, st.tenant, tenant)
-			if err != nil {
-				return err
-			}
-			authContext, err := authCtx(ctx, tenantID)
+			authContext, tenantID, err := tenantCtx(ctx, tenant)
 			if err != nil {
 				return err
 			}
@@ -237,11 +217,7 @@ func targetDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			tenantID, err := resolveTenant(ctx, st.tenant, tenant)
-			if err != nil {
-				return err
-			}
-			authContext, err := authCtx(ctx, tenantID)
+			authContext, tenantID, err := tenantCtx(ctx, tenant)
 			if err != nil {
 				return err
 			}

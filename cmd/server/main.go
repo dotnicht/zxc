@@ -12,16 +12,17 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"zxc/api/payload"
-	"zxc/api/release"
-	"zxc/api/target"
-	"zxc/api/tenant"
-	"zxc/api/user"
+	payloadapi "zxc/api/payload"
+	releaseapi "zxc/api/release"
+	targetapi "zxc/api/target"
+	tenantapi "zxc/api/tenant"
+	userapi "zxc/api/user"
 	"zxc/internal/config"
 	"zxc/internal/db"
 	"zxc/internal/middleware"
 	"zxc/internal/models"
 	"zxc/internal/service"
+	"zxc/internal/workflow"
 )
 
 func main() {
@@ -68,11 +69,12 @@ func main() {
 	}
 
 	cache := db.NewCache()
-	userSvc := service.NewUser(database, cache)
-	tenantSvc := service.NewTenant(database, cfg, &root)
-	releaseSvc := service.NewRelease(database, cache)
-	targetSvc := service.NewTargetSvc(database, cache)
-	payloadSvc := service.NewPayload(database, cache)
+	store := workflow.NewStore(database)
+	user := service.NewUser(database, cache)
+	tenant := service.NewTenant(database, cfg, &root)
+	release := service.NewRelease(database, cache, store)
+	target := service.NewTarget(database, cache, store)
+	payload := service.NewPayload(database, cache)
 
 	grpcServer := grpc.NewServer(
 		grpc.Creds(creds),
@@ -80,11 +82,11 @@ func main() {
 			middleware.User(cache, database, root.ID),
 		),
 	)
-	user.RegisterUserServiceServer(grpcServer, userSvc)
-	tenant.RegisterTenantServiceServer(grpcServer, tenantSvc)
-	release.RegisterReleaseServiceServer(grpcServer, releaseSvc)
-	target.RegisterTargetServiceServer(grpcServer, targetSvc)
-	payload.RegisterPayloadServiceServer(grpcServer, payloadSvc)
+	userapi.RegisterUserServiceServer(grpcServer, user)
+	tenantapi.RegisterTenantServiceServer(grpcServer, tenant)
+	releaseapi.RegisterReleaseServiceServer(grpcServer, release)
+	targetapi.RegisterTargetServiceServer(grpcServer, target)
+	payloadapi.RegisterPayloadServiceServer(grpcServer, payload)
 	reflection.Register(grpcServer)
 
 	addr := fmt.Sprintf(":%d", 50051)

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -19,8 +20,9 @@ import (
 
 type clientConfig struct {
 	Address string     `mapstructure:"address"`
-	UserID  string     `mapstructure:"user_id"`
+	UserID  string     `mapstructure:"userid"`
 	Log     bool       `mapstructure:"log"`
+	Timeout string     `mapstructure:"timeout"`
 	TLS     config.TLS `mapstructure:"tls"`
 }
 
@@ -48,7 +50,7 @@ var rootCmd = &cobra.Command{
 			slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
 				Level: slog.LevelInfo,
 			})))
-			slog.Info("client starting", "user_id", cfg.UserID, "address", cfg.Address)
+			slog.Info("client starting", "userid", cfg.UserID, "address", cfg.Address)
 		}
 		creds, err := cfg.TLS.ClientCreds()
 		if err != nil {
@@ -89,12 +91,23 @@ func loadConfig() (*clientConfig, error) {
 			if err := v.Unmarshal(cfg); err != nil {
 				return nil, fmt.Errorf("parsing %s: %w", path, err)
 			}
+			if cfg.UserID == "" {
+				cfg.UserID = v.GetString("userid")
+			}
+			if cfg.UserID == "" {
+				cfg.UserID = v.GetString("user_id")
+			}
 			break
 		}
 	}
 
 	if cfg.Address == "" {
 		return nil, fmt.Errorf("address must not be empty")
+	}
+	if cfg.Timeout != "" {
+		if _, err := time.ParseDuration(cfg.Timeout); err != nil {
+			return nil, fmt.Errorf("invalid timeout %q: %w", cfg.Timeout, err)
+		}
 	}
 	return cfg, nil
 }
