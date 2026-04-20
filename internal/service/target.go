@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"zxc/api/target"
+	"zxc/internal/authz"
 	"zxc/internal/db"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
@@ -44,8 +45,11 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "target.create", tenant, authz.Resource{Type: "target"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -73,7 +77,11 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to persist target creation: %v", errors.Join(err, cleanupErr))
 	}
 
-	return &target.CreateResponse{Target: targetToProto(t)}, nil
+	protoTarget, err := s.targetToProto(ctx, tenant, t)
+	if err != nil {
+		return nil, err
+	}
+	return &target.CreateResponse{Target: protoTarget}, nil
 }
 
 func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetResponse, error) {
@@ -87,7 +95,7 @@ func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetRe
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +107,11 @@ func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetRe
 		}
 		return nil, status.Errorf(codes.Internal, "failed to get target: %v", err)
 	}
-
-	return &target.GetResponse{Target: targetToProto(&t)}, nil
+	protoTarget, err := s.targetToProto(ctx, tenant, &t)
+	if err != nil {
+		return nil, err
+	}
+	return &target.GetResponse{Target: protoTarget}, nil
 }
 
 func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target.UpdateResponse, error) {
@@ -118,7 +129,7 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -129,6 +140,12 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 			return nil, status.Error(codes.NotFound, "target not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load previous target state: %v", err)
+	}
+	if _, err := authorizeAction(ctx, "target.update", tenant, authz.Resource{
+		Type:    "target",
+		OwnerID: previous.OwnerID.String(),
+	}, authz.Related{}); err != nil {
+		return nil, err
 	}
 
 	result := tenantDB.Model(&models.Target{}).Where("id = ?", id).Updates(&models.Target{Address: req.Address, User: req.User, Key: req.Key})
@@ -171,7 +188,11 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to persist target update: %v", errors.Join(err, revertErr))
 	}
 
-	return &target.UpdateResponse{Target: targetToProto(&updated)}, nil
+	protoTarget, err := s.targetToProto(ctx, tenant, &updated)
+	if err != nil {
+		return nil, err
+	}
+	return &target.UpdateResponse{Target: protoTarget}, nil
 }
 
 func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target.DeleteResponse, error) {
@@ -185,7 +206,7 @@ func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -196,6 +217,12 @@ func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target
 			return nil, status.Error(codes.NotFound, "target not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load target: %v", err)
+	}
+	if _, err := authorizeAction(ctx, "target.delete", tenant, authz.Resource{
+		Type:    "target",
+		OwnerID: existing.OwnerID.String(),
+	}, authz.Related{}); err != nil {
+		return nil, err
 	}
 
 	result := tenantDB.Where("id = ?", id).Delete(&models.Target{})
@@ -240,8 +267,11 @@ func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.Lis
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "target.list", tenant, authz.Resource{Type: "target"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -258,7 +288,11 @@ func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.Lis
 
 	protoTargets := make([]*target.Target, len(targets))
 	for i, t := range targets {
-		protoTargets[i] = targetToProto(t)
+		protoTarget, err := s.targetToProto(ctx, tenant, t)
+		if err != nil {
+			return nil, err
+		}
+		protoTargets[i] = protoTarget
 	}
 
 	return &target.ListResponse{Targets: protoTargets, Total: int32(total)}, nil
@@ -282,8 +316,11 @@ func (s *Target) Search(ctx context.Context, req *target.SearchRequest) (*target
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "target.search", tenant, authz.Resource{Type: "target"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -301,7 +338,11 @@ func (s *Target) Search(ctx context.Context, req *target.SearchRequest) (*target
 
 	protoTargets := make([]*target.Target, len(targets))
 	for i, t := range targets {
-		protoTargets[i] = targetToProto(t)
+		protoTarget, err := s.targetToProto(ctx, tenant, t)
+		if err != nil {
+			return nil, err
+		}
+		protoTargets[i] = protoTarget
 	}
 
 	return &target.SearchResponse{Targets: protoTargets, Total: int32(total)}, nil
@@ -318,6 +359,21 @@ func targetToProto(t *models.Target) *target.Target {
 		CreatedAt: t.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: t.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
+}
+
+func (s *Target) targetToProto(ctx context.Context, tenant *models.Tenant, t *models.Target) (*target.Target, error) {
+	decision, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
+		Type:    "target",
+		OwnerID: t.OwnerID.String(),
+	}, authz.Related{})
+	if err != nil {
+		return nil, err
+	}
+	protoTarget := targetToProto(t)
+	if !decision.RevealSecret {
+		protoTarget.Key = ""
+	}
+	return protoTarget, nil
 }
 
 func (s *Target) enqueueProbe(ctx context.Context, tx *gorm.DB, tenantID uuid.UUID, targetID uuid.UUID) error {

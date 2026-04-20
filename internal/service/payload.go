@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"zxc/api/payload"
+	"zxc/internal/authz"
 	"zxc/internal/consts"
 	"zxc/internal/db"
 	"zxc/internal/models"
@@ -94,6 +95,9 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 	if err != nil {
 		return nil, err
 	}
+	if _, err := authorizeAction(ctx, "payload.create", ten, authz.Resource{Type: "payload"}, authz.Related{}); err != nil {
+		return nil, err
+	}
 
 	tenantDB, err := s.cache.Get(ten.Database)
 	if err != nil {
@@ -142,7 +146,7 @@ func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.Ge
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -153,6 +157,12 @@ func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.Ge
 			return nil, status.Error(codes.NotFound, "payload not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to get payload: %v", err)
+	}
+	if _, err := authorizeAction(ctx, "payload.get", tenant, authz.Resource{
+		Type:    "payload",
+		OwnerID: p.OwnerID.String(),
+	}, authz.Related{}); err != nil {
+		return nil, err
 	}
 
 	return &payload.GetResponse{Payload: payloadToProto(&p)}, nil
@@ -169,8 +179,22 @@ func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payl
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
+		return nil, err
+	}
+
+	var current models.Payload
+	if err := tenantDB.First(&current, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "payload not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to load payload: %v", err)
+	}
+	if _, err := authorizeAction(ctx, "payload.update", tenant, authz.Resource{
+		Type:    "payload",
+		OwnerID: current.OwnerID.String(),
+	}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -201,8 +225,22 @@ func (s *Payload) Delete(ctx context.Context, req *payload.DeleteRequest) (*payl
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
+		return nil, err
+	}
+
+	var current models.Payload
+	if err := tenantDB.First(&current, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "payload not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to load payload: %v", err)
+	}
+	if _, err := authorizeAction(ctx, "payload.delete", tenant, authz.Resource{
+		Type:    "payload",
+		OwnerID: current.OwnerID.String(),
+	}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -231,8 +269,11 @@ func (s *Payload) List(ctx context.Context, req *payload.ListRequest) (*payload.
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "payload.list", tenant, authz.Resource{Type: "payload"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 

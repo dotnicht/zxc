@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"zxc/api/user"
+	"zxc/internal/authz"
 	"zxc/internal/db"
 	"zxc/internal/models"
 )
@@ -33,8 +34,11 @@ func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.Creat
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "user.create", tenant, authz.Resource{Type: "user"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -57,7 +61,7 @@ func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -68,6 +72,12 @@ func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to get user: %v", err))
+	}
+	if _, err := authorizeAction(ctx, "user.get", tenant, authz.Resource{
+		Type:    "user",
+		OwnerID: u.ID.String(),
+	}, authz.Related{}); err != nil {
+		return nil, err
 	}
 
 	return &user.GetResponse{User: modelToProto(&u)}, nil
@@ -88,8 +98,14 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "user.update", tenant, authz.Resource{
+		Type:    "user",
+		OwnerID: userID.String(),
+	}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -120,8 +136,14 @@ func (s *User) Delete(ctx context.Context, req *user.DeleteRequest) (*user.Delet
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "user.delete", tenant, authz.Resource{
+		Type:    "user",
+		OwnerID: userID.String(),
+	}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -150,8 +172,11 @@ func (s *User) List(ctx context.Context, req *user.ListRequest) (*user.ListRespo
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "user.list", tenant, authz.Resource{Type: "user"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -192,8 +217,11 @@ func (s *User) Search(ctx context.Context, req *user.SearchRequest) (*user.Searc
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "user.search", tenant, authz.Resource{Type: "user"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 

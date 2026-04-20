@@ -35,9 +35,8 @@ message GetResponse {
 message CreateRequest {
   string tenant_id = 1;
   string owner_id = 2;
-  string status = 3;
-  string target_id = 4;
-  string payload_id = 5;
+  string target_id = 3;
+  string payload_id = 4;
 }
 
 message CreateResponse {

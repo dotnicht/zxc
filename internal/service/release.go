@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"zxc/api/release"
+	"zxc/internal/authz"
 	"zxc/internal/db"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
@@ -57,13 +58,6 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 		return nil, err
 	}
 
-	releaseStatus := req.Status
-	if releaseStatus == "" {
-		releaseStatus = models.ReleaseUnknown
-	} else if !validReleaseStatuses[releaseStatus] {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid status %q: must be one of unknown, deployed, dead, alive", releaseStatus)
-	}
-
 	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
@@ -78,9 +72,15 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 	if err := tenantDB.First(&p, "id = ?", payloadID).Error; err != nil {
 		return nil, status.Errorf(codes.NotFound, "payload not found")
 	}
+	if _, err := authorizeAction(ctx, "release.create", tenant, authz.Resource{Type: "release"}, authz.Related{
+		TargetOwnerID:  t.OwnerID.String(),
+		PayloadOwnerID: p.OwnerID.String(),
+	}); err != nil {
+		return nil, err
+	}
 
 	rel := &models.Release{
-		Status:      releaseStatus,
+		Status:      models.ReleaseUnknown,
 		OwnerID:     authUserID,
 		TargetID:    &targetID,
 		PayloadID:   &payloadID,
@@ -128,7 +128,7 @@ func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.Ge
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -139,6 +139,13 @@ func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.Ge
 			return nil, status.Error(codes.NotFound, "release not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to get release: %v", err)
+	}
+	if _, err := authorizeAction(ctx, "release.get", tenant, authz.Resource{
+		Type:    "release",
+		OwnerID: rel.OwnerID.String(),
+		Status:  rel.Status,
+	}, authz.Related{}); err != nil {
+		return nil, err
 	}
 
 	return &release.GetResponse{Release: releaseToProto(&rel)}, nil
@@ -165,6 +172,21 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 
 	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
+		return nil, err
+	}
+
+	var current models.Release
+	if err := tenantDB.First(&current, "id = ?", releaseID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "release not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to load release: %v", err)
+	}
+	if _, err := authorizeAction(ctx, "release.deploy", tenant, authz.Resource{
+		Type:    "release",
+		OwnerID: current.OwnerID.String(),
+		Status:  current.Status,
+	}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -231,8 +253,11 @@ func (s *Release) List(ctx context.Context, req *release.ListRequest) (*release.
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "release.list", tenant, authz.Resource{Type: "release"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -273,8 +298,11 @@ func (s *Release) Search(ctx context.Context, req *release.SearchRequest) (*rele
 		return nil, err
 	}
 
-	_, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
 	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "release.search", tenant, authz.Resource{Type: "release"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 

@@ -14,6 +14,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"zxc/api/tenant"
+	"zxc/internal/authz"
 	"zxc/internal/config"
 	"zxc/internal/db"
 	"zxc/internal/models"
@@ -50,6 +51,10 @@ func validateTenantName(name string) error {
 }
 
 func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant.CreateResponse, error) {
+	if _, err := authorizeAction(ctx, "tenant.create", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
+		return nil, err
+	}
+
 	if err := validateTenantName(req.Name); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid tenant name: %v", err)
 	}
@@ -112,6 +117,10 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 }
 
 func (s *Tenant) Get(ctx context.Context, req *tenant.GetRequest) (*tenant.GetResponse, error) {
+	if _, err := authorizeAction(ctx, "tenant.get", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
+		return nil, err
+	}
+
 	id, err := parseUUID(req.Id, "id")
 	if err != nil {
 		return nil, err
@@ -129,6 +138,10 @@ func (s *Tenant) Get(ctx context.Context, req *tenant.GetRequest) (*tenant.GetRe
 }
 
 func (s *Tenant) Update(ctx context.Context, req *tenant.UpdateRequest) (*tenant.UpdateResponse, error) {
+	if _, err := authorizeAction(ctx, "tenant.update", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
+		return nil, err
+	}
+
 	id, err := parseUUID(req.Id, "id")
 	if err != nil {
 		return nil, err
@@ -173,6 +186,10 @@ func (s *Tenant) Update(ctx context.Context, req *tenant.UpdateRequest) (*tenant
 }
 
 func (s *Tenant) Delete(ctx context.Context, req *tenant.DeleteRequest) (*tenant.DeleteResponse, error) {
+	if _, err := authorizeAction(ctx, "tenant.delete", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
+		return nil, err
+	}
+
 	id, err := parseUUID(req.Id, "id")
 	if err != nil {
 		return nil, err
@@ -190,6 +207,10 @@ func (s *Tenant) Delete(ctx context.Context, req *tenant.DeleteRequest) (*tenant
 }
 
 func (s *Tenant) List(ctx context.Context, req *tenant.ListRequest) (*tenant.ListResponse, error) {
+	if _, err := authorizeAction(ctx, "tenant.list", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
+		return nil, err
+	}
+
 	page := int(req.Page)
 	pageSize := int(req.PageSize)
 	if page <= 0 {
@@ -219,6 +240,10 @@ func (s *Tenant) List(ctx context.Context, req *tenant.ListRequest) (*tenant.Lis
 }
 
 func (s *Tenant) Search(ctx context.Context, req *tenant.SearchRequest) (*tenant.SearchResponse, error) {
+	if _, err := authorizeAction(ctx, "tenant.search", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
+		return nil, err
+	}
+
 	if req.Query == "" {
 		return nil, status.Error(codes.InvalidArgument, "search query is required")
 	}

@@ -55,6 +55,12 @@ func (w *ReleaseHealthWorker) Work(ctx context.Context, job *workflow.Job[Releas
 		if result.Error != nil || result.RowsAffected == 0 {
 			return result.Error
 		}
+		if err := authorizeReleaseTransition(ctx, &tenant, previousStatus, models.ReleaseDead); err != nil {
+			revertErr := db.WithContext(ctx).Model(&models.Release{}).
+				Where("id = ? AND status = ?", release.ID, models.ReleaseDead).
+				Update("status", previousStatus).Error
+			return errors.Join(err, revertErr)
+		}
 		if err := w.store.RootTransaction(ctx, func(tx *gorm.DB) error {
 			return w.store.RecordEvent(ctx, tx, workflow.EventInput{
 				Kind:          "release_health_timeout",
