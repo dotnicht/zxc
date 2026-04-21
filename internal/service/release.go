@@ -73,8 +73,8 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 		return nil, status.Errorf(codes.NotFound, "payload not found")
 	}
 	if _, err := authorizeAction(ctx, "release.create", tenant, authz.Resource{Type: "release"}, authz.Related{
-		TargetOwnerID:  t.OwnerID.String(),
-		PayloadOwnerID: p.OwnerID.String(),
+		TargetOwnerID:  t.OwnerID,
+		PayloadOwnerID: p.OwnerID,
 	}); err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.Ge
 	}
 	if _, err := authorizeAction(ctx, "release.get", tenant, authz.Resource{
 		Type:    "release",
-		OwnerID: rel.OwnerID.String(),
+		OwnerID: rel.OwnerID,
 		Status:  rel.Status,
 	}, authz.Related{}); err != nil {
 		return nil, err
@@ -186,7 +186,7 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 	}
 	if _, err := authorizeAction(ctx, "release.deploy", tenant, authz.Resource{
 		Type:    "release",
-		OwnerID: current.OwnerID.String(),
+		OwnerID: current.OwnerID,
 		Status:  current.Status,
 	}, authz.Related{}); err != nil {
 		return nil, err

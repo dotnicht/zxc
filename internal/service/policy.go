@@ -23,7 +23,7 @@ func authorizeAction(ctx context.Context, action string, tenant *models.Tenant, 
 
 	input := authz.Input{
 		Subject: authz.Subject{
-			ID:     user.ID.String(),
+			ID:     user.ID,
 			IsRoot: tenant == nil,
 		},
 		Action:   action,
@@ -32,8 +32,8 @@ func authorizeAction(ctx context.Context, action string, tenant *models.Tenant, 
 	}
 	if tenant != nil {
 		input.Tenant = authz.Tenant{
-			ID:      tenant.ID.String(),
-			OwnerID: tenant.OwnerID.String(),
+			ID:      tenant.ID,
+			OwnerID: tenant.OwnerID,
 		}
 	}
 

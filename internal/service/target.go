@@ -78,7 +78,7 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 
 	decision, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
 		Type:    "target",
-		OwnerID: t.OwnerID.String(),
+		OwnerID: t.OwnerID,
 	}, authz.Related{})
 	if err != nil {
 		return nil, err
@@ -111,7 +111,7 @@ func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetRe
 	}
 	decision, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
 		Type:    "target",
-		OwnerID: t.OwnerID.String(),
+		OwnerID: t.OwnerID,
 	}, authz.Related{})
 	if err != nil {
 		return nil, err
@@ -148,7 +148,7 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 	}
 	if _, err := authorizeAction(ctx, "target.update", tenant, authz.Resource{
 		Type:    "target",
-		OwnerID: previous.OwnerID.String(),
+		OwnerID: previous.OwnerID,
 	}, authz.Related{}); err != nil {
 		return nil, err
 	}
@@ -194,7 +194,7 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 
 	decision, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
 		Type:    "target",
-		OwnerID: updated.OwnerID.String(),
+		OwnerID: updated.OwnerID,
 	}, authz.Related{})
 	if err != nil {
 		return nil, err
@@ -227,7 +227,7 @@ func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target
 	}
 	if _, err := authorizeAction(ctx, "target.delete", tenant, authz.Resource{
 		Type:    "target",
-		OwnerID: existing.OwnerID.String(),
+		OwnerID: existing.OwnerID,
 	}, authz.Related{}); err != nil {
 		return nil, err
 	}
@@ -294,7 +294,7 @@ func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.Lis
 	for i, t := range targets {
 		d, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
 			Type:    "target",
-			OwnerID: t.OwnerID.String(),
+			OwnerID: t.OwnerID,
 		}, authz.Related{})
 		if err != nil {
 			return nil, err
@@ -347,7 +347,7 @@ func (s *Target) Search(ctx context.Context, req *target.SearchRequest) (*target
 	for i, t := range targets {
 		d, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
 			Type:    "target",
-			OwnerID: t.OwnerID.String(),
+			OwnerID: t.OwnerID,
 		}, authz.Related{})
 		if err != nil {
 			return nil, err

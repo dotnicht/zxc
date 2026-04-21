@@ -17,18 +17,18 @@ is_root if input.subject.is_root
 is_system if input.subject.system
 
 is_tenant_owner if {
-	input.tenant.owner_id != ""
+	input.tenant.owner_id != "00000000-0000-0000-0000-000000000000"
 	input.subject.id == input.tenant.owner_id
 }
 
 is_resource_owner if {
-	input.resource.owner_id != ""
+	input.resource.owner_id != "00000000-0000-0000-0000-000000000000"
 	input.subject.id == input.resource.owner_id
 }
 
 owns_release_dependencies if {
-	input.related.target_owner_id != ""
-	input.related.payload_owner_id != ""
+	input.related.target_owner_id != "00000000-0000-0000-0000-000000000000"
+	input.related.payload_owner_id != "00000000-0000-0000-0000-000000000000"
 	input.subject.id == input.related.target_owner_id
 	input.subject.id == input.related.payload_owner_id
 }
@@ -36,8 +36,8 @@ owns_release_dependencies if {
 is_authenticated_tenant_user if {
 	not is_root
 	not is_system
-	input.subject.id != ""
-	input.tenant.id != ""
+	input.subject.id != "00000000-0000-0000-0000-000000000000"
+	input.tenant.id != "00000000-0000-0000-0000-000000000000"
 }
 
 allow if {

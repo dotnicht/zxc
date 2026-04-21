@@ -155,7 +155,7 @@ func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.Ge
 	}
 	if _, err := authorizeAction(ctx, "payload.get", tenant, authz.Resource{
 		Type:    "payload",
-		OwnerID: p.OwnerID.String(),
+		OwnerID: p.OwnerID,
 	}, authz.Related{}); err != nil {
 		return nil, err
 	}
@@ -188,7 +188,7 @@ func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payl
 	}
 	if _, err := authorizeAction(ctx, "payload.update", tenant, authz.Resource{
 		Type:    "payload",
-		OwnerID: current.OwnerID.String(),
+		OwnerID: current.OwnerID,
 	}, authz.Related{}); err != nil {
 		return nil, err
 	}
@@ -234,7 +234,7 @@ func (s *Payload) Delete(ctx context.Context, req *payload.DeleteRequest) (*payl
 	}
 	if _, err := authorizeAction(ctx, "payload.delete", tenant, authz.Resource{
 		Type:    "payload",
-		OwnerID: current.OwnerID.String(),
+		OwnerID: current.OwnerID,
 	}, authz.Related{}); err != nil {
 		return nil, err
 	}

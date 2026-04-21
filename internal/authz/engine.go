@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/open-policy-agent/opa/v1/rego"
 )
 
@@ -14,26 +15,26 @@ import (
 var policySource string
 
 type Subject struct {
-	ID     string `json:"id"`
-	IsRoot bool   `json:"is_root,omitempty"`
-	System bool   `json:"system,omitempty"`
+	ID     uuid.UUID `json:"id"`
+	IsRoot bool      `json:"is_root,omitempty"`
+	System bool      `json:"system,omitempty"`
 }
 
 type Tenant struct {
-	ID      string `json:"id,omitempty"`
-	OwnerID string `json:"owner_id,omitempty"`
+	ID      uuid.UUID `json:"id"`
+	OwnerID uuid.UUID `json:"owner_id"`
 }
 
 type Resource struct {
-	Type       string `json:"type,omitempty"`
-	OwnerID    string `json:"owner_id,omitempty"`
-	Status     string `json:"status,omitempty"`
-	NextStatus string `json:"next_status,omitempty"`
+	Type       string    `json:"type,omitempty"`
+	OwnerID    uuid.UUID `json:"owner_id"`
+	Status     string    `json:"status,omitempty"`
+	NextStatus string    `json:"next_status,omitempty"`
 }
 
 type Related struct {
-	TargetOwnerID  string `json:"target_owner_id,omitempty"`
-	PayloadOwnerID string `json:"payload_owner_id,omitempty"`
+	TargetOwnerID  uuid.UUID `json:"target_owner_id"`
+	PayloadOwnerID uuid.UUID `json:"payload_owner_id"`
 }
 
 type Input struct {

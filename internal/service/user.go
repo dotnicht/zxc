@@ -75,7 +75,7 @@ func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse
 	}
 	if _, err := authorizeAction(ctx, "user.get", tenant, authz.Resource{
 		Type:    "user",
-		OwnerID: u.ID.String(),
+		OwnerID: u.ID,
 	}, authz.Related{}); err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 	}
 	if _, err := authorizeAction(ctx, "user.update", tenant, authz.Resource{
 		Type:    "user",
-		OwnerID: current.ID.String(),
+		OwnerID: current.ID,
 	}, authz.Related{}); err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func (s *User) Delete(ctx context.Context, req *user.DeleteRequest) (*user.Delet
 	}
 	if _, err := authorizeAction(ctx, "user.delete", tenant, authz.Resource{
 		Type:    "user",
-		OwnerID: userID.String(),
+		OwnerID: userID,
 	}, authz.Related{}); err != nil {
 		return nil, err
 	}

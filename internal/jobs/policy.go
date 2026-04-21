@@ -11,13 +11,12 @@ import (
 func authorizeReleaseTransition(ctx context.Context, tenant *models.Tenant, from, to string) error {
 	decision, err := authz.EvaluateDefault(ctx, authz.Input{
 		Subject: authz.Subject{
-			ID:     "system",
 			System: true,
 		},
 		Action: "release.transition",
 		Tenant: authz.Tenant{
-			ID:      tenant.ID.String(),
-			OwnerID: tenant.OwnerID.String(),
+			ID:      tenant.ID,
+			OwnerID: tenant.OwnerID,
 		},
 		Resource: authz.Resource{
 			Type:       "release",
