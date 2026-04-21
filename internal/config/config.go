@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/credentials"
@@ -16,12 +17,18 @@ type TLS struct {
 	Key  string `mapstructure:"key"`
 }
 
+type Worker struct {
+	TenantIDs        []string `mapstructure:"tenant_ids"`
+	ExcludeTenantIDs []string `mapstructure:"exclude_tenant_ids"`
+}
+
 type Config struct {
 	Database string `mapstructure:"database"`
 	Storage  string `mapstructure:"storage"`
 	Webhook  string `mapstructure:"webhook"`
 	Root     string `mapstructure:"root"`
 	TLS      TLS    `mapstructure:"tls"`
+	Worker   Worker `mapstructure:"worker"`
 }
 
 func Load(path string) (*Config, error) {
@@ -40,8 +47,37 @@ func Load(path string) (*Config, error) {
 	if config.Database == "" {
 		return nil, fmt.Errorf("database connection string is required")
 	}
+	config.Worker.normalize()
 
 	return &config, nil
+}
+
+func (w *Worker) normalize() {
+	w.TenantIDs = normalizeList(w.TenantIDs)
+	w.ExcludeTenantIDs = normalizeList(w.ExcludeTenantIDs)
+}
+
+func normalizeList(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	normalized := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		normalized = append(normalized, value)
+	}
+	if len(normalized) == 0 {
+		return nil
+	}
+	return normalized
 }
 
 func (t TLS) ServerCreds() (credentials.TransportCredentials, error) {

@@ -10,32 +10,74 @@ import (
 )
 
 type MultiRunner struct {
-	rootDB        *gorm.DB
-	newTenant     func(string) (*gorm.DB, error)
-	lease         time.Duration
-	maxConcurrent int
-	syncInterval  time.Duration
-	configure     func(*Runner)
+	rootDB         *gorm.DB
+	newTenant      func(string) (*gorm.DB, error)
+	lease          time.Duration
+	maxConcurrent  int
+	syncInterval   time.Duration
+	allowTenantIDs map[string]struct{}
+	denyTenantIDs  map[string]struct{}
+	configure      func(*Runner)
 }
 
-func NewMultiRunner(rootDB *gorm.DB, newTenant func(string) (*gorm.DB, error), lease time.Duration, maxConcurrent int, syncInterval time.Duration, configure func(*Runner)) *MultiRunner {
+type MultiRunnerOptions struct {
+	Lease          time.Duration
+	MaxConcurrent  int
+	SyncInterval   time.Duration
+	AllowTenantIDs []string
+	DenyTenantIDs  []string
+}
+
+func NewMultiRunner(rootDB *gorm.DB, newTenant func(string) (*gorm.DB, error), options MultiRunnerOptions, configure func(*Runner)) *MultiRunner {
+	lease := options.Lease
 	if lease <= 0 {
 		lease = 10 * time.Minute
 	}
+	maxConcurrent := options.MaxConcurrent
 	if maxConcurrent <= 0 {
 		maxConcurrent = 8
 	}
+	syncInterval := options.SyncInterval
 	if syncInterval <= 0 {
 		syncInterval = 5 * time.Second
 	}
 	return &MultiRunner{
-		rootDB:        rootDB,
-		newTenant:     newTenant,
-		lease:         lease,
-		maxConcurrent: maxConcurrent,
-		syncInterval:  syncInterval,
-		configure:     configure,
+		rootDB:         rootDB,
+		newTenant:      newTenant,
+		lease:          lease,
+		maxConcurrent:  maxConcurrent,
+		syncInterval:   syncInterval,
+		allowTenantIDs: listToSet(options.AllowTenantIDs),
+		denyTenantIDs:  listToSet(options.DenyTenantIDs),
+		configure:      configure,
 	}
+}
+
+func listToSet(values []string) map[string]struct{} {
+	if len(values) == 0 {
+		return nil
+	}
+	set := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		set[value] = struct{}{}
+	}
+	return set
+}
+
+func (m *MultiRunner) matchesTenant(tenant models.Tenant) bool {
+	tenantID := tenant.ID.String()
+
+	if len(m.allowTenantIDs) > 0 {
+		if _, ok := m.allowTenantIDs[tenantID]; !ok {
+			return false
+		}
+	}
+
+	if _, ok := m.denyTenantIDs[tenantID]; ok {
+		return false
+	}
+
+	return true
 }
 
 func (m *MultiRunner) Run(ctx context.Context) {
@@ -58,6 +100,13 @@ func (m *MultiRunner) Run(ctx context.Context) {
 		active := make(map[string]struct{}, len(tenants))
 		for _, tenant := range tenants {
 			tenantKey := tenant.ID.String()
+			if !m.matchesTenant(tenant) {
+				if current, ok := runners[tenantKey]; ok {
+					current.cancel()
+					delete(runners, tenantKey)
+				}
+				continue
+			}
 			active[tenantKey] = struct{}{}
 
 			current, ok := runners[tenantKey]

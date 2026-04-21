@@ -15,17 +15,17 @@ const (
 )
 
 type Command struct {
-	ID            int64           `gorm:"primaryKey;autoIncrement"`
+	ID            int64           `gorm:"primaryKey;autoIncrement;index:commands_due_idx,priority:2,where:status IN ('pending','running')"`
 	Kind          string          `gorm:"type:text;not null;index"`
 	AggregateType string          `gorm:"type:text;not null;index"`
 	AggregateID   uuid.UUID       `gorm:"type:uuid;not null;index"`
 	Payload       json.RawMessage `gorm:"type:jsonb;not null"`
 	Status        string          `gorm:"type:text;not null;default:'pending';index"`
-	RunAt         time.Time       `gorm:"not null;default:now();index"`
+	RunAt         time.Time       `gorm:"not null;default:now();index;index:commands_due_idx,priority:1,where:status IN ('pending','running')"`
 	LeaseUntil    *time.Time      `gorm:"index"`
 	Attempt       int             `gorm:"not null;default:0"`
 	MaxAttempts   int             `gorm:"not null;default:5"`
-	DedupeKey     string          `gorm:"type:text"`
+	DedupeKey     string          `gorm:"type:text;uniqueIndex:commands_active_dedupe_idx,where:is_active = true"`
 	IsActive      bool            `gorm:"not null;default:true"`
 	FinishedAt    *time.Time
 	LastError     string    `gorm:"type:text"`
