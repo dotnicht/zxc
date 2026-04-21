@@ -20,6 +20,7 @@ import (
 	targetapi "zxc/api/target"
 	tenantapi "zxc/api/tenant"
 	userapi "zxc/api/user"
+	workerapi "zxc/api/worker"
 	"zxc/internal/config"
 	"zxc/internal/db"
 	"zxc/internal/middleware"
@@ -77,6 +78,7 @@ func main() {
 	account := service.NewAccount(database, cache, store)
 	session := service.NewSession(database, cache, store)
 	tenant := service.NewTenant(database, cfg, &root)
+	worker := service.NewWorker(database)
 	release := service.NewRelease(database, cache, store)
 	target := service.NewTarget(database, cache, store)
 	payload := service.NewPayload(database, cache)
@@ -91,6 +93,7 @@ func main() {
 	accountapi.RegisterAccountServiceServer(grpcServer, account)
 	sessionapi.RegisterSessionServiceServer(grpcServer, session)
 	tenantapi.RegisterTenantServiceServer(grpcServer, tenant)
+	workerapi.RegisterWorkerServiceServer(grpcServer, worker)
 	releaseapi.RegisterReleaseServiceServer(grpcServer, release)
 	targetapi.RegisterTargetServiceServer(grpcServer, target)
 	payloadapi.RegisterPayloadServiceServer(grpcServer, payload)

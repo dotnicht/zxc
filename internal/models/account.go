@@ -9,7 +9,7 @@ import (
 
 type Account struct {
 	ID        uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	Name      string         `gorm:"type:varchar(255);not null;uniqueIndex:accounts_name_active_idx,where:deleted_at IS NULL"`
+	Name      string         `gorm:"type:varchar(255);not null;uniqueIndex"`
 	Requests  []*Request     `gorm:"foreignKey:AccountID"`
 	Sessions  []*Session     `gorm:"foreignKey:AccountID"`
 	CreatedAt time.Time      `gorm:"not null;default:now()"`

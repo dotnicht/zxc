@@ -64,7 +64,21 @@ func resolveTenant(ctx context.Context, name string) (string, error) {
 	return "", fmt.Errorf("tenant %q not found", name)
 }
 
-func tenantCtx(ctx context.Context, tenantName string) (context.Context, string, error) {
+func effectiveTenantName() (string, error) {
+	if tenantOverride != "" {
+		return tenantOverride, nil
+	}
+	if st.cfg != nil && st.cfg.Tenant != "" {
+		return st.cfg.Tenant, nil
+	}
+	return "", fmt.Errorf("tenant must be set via --tenant or client config")
+}
+
+func tenantCtx(ctx context.Context) (context.Context, string, error) {
+	tenantName, err := effectiveTenantName()
+	if err != nil {
+		return nil, "", err
+	}
 	tenantID, err := resolveTenant(ctx, tenantName)
 	if err != nil {
 		return nil, "", err
@@ -76,8 +90,8 @@ func tenantCtx(ctx context.Context, tenantName string) (context.Context, string,
 	return authContext, tenantID, nil
 }
 
-func tenantOwnerCtx(ctx context.Context, tenantName string) (context.Context, string, string, error) {
-	authContext, tenantID, err := tenantCtx(ctx, tenantName)
+func tenantOwnerCtx(ctx context.Context) (context.Context, string, string, error) {
+	authContext, tenantID, err := tenantCtx(ctx)
 	if err != nil {
 		return nil, "", "", err
 	}

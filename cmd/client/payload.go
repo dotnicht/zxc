@@ -23,14 +23,14 @@ func payloadCmd() *cobra.Command {
 }
 
 func payloadAddCmd() *cobra.Command {
-	var tenant, file, config, start, stop string
+	var file, config, start, stop string
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Create a payload",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, userID, err := tenantOwnerCtx(ctx, tenant)
+			authContext, tenantID, userID, err := tenantOwnerCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -54,8 +54,6 @@ func payloadAddCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&file, "file", "", "path to file to upload")
 	_ = cmd.MarkFlagRequired("file")
 	cmd.Flags().StringVar(&config, "config", "", "name of the config file inside the zip (must contain {ZXC_URL} and {ZXC_AUTH})")
@@ -68,14 +66,14 @@ func payloadAddCmd() *cobra.Command {
 }
 
 func payloadGetCmd() *cobra.Command {
-	var tenant, id string
+	var id string
 	cmd := &cobra.Command{
 		Use:   "get",
 		Short: "Get a payload by ID",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -87,15 +85,12 @@ func payloadGetCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&id, "id", "", "payload ID")
 	_ = cmd.MarkFlagRequired("id")
 	return cmd
 }
 
 func payloadListCmd() *cobra.Command {
-	var tenant string
 	var page, size int32
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -103,7 +98,7 @@ func payloadListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -120,22 +115,20 @@ func payloadListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")
 	cmd.Flags().Int32Var(&size, "size", 20, "page size")
 	return cmd
 }
 
 func payloadUpdateCmd() *cobra.Command {
-	var tenant, id, path, config, start, stop string
+	var id, path, config, start, stop string
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Update a payload",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -154,8 +147,6 @@ func payloadUpdateCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&id, "id", "", "payload ID")
 	_ = cmd.MarkFlagRequired("id")
 	cmd.Flags().StringVar(&path, "path", "", "payload path")
@@ -179,14 +170,14 @@ func printPayload(p *payload.Payload) {
 }
 
 func payloadDeleteCmd() *cobra.Command {
-	var tenant, id string
+	var id string
 	cmd := &cobra.Command{
 		Use:   "delete",
 		Short: "Delete a payload",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -198,8 +189,6 @@ func payloadDeleteCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&id, "id", "", "payload ID")
 	_ = cmd.MarkFlagRequired("id")
 	return cmd

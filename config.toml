@@ -9,5 +9,4 @@ cert = "certs/server.crt"
 key  = "certs/server.key"
 
 [worker]
-include = []
-exclude = []
+id = "00000000-0000-0000-0000-000000000100"

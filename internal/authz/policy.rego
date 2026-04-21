@@ -53,6 +53,22 @@ allow if {
 }
 
 allow if {
+	input.action in {
+		"worker.create",
+		"worker.get",
+		"worker.update",
+		"worker.delete",
+		"worker.list",
+		"worker.search",
+		"worker.assign_tenant",
+		"worker.unassign_tenant",
+		"worker.list_tenants",
+		"worker.list_workers_for_tenant",
+	}
+	is_root
+}
+
+allow if {
 	input.action == "user.create"
 	is_tenant_owner
 }

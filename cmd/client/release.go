@@ -21,14 +21,14 @@ func releaseCmd() *cobra.Command {
 }
 
 func releaseAddCmd() *cobra.Command {
-	var tenant, targetID, payloadID string
+	var targetID, payloadID string
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Create a release",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, userID, err := tenantOwnerCtx(ctx, tenant)
+			authContext, tenantID, userID, err := tenantOwnerCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -46,8 +46,6 @@ func releaseAddCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&targetID, "target", "", "target ID")
 	_ = cmd.MarkFlagRequired("target")
 	cmd.Flags().StringVar(&payloadID, "payload", "", "payload ID")
@@ -56,14 +54,14 @@ func releaseAddCmd() *cobra.Command {
 }
 
 func releaseGetCmd() *cobra.Command {
-	var tenant, id string
+	var id string
 	cmd := &cobra.Command{
 		Use:   "get",
 		Short: "Get a release by ID",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -75,15 +73,12 @@ func releaseGetCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&id, "id", "", "release ID")
 	_ = cmd.MarkFlagRequired("id")
 	return cmd
 }
 
 func releaseListCmd() *cobra.Command {
-	var tenant string
 	var page, size int32
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -91,7 +86,7 @@ func releaseListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -108,15 +103,13 @@ func releaseListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")
 	cmd.Flags().Int32Var(&size, "size", 20, "page size")
 	return cmd
 }
 
 func releaseSearchCmd() *cobra.Command {
-	var tenant, query string
+	var query string
 	var page, size int32
 	cmd := &cobra.Command{
 		Use:   "search",
@@ -124,7 +117,7 @@ func releaseSearchCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -141,8 +134,6 @@ func releaseSearchCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&query, "query", "", "status filter query")
 	_ = cmd.MarkFlagRequired("query")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")
@@ -151,14 +142,14 @@ func releaseSearchCmd() *cobra.Command {
 }
 
 func releaseDeployCmd() *cobra.Command {
-	var tenant, id string
+	var id string
 	cmd := &cobra.Command{
 		Use:   "deploy",
 		Short: "Trigger release deployment",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, userID, err := tenantOwnerCtx(ctx, tenant)
+			authContext, tenantID, userID, err := tenantOwnerCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -174,8 +165,6 @@ func releaseDeployCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&id, "id", "", "release ID")
 	_ = cmd.MarkFlagRequired("id")
 	return cmd

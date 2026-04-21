@@ -81,7 +81,7 @@ func (s *Store) EnqueueCommand(ctx context.Context, tx *gorm.DB, in CommandInput
 	return tx.WithContext(ctx).Exec(`
 		INSERT INTO commands(kind, aggregate_type, aggregate_id, payload, status, run_at, attempt, max_attempts, dedupe_key, is_active, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, TRUE, NOW(), NOW())
-		ON CONFLICT (dedupe_key) WHERE is_active = TRUE
+		ON CONFLICT (dedupe_key)
 		DO UPDATE SET
 			run_at = LEAST(commands.run_at, EXCLUDED.run_at),
 			payload = EXCLUDED.payload,

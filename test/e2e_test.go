@@ -21,10 +21,13 @@ import (
 const (
 	grpcAddr     = "localhost:50051"
 	migratorName = "zxc-migrator"
-	workerName   = "zxc-worker"
+	workerAName  = "zxc-worker-a"
+	workerBName  = "zxc-worker-b"
 	projectRoot  = ".."
 	certsDir     = projectRoot + "/test/certs"
 	rootUserID   = "00000000-0000-0000-0000-000000000001"
+	workerAID    = "00000000-0000-0000-0000-000000000201"
+	workerBID    = "00000000-0000-0000-0000-000000000202"
 )
 
 var (
@@ -76,8 +79,14 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	logStep("waiting for worker container %q to be running", workerName)
-	if err := waitForContainer(workerName, 60*time.Second); err != nil {
+	logStep("waiting for worker container %q to be running", workerAName)
+	if err := waitForContainer(workerAName, 60*time.Second); err != nil {
+		printComposeDiagnostics()
+		fmt.Printf("worker not running: %v\n", err)
+		os.Exit(1)
+	}
+	logStep("waiting for worker container %q to be running", workerBName)
+	if err := waitForContainer(workerBName, 60*time.Second); err != nil {
 		printComposeDiagnostics()
 		fmt.Printf("worker not running: %v\n", err)
 		os.Exit(1)
@@ -216,6 +225,12 @@ func runClient(t *testing.T, args ...string) string {
 	return string(out)
 }
 
+func runTenantClient(t *testing.T, tenantName string, args ...string) string {
+	t.Helper()
+	rootArgs := append([]string{"--tenant", tenantName}, args...)
+	return runClient(t, rootArgs...)
+}
+
 func parseKVOutput(t *testing.T, out string) map[string]string {
 	t.Helper()
 	parsed := make(map[string]string)
@@ -257,14 +272,14 @@ func setupTenantWithDeps(t *testing.T, ts int64, idx int) (tenantID, ownerID, ta
 	t.Logf("tenant created: id=%s", tenantID)
 
 	t.Logf("listing users for tenant %s", tenantID)
-	ownerID = firstDataID(t, runClient(t, "user", "list", "--tenant", tenantName, "--size", "10"))
+	ownerID = firstDataID(t, runTenantClient(t, tenantName, "user", "list", "--size", "10"))
 	t.Logf("tenant owner resolved: userid=%s", ownerID)
 
 	t.Log("loading SSH key fixture")
 	t.Log("creating deploy target")
 	targetAdd := parseKVOutput(t, runClient(t,
-		"target", "add",
 		"--tenant", tenantName,
+		"target", "add",
 		"--address", "zxc-target",
 		"--user", "deploy",
 		"--key", filepath.Join(absProjectRoot, "test/fixtures/id_ed25519"),
@@ -279,8 +294,8 @@ func setupTenantWithDeps(t *testing.T, ts int64, idx int) (tenantID, ownerID, ta
 	}
 	t.Logf("creating payload (%d bytes)", len(zipContent))
 	payloadAdd := parseKVOutput(t, runClient(t,
-		"payload", "add",
 		"--tenant", tenantName,
+		"payload", "add",
 		"--file", tmpZip,
 		"--config", "script.conf",
 		"--start", "bash ~/script.sh",
@@ -296,29 +311,54 @@ func TestE2E(t *testing.T) {
 	started := time.Now()
 	ts := time.Now().UnixNano()
 
-	tenantID, ownerID, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 0)
-	t.Logf("fixture setup complete: tenant=%s owner=%s target=%s payload=%s", tenantID, ownerID, targetID, payloadID)
+	tenantAID, ownerAID, targetAID, payloadAID, tenantAName := setupTenantWithDeps(t, ts, 0)
+	tenantBID, ownerBID, targetBID, payloadBID, tenantBName := setupTenantWithDeps(t, ts, 1)
+	tenantCID, ownerCID, targetCID, payloadCID, tenantCName := setupTenantWithDeps(t, ts, 2)
+	t.Logf("fixture setup complete: tenantA=%s owner=%s target=%s payload=%s", tenantAID, ownerAID, targetAID, payloadAID)
+	t.Logf("fixture setup complete: tenantB=%s owner=%s target=%s payload=%s", tenantBID, ownerBID, targetBID, payloadBID)
+	t.Logf("fixture setup complete: tenantC=%s owner=%s target=%s payload=%s", tenantCID, ownerCID, targetCID, payloadCID)
 
-	t.Log("creating release")
-	releaseAdd := parseKVOutput(t, runClient(t,
-		"release", "add",
-		"--tenant", tenantName,
-		"--target", targetID,
-		"--payload", payloadID,
-	))
-	releaseID := releaseAdd["id"]
-	t.Logf("release created: id=%s status=%s", releaseID, releaseAdd["status"])
+	t.Log("registering root workers")
+	parseKVOutput(t, runClient(t, "worker", "add", "--id", workerAID, "--name", "worker-a"))
+	parseKVOutput(t, runClient(t, "worker", "add", "--id", workerBID, "--name", "worker-b"))
 
-	t.Logf("triggering deploy for release %s", releaseID)
-	deployResp := parseKVOutput(t, runClient(t,
-		"release", "deploy",
-		"--tenant", tenantName,
-		"--id", releaseID,
-	))
-	if deployResp["status"] != "wait" {
-		t.Fatalf("expected 'wait', got %q", deployResp["status"])
+	t.Log("assigning tenant A to worker A")
+	runClient(t, "worker", "assign", "--worker-id", workerAID, "--tenant-name", tenantAName)
+	t.Log("assigning tenant B to worker B")
+	runClient(t, "worker", "assign", "--worker-id", workerBID, "--tenant-name", tenantBName)
+
+	createRelease := func(tenantName, targetID, payloadID string) string {
+		t.Helper()
+		t.Logf("creating release for tenant %s", tenantName)
+		releaseAdd := parseKVOutput(t, runTenantClient(t, tenantName,
+			"release", "add",
+			"--target", targetID,
+			"--payload", payloadID,
+		))
+		releaseID := releaseAdd["id"]
+		t.Logf("release created for tenant %s: id=%s status=%s", tenantName, releaseID, releaseAdd["status"])
+		return releaseID
 	}
-	t.Logf("deploy accepted: release status=%s", deployResp["status"])
+
+	deployRelease := func(tenantName, releaseID string) {
+		t.Helper()
+		t.Logf("triggering deploy for release %s in tenant %s", releaseID, tenantName)
+		deployResp := parseKVOutput(t, runTenantClient(t, tenantName,
+			"release", "deploy",
+			"--id", releaseID,
+		))
+		if deployResp["status"] != "wait" {
+			t.Fatalf("expected 'wait', got %q", deployResp["status"])
+		}
+	}
+
+	releaseAID := createRelease(tenantAName, targetAID, payloadAID)
+	releaseBID := createRelease(tenantBName, targetBID, payloadBID)
+	releaseCID := createRelease(tenantCName, targetCID, payloadCID)
+
+	deployRelease(tenantAName, releaseAID)
+	deployRelease(tenantBName, releaseBID)
+	deployRelease(tenantCName, releaseCID)
 
 	statusRank := func(status string) int {
 		switch status {
@@ -337,16 +377,15 @@ func TestE2E(t *testing.T) {
 		}
 	}
 
-	pollForAtLeast := func(target string, timeout time.Duration) string {
+	pollForAtLeast := func(tenantName, releaseID, target string, timeout time.Duration) string {
 		t.Helper()
-		t.Logf("polling for release status at least %q with timeout %s", target, timeout)
+		t.Logf("polling for tenant %s release %s status at least %q with timeout %s", tenantName, releaseID, target, timeout)
 		deadline := time.Now().Add(timeout)
 		var last string
 		var prev string
 		for time.Now().Before(deadline) {
-			getResp := parseKVOutput(t, runClient(t,
+			getResp := parseKVOutput(t, runTenantClient(t, tenantName,
 				"release", "get",
-				"--tenant", tenantName,
 				"--id", releaseID,
 			))
 			last = getResp["status"]
@@ -364,23 +403,45 @@ func TestE2E(t *testing.T) {
 		return last
 	}
 
-	if s := pollForAtLeast("deployed", 90*time.Second); statusRank(s) < statusRank("deployed") {
-		t.Fatalf("release did not reach 'deployed' within 90s, last status: %q", s)
+	if s := pollForAtLeast(tenantAName, releaseAID, "deployed", 90*time.Second); statusRank(s) < statusRank("deployed") {
+		t.Fatalf("tenant A release did not reach 'deployed' within 90s, last status: %q", s)
 	}
-	if s := pollForAtLeast("alive", 60*time.Second); s != "alive" {
-		t.Fatalf("release did not reach 'alive' within 60s, last status: %q", s)
+	if s := pollForAtLeast(tenantAName, releaseAID, "alive", 60*time.Second); s != "alive" {
+		t.Fatalf("tenant A release did not reach 'alive' within 60s, last status: %q", s)
+	}
+	if s := pollForAtLeast(tenantBName, releaseBID, "deployed", 90*time.Second); statusRank(s) < statusRank("deployed") {
+		t.Fatalf("tenant B release did not reach 'deployed' within 90s, last status: %q", s)
+	}
+	if s := pollForAtLeast(tenantBName, releaseBID, "alive", 60*time.Second); s != "alive" {
+		t.Fatalf("tenant B release did not reach 'alive' within 60s, last status: %q", s)
 	}
 
-	requests, linked, accounts := waitForWebhookAccounts(t, tenantName, releaseID, 35*time.Second)
+	if s := pollForAtLeast(tenantCName, releaseCID, "wait", 15*time.Second); s != "wait" {
+		t.Fatalf("expected unassigned tenant C release to remain 'wait', got %q", s)
+	}
+
+	requests, linked, accounts := waitForWebhookAccounts(t, tenantAName, releaseAID, 35*time.Second)
 	if requests < 2 {
-		t.Fatalf("expected repeated webhook requests for release %s, got %d", releaseID, requests)
+		t.Fatalf("expected repeated webhook requests for tenant A release %s, got %d", releaseAID, requests)
 	}
-	if linked != requests {
-		t.Fatalf("expected every webhook request to be linked to an account, linked=%d requests=%d", linked, requests)
+	if linked != requests || accounts != 1 {
+		t.Fatalf("expected tenant A webhook requests to all link to one account, linked=%d requests=%d accounts=%d", linked, requests, accounts)
 	}
-	if accounts != 1 {
-		t.Fatalf("expected exactly one account for repeated node callbacks, got %d", accounts)
+
+	requests, linked, accounts = waitForWebhookAccounts(t, tenantBName, releaseBID, 35*time.Second)
+	if requests < 2 {
+		t.Fatalf("expected repeated webhook requests for tenant B release %s, got %d", releaseBID, requests)
 	}
+	if linked != requests || accounts != 1 {
+		t.Fatalf("expected tenant B webhook requests to all link to one account, linked=%d requests=%d accounts=%d", linked, requests, accounts)
+	}
+
+	waitForWorkerLog(t, workerAName, tenantAID, 30*time.Second)
+	waitForWorkerLog(t, workerBName, tenantBID, 30*time.Second)
+	assertWorkerLogsDoNotContain(t, workerAName, tenantBID)
+	assertWorkerLogsDoNotContain(t, workerAName, tenantCID)
+	assertWorkerLogsDoNotContain(t, workerBName, tenantAID)
+	assertWorkerLogsDoNotContain(t, workerBName, tenantCID)
 
 	t.Logf("end-to-end deploy completed successfully in %s", time.Since(started).Round(time.Millisecond))
 }
@@ -475,4 +536,28 @@ func waitForContainer(containerName string, timeout time.Duration) error {
 		time.Sleep(2 * time.Second)
 	}
 	return fmt.Errorf("container %s not running within %v", containerName, timeout)
+}
+
+func waitForWorkerLog(t *testing.T, containerName, needle string, timeout time.Duration) {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		out, err := exec.Command("docker", "logs", containerName).CombinedOutput()
+		if err == nil && strings.Contains(string(out), needle) {
+			return
+		}
+		time.Sleep(2 * time.Second)
+	}
+	t.Fatalf("worker %s logs did not contain %q within %s", containerName, needle, timeout)
+}
+
+func assertWorkerLogsDoNotContain(t *testing.T, containerName, needle string) {
+	t.Helper()
+	out, err := exec.Command("docker", "logs", containerName).CombinedOutput()
+	if err != nil {
+		t.Fatalf("read worker logs for %s: %v", containerName, err)
+	}
+	if strings.Contains(string(out), needle) {
+		t.Fatalf("expected worker %s logs not to contain %q", containerName, needle)
+	}
 }

@@ -22,14 +22,14 @@ func sessionCmd() *cobra.Command {
 }
 
 func sessionAddCmd() *cobra.Command {
-	var tenant, accountID, status string
+	var accountID, status string
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Create a session",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -45,8 +45,6 @@ func sessionAddCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&accountID, "account", "", "account ID")
 	_ = cmd.MarkFlagRequired("account")
 	cmd.Flags().StringVar(&status, "status", "", "session status: online, offline, sync")
@@ -55,14 +53,14 @@ func sessionAddCmd() *cobra.Command {
 }
 
 func sessionGetCmd() *cobra.Command {
-	var tenant, id string
+	var id string
 	cmd := &cobra.Command{
 		Use:   "get",
 		Short: "Get a session by ID",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -74,15 +72,12 @@ func sessionGetCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&id, "id", "", "session ID")
 	_ = cmd.MarkFlagRequired("id")
 	return cmd
 }
 
 func sessionListCmd() *cobra.Command {
-	var tenant string
 	var page, size int32
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -90,7 +85,7 @@ func sessionListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -107,15 +102,13 @@ func sessionListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")
 	cmd.Flags().Int32Var(&size, "size", 20, "page size")
 	return cmd
 }
 
 func sessionSearchCmd() *cobra.Command {
-	var tenant, query string
+	var query string
 	var page, size int32
 	cmd := &cobra.Command{
 		Use:   "search",
@@ -123,7 +116,7 @@ func sessionSearchCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -140,8 +133,6 @@ func sessionSearchCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&query, "query", "", "search query")
 	_ = cmd.MarkFlagRequired("query")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")
@@ -150,14 +141,14 @@ func sessionSearchCmd() *cobra.Command {
 }
 
 func sessionUpdateCmd() *cobra.Command {
-	var tenant, id, accountID, status string
+	var id, accountID, status string
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Update a session",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -174,8 +165,6 @@ func sessionUpdateCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&id, "id", "", "session ID")
 	_ = cmd.MarkFlagRequired("id")
 	cmd.Flags().StringVar(&accountID, "account", "", "account ID")
@@ -186,14 +175,14 @@ func sessionUpdateCmd() *cobra.Command {
 }
 
 func sessionDeleteCmd() *cobra.Command {
-	var tenant, id string
+	var id string
 	cmd := &cobra.Command{
 		Use:   "delete",
 		Short: "Delete a session",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -204,8 +193,6 @@ func sessionDeleteCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&id, "id", "", "session ID")
 	_ = cmd.MarkFlagRequired("id")
 	return cmd

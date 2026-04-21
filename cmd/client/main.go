@@ -17,11 +17,13 @@ import (
 	"zxc/api/target"
 	"zxc/api/tenant"
 	"zxc/api/user"
+	"zxc/api/worker"
 	"zxc/internal/config"
 )
 
 type clientConfig struct {
 	Address string     `mapstructure:"address"`
+	Tenant  string     `mapstructure:"tenant"`
 	UserID  string     `mapstructure:"userid"`
 	Log     bool       `mapstructure:"log"`
 	Timeout string     `mapstructure:"timeout"`
@@ -38,9 +40,11 @@ type state struct {
 	target  target.TargetServiceClient
 	payload payload.PayloadServiceClient
 	release release.ReleaseServiceClient
+	worker  worker.WorkerServiceClient
 }
 
 var st state
+var tenantOverride string
 
 var rootCmd = &cobra.Command{
 	Use:   "client",
@@ -74,8 +78,14 @@ var rootCmd = &cobra.Command{
 			target:  target.NewTargetServiceClient(conn),
 			payload: payload.NewPayloadServiceClient(conn),
 			release: release.NewReleaseServiceClient(conn),
+			worker:  worker.NewWorkerServiceClient(conn),
 		}
 		return nil
+	},
+	PersistentPostRun: func(cmd *cobra.Command, args []string) {
+		if st.conn != nil {
+			_ = st.conn.Close()
+		}
 	},
 }
 
@@ -119,6 +129,7 @@ func loadConfig() (*clientConfig, error) {
 }
 
 func main() {
+	rootCmd.PersistentFlags().StringVar(&tenantOverride, "tenant", "", "default tenant name for tenant-scoped commands")
 	rootCmd.AddCommand(tenantCmd())
 	rootCmd.AddCommand(userCmd())
 	rootCmd.AddCommand(accountCmd())
@@ -126,6 +137,7 @@ func main() {
 	rootCmd.AddCommand(targetCmd())
 	rootCmd.AddCommand(payloadCmd())
 	rootCmd.AddCommand(releaseCmd())
+	rootCmd.AddCommand(workerCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

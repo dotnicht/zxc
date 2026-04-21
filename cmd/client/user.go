@@ -22,14 +22,14 @@ func userCmd() *cobra.Command {
 }
 
 func userAddCmd() *cobra.Command {
-	var tenant, name string
+	var name string
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Create a user",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -50,22 +50,20 @@ func userAddCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&name, "name", "", "user name")
 	_ = cmd.MarkFlagRequired("name")
 	return cmd
 }
 
 func userGetCmd() *cobra.Command {
-	var tenant, id string
+	var id string
 	cmd := &cobra.Command{
 		Use:   "get",
 		Short: "Get a user by ID",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -83,15 +81,12 @@ func userGetCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&id, "id", "", "user ID")
 	_ = cmd.MarkFlagRequired("id")
 	return cmd
 }
 
 func userListCmd() *cobra.Command {
-	var tenant string
 	var page, size int32
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -99,7 +94,7 @@ func userListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -116,15 +111,13 @@ func userListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")
 	cmd.Flags().Int32Var(&size, "size", 20, "page size")
 	return cmd
 }
 
 func userSearchCmd() *cobra.Command {
-	var tenant, query string
+	var query string
 	var page, size int32
 	cmd := &cobra.Command{
 		Use:   "search",
@@ -132,7 +125,7 @@ func userSearchCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -149,8 +142,6 @@ func userSearchCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&query, "query", "", "search query")
 	_ = cmd.MarkFlagRequired("query")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")
@@ -159,14 +150,14 @@ func userSearchCmd() *cobra.Command {
 }
 
 func userUpdateCmd() *cobra.Command {
-	var tenant, id, name string
+	var id, name string
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Update a user",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -184,8 +175,6 @@ func userUpdateCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&id, "id", "", "user ID")
 	_ = cmd.MarkFlagRequired("id")
 	cmd.Flags().StringVar(&name, "name", "", "new user name")
@@ -194,14 +183,14 @@ func userUpdateCmd() *cobra.Command {
 }
 
 func userDeleteCmd() *cobra.Command {
-	var tenant, id string
+	var id string
 	cmd := &cobra.Command{
 		Use:   "delete",
 		Short: "Delete a user",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -213,8 +202,6 @@ func userDeleteCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&id, "id", "", "user ID")
 	_ = cmd.MarkFlagRequired("id")
 	return cmd

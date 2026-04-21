@@ -19,14 +19,14 @@ func accountCmd() *cobra.Command {
 }
 
 func accountGetCmd() *cobra.Command {
-	var tenant, id string
+	var id string
 	cmd := &cobra.Command{
 		Use:   "get",
 		Short: "Get an account by ID",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -38,15 +38,12 @@ func accountGetCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&id, "id", "", "account ID")
 	_ = cmd.MarkFlagRequired("id")
 	return cmd
 }
 
 func accountListCmd() *cobra.Command {
-	var tenant string
 	var page, size int32
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -54,7 +51,7 @@ func accountListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -71,15 +68,13 @@ func accountListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")
 	cmd.Flags().Int32Var(&size, "size", 20, "page size")
 	return cmd
 }
 
 func accountSearchCmd() *cobra.Command {
-	var tenant, query string
+	var query string
 	var page, size int32
 	cmd := &cobra.Command{
 		Use:   "search",
@@ -87,7 +82,7 @@ func accountSearchCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -104,8 +99,6 @@ func accountSearchCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&query, "query", "", "search query")
 	_ = cmd.MarkFlagRequired("query")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")

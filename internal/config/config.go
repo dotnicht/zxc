@@ -19,8 +19,7 @@ type TLS struct {
 }
 
 type Worker struct {
-	Include []uuid.UUID
-	Exclude []uuid.UUID
+	ID uuid.UUID
 }
 
 type Config struct {
@@ -52,36 +51,7 @@ func Load(path string) (*Config, error) {
 	if config.Database == "" {
 		return nil, fmt.Errorf("database connection string is required")
 	}
-	config.Worker.normalize()
-
 	return &config, nil
-}
-
-func (w *Worker) normalize() {
-	w.Include = normalizeUUIDList(w.Include)
-	w.Exclude = normalizeUUIDList(w.Exclude)
-}
-
-func normalizeUUIDList(values []uuid.UUID) []uuid.UUID {
-	if len(values) == 0 {
-		return nil
-	}
-	normalized := make([]uuid.UUID, 0, len(values))
-	seen := make(map[uuid.UUID]struct{}, len(values))
-	for _, value := range values {
-		if value == uuid.Nil {
-			continue
-		}
-		if _, ok := seen[value]; ok {
-			continue
-		}
-		seen[value] = struct{}{}
-		normalized = append(normalized, value)
-	}
-	if len(normalized) == 0 {
-		return nil
-	}
-	return normalized
 }
 
 func (t TLS) ServerCreds() (credentials.TransportCredentials, error) {

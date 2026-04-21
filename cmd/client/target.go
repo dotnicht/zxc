@@ -23,14 +23,14 @@ func targetCmd() *cobra.Command {
 }
 
 func targetAddCmd() *cobra.Command {
-	var tenant, address, user, key string
+	var address, user, key string
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Create a target",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, userID, err := tenantOwnerCtx(ctx, tenant)
+			authContext, tenantID, userID, err := tenantOwnerCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -52,8 +52,6 @@ func targetAddCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&address, "address", "", "target address")
 	_ = cmd.MarkFlagRequired("address")
 	cmd.Flags().StringVar(&user, "user", "", "ssh user")
@@ -64,14 +62,14 @@ func targetAddCmd() *cobra.Command {
 }
 
 func targetGetCmd() *cobra.Command {
-	var tenant, id string
+	var id string
 	cmd := &cobra.Command{
 		Use:   "get",
 		Short: "Get a target by ID",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -83,15 +81,12 @@ func targetGetCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&id, "id", "", "target ID")
 	_ = cmd.MarkFlagRequired("id")
 	return cmd
 }
 
 func targetListCmd() *cobra.Command {
-	var tenant string
 	var page, size int32
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -99,7 +94,7 @@ func targetListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -116,15 +111,13 @@ func targetListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")
 	cmd.Flags().Int32Var(&size, "size", 20, "page size")
 	return cmd
 }
 
 func targetSearchCmd() *cobra.Command {
-	var tenant, query string
+	var query string
 	var page, size int32
 	cmd := &cobra.Command{
 		Use:   "search",
@@ -132,7 +125,7 @@ func targetSearchCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -149,8 +142,6 @@ func targetSearchCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&query, "query", "", "search query")
 	_ = cmd.MarkFlagRequired("query")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")
@@ -159,14 +150,14 @@ func targetSearchCmd() *cobra.Command {
 }
 
 func targetUpdateCmd() *cobra.Command {
-	var tenant, id, address, user, key string
+	var id, address, user, key string
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Update a target",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -186,8 +177,6 @@ func targetUpdateCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&id, "id", "", "target ID")
 	_ = cmd.MarkFlagRequired("id")
 	cmd.Flags().StringVar(&address, "address", "", "target address")
@@ -210,14 +199,14 @@ func printTarget(t *target.Target) {
 }
 
 func targetDeleteCmd() *cobra.Command {
-	var tenant, id string
+	var id string
 	cmd := &cobra.Command{
 		Use:   "delete",
 		Short: "Delete a target",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx, tenant)
+			authContext, tenantID, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -229,8 +218,6 @@ func targetDeleteCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&tenant, "tenant", "", "tenant name")
-	_ = cmd.MarkFlagRequired("tenant")
 	cmd.Flags().StringVar(&id, "id", "", "target ID")
 	_ = cmd.MarkFlagRequired("id")
 	return cmd
