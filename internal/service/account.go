@@ -10,6 +10,7 @@ import (
 	"zxc/api/account"
 	"zxc/internal/authz"
 	"zxc/internal/db"
+	"zxc/internal/events"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
 )
@@ -176,14 +177,9 @@ func (s *Account) Disable(ctx context.Context, req *account.DisableRequest) (*ac
 	}
 
 	if result.RowsAffected > 0 {
-		if err := s.store.RecordEvent(ctx, tenantDB, workflow.EventInput{
-			Kind:          "account_disabled",
-			AggregateType: "account",
-			AggregateID:   id,
-			Payload: map[string]any{
-				"account_id":      id.String(),
-				"previous_status": current.Status,
-			},
+		if err := s.store.RecordEvent(ctx, tenantDB, events.AccountDisabled{
+			AccountID:      id,
+			PreviousStatus: current.Status,
 		}); err != nil {
 			revertErr := tenantDB.WithContext(ctx).Model(&models.Account{}).
 				Where("id = ?", id).

@@ -11,6 +11,7 @@ import (
 	"zxc/api/session"
 	"zxc/internal/authz"
 	"zxc/internal/db"
+	"zxc/internal/events"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
 )
@@ -73,15 +74,10 @@ func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*sess
 		return nil, status.Errorf(codes.Internal, "failed to create session: %v", err)
 	}
 	if err := tenantDB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := s.store.RecordEvent(ctx, tx, workflow.EventInput{
-			Kind:          "session_created",
-			AggregateType: "session",
-			AggregateID:   record.ID,
-			Payload: map[string]any{
-				"session_id": record.ID.String(),
-				"account_id": record.AccountID.String(),
-				"status":     record.Status,
-			},
+		if err := s.store.RecordEvent(ctx, tx, events.SessionCreated{
+			SessionID: record.ID,
+			AccountID: record.AccountID,
+			Status:    record.Status,
 		}); err != nil {
 			return err
 		}
@@ -93,14 +89,9 @@ func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*sess
 				return result.Error
 			}
 			if result.RowsAffected > 0 {
-				return s.store.RecordEvent(ctx, tx, workflow.EventInput{
-					Kind:          "account_activated",
-					AggregateType: "account",
-					AggregateID:   accountID,
-					Payload: map[string]any{
-						"account_id": accountID.String(),
-						"session_id": record.ID.String(),
-					},
+				return s.store.RecordEvent(ctx, tx, events.AccountActivated{
+					AccountID: accountID,
+					SessionID: record.ID,
 				})
 			}
 		}
@@ -196,15 +187,10 @@ func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*sess
 	if err := tenantDB.WithContext(ctx).First(&updated, "id = ?", id).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated session: %v", err)
 	}
-	if err := s.store.RecordEvent(ctx, tenantDB, workflow.EventInput{
-		Kind:          "session_updated",
-		AggregateType: "session",
-		AggregateID:   updated.ID,
-		Payload: map[string]any{
-			"session_id": updated.ID.String(),
-			"account_id": updated.AccountID.String(),
-			"status":     updated.Status,
-		},
+	if err := s.store.RecordEvent(ctx, tenantDB, events.SessionUpdated{
+		SessionID: updated.ID,
+		AccountID: updated.AccountID,
+		Status:    updated.Status,
 	}); err != nil {
 		revertErr := tenantDB.WithContext(ctx).Model(&models.Session{}).Where("id = ?", id).Updates(map[string]any{
 			"account_id": previous.AccountID,
@@ -250,15 +236,10 @@ func (s *Session) Delete(ctx context.Context, req *session.DeleteRequest) (*sess
 	if result.RowsAffected == 0 {
 		return nil, status.Error(codes.NotFound, "session not found")
 	}
-	if err := s.store.RecordEvent(ctx, tenantDB, workflow.EventInput{
-		Kind:          "session_deleted",
-		AggregateType: "session",
-		AggregateID:   current.ID,
-		Payload: map[string]any{
-			"session_id": current.ID.String(),
-			"account_id": current.AccountID.String(),
-			"status":     current.Status,
-		},
+	if err := s.store.RecordEvent(ctx, tenantDB, events.SessionDeleted{
+		SessionID: current.ID,
+		AccountID: current.AccountID,
+		Status:    current.Status,
 	}); err != nil {
 		revertErr := tenantDB.WithContext(ctx).Unscoped().Model(&models.Session{}).Where("id = ?", current.ID).Updates(map[string]any{
 			"deleted_at": nil,

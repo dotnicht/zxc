@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"zxc/internal/events"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
 )
@@ -64,29 +65,19 @@ func (w *AccountFromRequestWorker) Work(ctx context.Context, job *workflow.Job[A
 	}
 
 	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := w.store.RecordEvent(ctx, tx, workflow.EventInput{
-			Kind:          "account_created",
-			AggregateType: "account",
-			AggregateID:   account.ID,
-			Payload: map[string]any{
-				"account_id": account.ID.String(),
-				"name":       account.Name,
-				"request_id": request.ID.String(),
-			},
+		if err := w.store.RecordEvent(ctx, tx, events.AccountCreated{
+			AccountID: account.ID,
+			Name:      account.Name,
+			RequestID: request.ID,
 		}); err != nil {
 			return err
 		}
 
-		return w.store.RecordEvent(ctx, tx, workflow.EventInput{
-			Kind:          "request_account_linked",
-			AggregateType: "request",
-			AggregateID:   request.ID,
-			Payload: map[string]any{
-				"request_id": request.ID.String(),
-				"release_id": job.Args.ReleaseID.String(),
-				"account_id": account.ID.String(),
-				"name":       account.Name,
-			},
+		return w.store.RecordEvent(ctx, tx, events.RequestAccountLinked{
+			RequestID: request.ID,
+			ReleaseID: job.Args.ReleaseID,
+			AccountID: account.ID,
+			Name:      account.Name,
 		})
 	})
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"zxc/internal/db"
+	"zxc/internal/events"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
@@ -87,15 +88,10 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	releaseKey := releaseID.String()
 	requestKey := record.ID.String()
 	if err := tenantDB.WithContext(r.Context()).Transaction(func(tx *gorm.DB) error {
-		if err := h.store.RecordEvent(r.Context(), tx, workflow.EventInput{
-			Kind:          "webhook_received",
-			AggregateType: "release",
-			AggregateID:   releaseID,
-			Payload: map[string]any{
-				"release_id": releaseKey,
-				"request_id": requestKey,
-				"body":       json.RawMessage(body),
-			},
+		if err := h.store.RecordEvent(r.Context(), tx, events.WebhookReceived{
+			ReleaseID: releaseID,
+			RequestID: record.ID,
+			Body:      json.RawMessage(body),
 		}); err != nil {
 			return err
 		}

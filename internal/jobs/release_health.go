@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"zxc/internal/events"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
 )
@@ -58,13 +59,8 @@ func (w *ReleaseHealthWorker) Work(ctx context.Context, job *workflow.Job[Releas
 		if result.Error != nil || result.RowsAffected == 0 {
 			return result.Error
 		}
-		if err := w.store.RecordEvent(ctx, db, workflow.EventInput{
-			Kind:          "release_health_timeout",
-			AggregateType: "release",
-			AggregateID:   release.ID,
-			Payload: map[string]any{
-				"release_id": release.ID.String(),
-			},
+		if err := w.store.RecordEvent(ctx, db, events.ReleaseHealthTimeout{
+			ReleaseID: release.ID,
 		}); err != nil {
 			revertErr := db.WithContext(ctx).Model(&models.Release{}).
 				Where("id = ? AND status = ?", release.ID, models.ReleaseDead).
