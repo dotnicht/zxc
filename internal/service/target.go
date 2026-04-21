@@ -57,12 +57,11 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 	if err := tenantDB.Create(t).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create target: %v", err)
 	}
-	if err := s.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+	if err := tenantDB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := s.store.RecordEvent(ctx, tx, workflow.EventInput{
 			Kind:          "target_created",
 			AggregateType: "target",
-			AggregateID:   t.ID.String(),
-			TenantID:      &tenantID,
+			AggregateID:   t.ID,
 			Payload: map[string]any{
 				"target_id": t.ID.String(),
 				"address":   t.Address,
@@ -166,12 +165,11 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 	if err := tenantDB.First(&updated, "id = ?", id).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated target: %v", err)
 	}
-	if err := s.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+	if err := tenantDB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := s.store.RecordEvent(ctx, tx, workflow.EventInput{
 			Kind:          "target_updated",
 			AggregateType: "target",
-			AggregateID:   updated.ID.String(),
-			TenantID:      &tenantID,
+			AggregateID:   updated.ID,
 			Payload: map[string]any{
 				"target_id": updated.ID.String(),
 				"address":   updated.Address,
@@ -241,16 +239,13 @@ func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target
 	if result.RowsAffected == 0 {
 		return nil, status.Error(codes.NotFound, "target not found")
 	}
-	if err := s.store.RootTransaction(ctx, func(tx *gorm.DB) error {
-		return s.store.RecordEvent(ctx, tx, workflow.EventInput{
-			Kind:          "target_deleted",
-			AggregateType: "target",
-			AggregateID:   id.String(),
-			TenantID:      &tenantID,
-			Payload: map[string]any{
-				"target_id": id.String(),
-			},
-		})
+	if err := s.store.RecordEvent(ctx, tenantDB, workflow.EventInput{
+		Kind:          "target_deleted",
+		AggregateType: "target",
+		AggregateID:   id,
+		Payload: map[string]any{
+			"target_id": id.String(),
+		},
 	}); err != nil {
 		revertErr := tenantDB.Unscoped().Model(&models.Target{}).Where("id = ?", existing.ID).Updates(map[string]any{
 			"deleted_at": nil,
@@ -388,8 +383,7 @@ func (s *Target) enqueueProbe(ctx context.Context, tx *gorm.DB, tenantID uuid.UU
 	return s.store.EnqueueCommand(ctx, tx, workflow.CommandInput{
 		Kind:          "probe_target",
 		AggregateType: "target",
-		AggregateID:   targetID.String(),
-		TenantID:      &tenantID,
+		AggregateID:   targetID,
 		Payload: jobs.TargetProbeArgs{
 			TenantID: tenantID,
 			TargetID: targetID,

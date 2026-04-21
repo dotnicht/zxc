@@ -134,11 +134,10 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 		Update("status", models.TargetOnline).Error; err != nil {
 		slog.Error("failed to update target status", "target_id", release.Target.ID, "error", err)
 	}
-	if err := w.store.RecordEvent(ctx, nil, workflow.EventInput{
+	if err := w.store.RecordEvent(ctx, db, workflow.EventInput{
 		Kind:          "target_probe_succeeded",
 		AggregateType: "target",
-		AggregateID:   release.Target.ID.String(),
-		TenantID:      &job.Args.TenantID,
+		AggregateID:   release.Target.ID,
 		Payload: map[string]any{
 			"target_id": release.Target.ID.String(),
 			"status":    models.TargetOnline,
@@ -164,12 +163,11 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 	}
 
 	if result.RowsAffected > 0 {
-		if err := w.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+		if err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			if err := w.store.RecordEvent(ctx, tx, workflow.EventInput{
 				Kind:          "release_deployed",
 				AggregateType: "release",
-				AggregateID:   release.ID.String(),
-				TenantID:      &job.Args.TenantID,
+				AggregateID:   release.ID,
 				Payload: map[string]any{
 					"release_id":    release.ID.String(),
 					"changed_by_id": job.Args.ChangedByID.String(),
@@ -180,8 +178,7 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 			return w.store.EnqueueCommand(ctx, tx, workflow.CommandInput{
 				Kind:          "release_health_timeout",
 				AggregateType: "release",
-				AggregateID:   release.ID.String(),
-				TenantID:      &job.Args.TenantID,
+				AggregateID:   release.ID,
 				Payload: ReleaseHealthTimeoutArgs{
 					TenantID:  job.Args.TenantID,
 					ReleaseID: release.ID,
@@ -224,17 +221,14 @@ func (w *DeployWorker) markReleaseDead(ctx context.Context, db *gorm.DB, args De
 	if result.RowsAffected == 0 {
 		return nil
 	}
-	if err := w.store.RootTransaction(ctx, func(tx *gorm.DB) error {
-		return w.store.RecordEvent(ctx, tx, workflow.EventInput{
-			Kind:          "release_failed",
-			AggregateType: "release",
-			AggregateID:   args.ReleaseID.String(),
-			TenantID:      &args.TenantID,
-			Payload: map[string]any{
-				"release_id":    args.ReleaseID.String(),
-				"changed_by_id": args.ChangedByID.String(),
-			},
-		})
+	if err := w.store.RecordEvent(ctx, db, workflow.EventInput{
+		Kind:          "release_failed",
+		AggregateType: "release",
+		AggregateID:   args.ReleaseID,
+		Payload: map[string]any{
+			"release_id":    args.ReleaseID.String(),
+			"changed_by_id": args.ChangedByID.String(),
+		},
 	}); err != nil {
 		revertErr := db.WithContext(ctx).Model(&models.Release{}).
 			Where("id = ? AND status = ?", args.ReleaseID, models.ReleaseDead).

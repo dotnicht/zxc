@@ -94,13 +94,12 @@ func (w *AccountFromRequestWorker) Work(ctx context.Context, job *workflow.Job[A
 		return nil
 	}
 
-	return w.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if accountCreated {
 			if err := w.store.RecordEvent(ctx, tx, workflow.EventInput{
 				Kind:          "account_created",
 				AggregateType: "account",
-				AggregateID:   account.ID.String(),
-				TenantID:      &job.Args.TenantID,
+				AggregateID:   account.ID,
 				Payload: map[string]any{
 					"account_id": account.ID.String(),
 					"name":       account.Name,
@@ -114,8 +113,7 @@ func (w *AccountFromRequestWorker) Work(ctx context.Context, job *workflow.Job[A
 		return w.store.RecordEvent(ctx, tx, workflow.EventInput{
 			Kind:          "request_account_linked",
 			AggregateType: "request",
-			AggregateID:   request.ID.String(),
-			TenantID:      &job.Args.TenantID,
+			AggregateID:   request.ID,
 			Payload: map[string]any{
 				"request_id": request.ID.String(),
 				"release_id": job.Args.ReleaseID.String(),

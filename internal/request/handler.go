@@ -92,12 +92,11 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	releaseKey := releaseID.String()
 	requestKey := record.ID.String()
-	if err := h.store.RootTransaction(r.Context(), func(tx *gorm.DB) error {
+	if err := tenantDB.WithContext(r.Context()).Transaction(func(tx *gorm.DB) error {
 		if err := h.store.RecordEvent(r.Context(), tx, workflow.EventInput{
 			Kind:          "webhook_received",
 			AggregateType: "release",
-			AggregateID:   releaseKey,
-			TenantID:      &route.TenantID,
+			AggregateID:   releaseID,
 			Payload: map[string]any{
 				"release_id": releaseKey,
 				"request_id": requestKey,
@@ -106,12 +105,10 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		}); err != nil {
 			return err
 		}
-
 		if err := h.store.EnqueueCommand(r.Context(), tx, workflow.CommandInput{
 			Kind:          "release_mark_alive",
 			AggregateType: "release",
-			AggregateID:   releaseKey,
-			TenantID:      &route.TenantID,
+			AggregateID:   releaseID,
 			Payload: jobs.ReleaseMarkAliveArgs{
 				TenantID:  route.TenantID,
 				ReleaseID: releaseID,
@@ -124,8 +121,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return h.store.EnqueueCommand(r.Context(), tx, workflow.CommandInput{
 			Kind:          "account_from_request",
 			AggregateType: "request",
-			AggregateID:   requestKey,
-			TenantID:      &route.TenantID,
+			AggregateID:   record.ID,
 			Payload: jobs.AccountFromRequestArgs{
 				TenantID:  route.TenantID,
 				RequestID: record.ID,

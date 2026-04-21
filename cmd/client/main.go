@@ -13,6 +13,7 @@ import (
 	"zxc/api/account"
 	"zxc/api/payload"
 	"zxc/api/release"
+	"zxc/api/session"
 	"zxc/api/target"
 	"zxc/api/tenant"
 	"zxc/api/user"
@@ -33,6 +34,7 @@ type state struct {
 	tenant  tenant.TenantServiceClient
 	user    user.UserServiceClient
 	account account.AccountServiceClient
+	session session.SessionServiceClient
 	target  target.TargetServiceClient
 	payload payload.PayloadServiceClient
 	release release.ReleaseServiceClient
@@ -68,6 +70,7 @@ var rootCmd = &cobra.Command{
 			tenant:  tenant.NewTenantServiceClient(conn),
 			user:    user.NewUserServiceClient(conn),
 			account: account.NewAccountServiceClient(conn),
+			session: session.NewSessionServiceClient(conn),
 			target:  target.NewTargetServiceClient(conn),
 			payload: payload.NewPayloadServiceClient(conn),
 			release: release.NewReleaseServiceClient(conn),
@@ -119,6 +122,7 @@ func main() {
 	rootCmd.AddCommand(tenantCmd())
 	rootCmd.AddCommand(userCmd())
 	rootCmd.AddCommand(accountCmd())
+	rootCmd.AddCommand(sessionCmd())
 	rootCmd.AddCommand(targetCmd())
 	rootCmd.AddCommand(payloadCmd())
 	rootCmd.AddCommand(releaseCmd())

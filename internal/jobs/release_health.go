@@ -58,16 +58,13 @@ func (w *ReleaseHealthWorker) Work(ctx context.Context, job *workflow.Job[Releas
 		if result.Error != nil || result.RowsAffected == 0 {
 			return result.Error
 		}
-		if err := w.store.RootTransaction(ctx, func(tx *gorm.DB) error {
-			return w.store.RecordEvent(ctx, tx, workflow.EventInput{
-				Kind:          "release_health_timeout",
-				AggregateType: "release",
-				AggregateID:   release.ID.String(),
-				TenantID:      &job.Args.TenantID,
-				Payload: map[string]any{
-					"release_id": release.ID.String(),
-				},
-			})
+		if err := w.store.RecordEvent(ctx, db, workflow.EventInput{
+			Kind:          "release_health_timeout",
+			AggregateType: "release",
+			AggregateID:   release.ID,
+			Payload: map[string]any{
+				"release_id": release.ID.String(),
+			},
 		}); err != nil {
 			revertErr := db.WithContext(ctx).Model(&models.Release{}).
 				Where("id = ? AND status = ?", release.ID, models.ReleaseDead).

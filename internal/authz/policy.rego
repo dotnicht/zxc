@@ -88,17 +88,22 @@ allow if {
 }
 
 allow if {
-	input.action == "account.create"
-	is_tenant_owner
-}
-
-allow if {
 	input.action in {"account.get", "account.list", "account.search"}
 	is_authenticated_tenant_user
 }
 
 allow if {
-	input.action in {"account.update", "account.delete"}
+	input.action == "session.create"
+	is_tenant_owner
+}
+
+allow if {
+	input.action in {"session.get", "session.list", "session.search"}
+	is_authenticated_tenant_user
+}
+
+allow if {
+	input.action in {"session.update", "session.delete"}
 	is_tenant_owner
 }
 

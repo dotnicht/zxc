@@ -5,10 +5,7 @@ package account;
 option go_package = "zxc/api/account;account";
 
 service AccountService {
-  rpc Create(CreateRequest) returns (CreateResponse);
   rpc Get(GetRequest) returns (GetResponse);
-  rpc Update(UpdateRequest) returns (UpdateResponse);
-  rpc Delete(DeleteRequest) returns (DeleteResponse);
   rpc List(ListRequest) returns (ListResponse);
   rpc Search(SearchRequest) returns (SearchResponse);
 }
@@ -20,15 +17,6 @@ message Account {
   string updated_at = 4;
 }
 
-message CreateRequest {
-  string tenant_id = 1;
-  string name = 2;
-}
-
-message CreateResponse {
-  Account account = 1;
-}
-
 message GetRequest {
   string tenant_id = 1;
   string id = 2;
@@ -36,25 +24,6 @@ message GetRequest {
 
 message GetResponse {
   Account account = 1;
-}
-
-message UpdateRequest {
-  string tenant_id = 1;
-  string id = 2;
-  string name = 3;
-}
-
-message UpdateResponse {
-  Account account = 1;
-}
-
-message DeleteRequest {
-  string tenant_id = 1;
-  string id = 2;
-}
-
-message DeleteResponse {
-  bool success = 1;
 }
 
 message ListRequest {

@@ -38,7 +38,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	handler := request.NewHandler(database, workflow.NewStore(database))
+	handler := request.NewHandler(database, workflow.NewStore())
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/webhooks", handler.Create)

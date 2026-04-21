@@ -1,0 +1,357 @@
+package service
+
+import (
+	"context"
+	"errors"
+
+	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"gorm.io/gorm"
+	"zxc/api/session"
+	"zxc/internal/authz"
+	"zxc/internal/db"
+	"zxc/internal/models"
+	"zxc/internal/workflow"
+)
+
+var validSessionStatuses = map[string]bool{
+	models.SessionOnline:  true,
+	models.SessionOffline: true,
+	models.SessionSync:    true,
+}
+
+type Session struct {
+	session.UnimplementedSessionServiceServer
+	cache *db.Cache
+	store *workflow.Store
+}
+
+func NewSession(_ *gorm.DB, cache *db.Cache, store *workflow.Store) *Session {
+	return &Session{cache: cache, store: store}
+}
+
+func validateSessionStatus(raw string) error {
+	if !validSessionStatuses[raw] {
+		return status.Errorf(codes.InvalidArgument, "invalid status: must be one of %q, %q, %q", models.SessionOnline, models.SessionOffline, models.SessionSync)
+	}
+	return nil
+}
+
+func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*session.CreateResponse, error) {
+	accountID, err := parseUUID(req.AccountId, "account_id")
+	if err != nil {
+		return nil, err
+	}
+	if err := validateSessionStatus(req.Status); err != nil {
+		return nil, err
+	}
+
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "session.create", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
+		return nil, err
+	}
+
+	if err := ensureAccountExists(ctx, tenantDB, accountID); err != nil {
+		return nil, err
+	}
+
+	record := &models.Session{
+		AccountID: accountID,
+		Status:    req.Status,
+	}
+	if err := tenantDB.WithContext(ctx).Create(record).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to create session: %v", err)
+	}
+	if err := s.store.RecordEvent(ctx, tenantDB, workflow.EventInput{
+		Kind:          "session_created",
+		AggregateType: "session",
+		AggregateID:   record.ID,
+		Payload: map[string]any{
+			"session_id": record.ID.String(),
+			"account_id": record.AccountID.String(),
+			"status":     record.Status,
+		},
+	}); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to record session event: %v", err)
+	}
+
+	return &session.CreateResponse{Session: sessionToProto(record)}, nil
+}
+
+func (s *Session) Get(ctx context.Context, req *session.GetRequest) (*session.GetResponse, error) {
+	id, err := parseUUID(req.Id, "id")
+	if err != nil {
+		return nil, err
+	}
+
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "session.get", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
+		return nil, err
+	}
+
+	var record models.Session
+	if err := tenantDB.WithContext(ctx).First(&record, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "session not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to get session: %v", err)
+	}
+
+	return &session.GetResponse{Session: sessionToProto(&record)}, nil
+}
+
+func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*session.UpdateResponse, error) {
+	id, err := parseUUID(req.Id, "id")
+	if err != nil {
+		return nil, err
+	}
+	accountID, err := parseUUID(req.AccountId, "account_id")
+	if err != nil {
+		return nil, err
+	}
+	if err := validateSessionStatus(req.Status); err != nil {
+		return nil, err
+	}
+
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "session.update", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
+		return nil, err
+	}
+
+	if err := ensureAccountExists(ctx, tenantDB, accountID); err != nil {
+		return nil, err
+	}
+
+	var previous models.Session
+	if err := tenantDB.WithContext(ctx).First(&previous, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "session not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to load session: %v", err)
+	}
+
+	result := tenantDB.WithContext(ctx).Model(&models.Session{}).Where("id = ?", id).Updates(map[string]any{
+		"account_id": accountID,
+		"status":     req.Status,
+	})
+	if result.Error != nil {
+		return nil, status.Errorf(codes.Internal, "failed to update session: %v", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return nil, status.Error(codes.NotFound, "session not found")
+	}
+
+	var updated models.Session
+	if err := tenantDB.WithContext(ctx).First(&updated, "id = ?", id).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to fetch updated session: %v", err)
+	}
+	if err := s.store.RecordEvent(ctx, tenantDB, workflow.EventInput{
+		Kind:          "session_updated",
+		AggregateType: "session",
+		AggregateID:   updated.ID,
+		Payload: map[string]any{
+			"session_id": updated.ID.String(),
+			"account_id": updated.AccountID.String(),
+			"status":     updated.Status,
+		},
+	}); err != nil {
+		revertErr := tenantDB.WithContext(ctx).Model(&models.Session{}).Where("id = ?", id).Updates(map[string]any{
+			"account_id": previous.AccountID,
+			"status":     previous.Status,
+		}).Error
+		return nil, status.Errorf(codes.Internal, "failed to persist session update: %v", errors.Join(err, revertErr))
+	}
+
+	return &session.UpdateResponse{Session: sessionToProto(&updated)}, nil
+}
+
+func (s *Session) Delete(ctx context.Context, req *session.DeleteRequest) (*session.DeleteResponse, error) {
+	id, err := parseUUID(req.Id, "id")
+	if err != nil {
+		return nil, err
+	}
+
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "session.delete", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
+		return nil, err
+	}
+
+	var current models.Session
+	if err := tenantDB.WithContext(ctx).First(&current, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "session not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to load session: %v", err)
+	}
+
+	result := tenantDB.WithContext(ctx).Where("id = ?", id).Delete(&models.Session{})
+	if result.Error != nil {
+		return nil, status.Errorf(codes.Internal, "failed to delete session: %v", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return nil, status.Error(codes.NotFound, "session not found")
+	}
+	if err := s.store.RecordEvent(ctx, tenantDB, workflow.EventInput{
+		Kind:          "session_deleted",
+		AggregateType: "session",
+		AggregateID:   current.ID,
+		Payload: map[string]any{
+			"session_id": current.ID.String(),
+			"account_id": current.AccountID.String(),
+			"status":     current.Status,
+		},
+	}); err != nil {
+		revertErr := tenantDB.WithContext(ctx).Unscoped().Model(&models.Session{}).Where("id = ?", current.ID).Updates(map[string]any{
+			"deleted_at": nil,
+			"updated_at": current.UpdatedAt,
+		}).Error
+		return nil, status.Errorf(codes.Internal, "failed to persist session deletion: %v", errors.Join(err, revertErr))
+	}
+
+	return &session.DeleteResponse{Success: true}, nil
+}
+
+func (s *Session) List(ctx context.Context, req *session.ListRequest) (*session.ListResponse, error) {
+	page, pageSize := req.Page, req.PageSize
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10
+	}
+
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "session.list", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
+		return nil, err
+	}
+
+	var total int64
+	if err := tenantDB.WithContext(ctx).Model(&models.Session{}).Count(&total).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to count sessions: %v", err)
+	}
+
+	var records []*models.Session
+	offset := (int(page) - 1) * int(pageSize)
+	if err := tenantDB.WithContext(ctx).Order("created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&records).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to list sessions: %v", err)
+	}
+
+	out := make([]*session.Session, len(records))
+	for i, record := range records {
+		out[i] = sessionToProto(record)
+	}
+
+	return &session.ListResponse{Sessions: out, Total: int32(total)}, nil
+}
+
+func (s *Session) Search(ctx context.Context, req *session.SearchRequest) (*session.SearchResponse, error) {
+	if req.Query == "" {
+		return nil, status.Error(codes.InvalidArgument, "search query is required")
+	}
+
+	page, pageSize := req.Page, req.PageSize
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10
+	}
+
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "session.search", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
+		return nil, err
+	}
+
+	pattern := "%" + req.Query + "%"
+	query := tenantDB.WithContext(ctx).Model(&models.Session{}).
+		Joins("LEFT JOIN accounts ON accounts.id = sessions.account_id AND accounts.deleted_at IS NULL").
+		Where("sessions.status ILIKE ? OR accounts.name ILIKE ?", pattern, pattern)
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to count sessions: %v", err)
+	}
+
+	var records []*models.Session
+	offset := (int(page) - 1) * int(pageSize)
+	if err := query.Order("sessions.created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&records).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to search sessions: %v", err)
+	}
+
+	out := make([]*session.Session, len(records))
+	for i, record := range records {
+		out[i] = sessionToProto(record)
+	}
+
+	return &session.SearchResponse{Sessions: out, Total: int32(total)}, nil
+}
+
+func ensureAccountExists(ctx context.Context, tenantDB *gorm.DB, accountID uuid.UUID) error {
+	var account models.Account
+	if err := tenantDB.WithContext(ctx).First(&account, "id = ?", accountID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return status.Error(codes.NotFound, "account not found")
+		}
+		return status.Errorf(codes.Internal, "failed to load account: %v", err)
+	}
+	return nil
+}
+
+func sessionToProto(record *models.Session) *session.Session {
+	return &session.Session{
+		Id:        record.ID.String(),
+		AccountId: record.AccountID.String(),
+		Status:    record.Status,
+		CreatedAt: record.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt: record.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	}
+}

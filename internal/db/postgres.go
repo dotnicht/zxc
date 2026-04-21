@@ -36,17 +36,14 @@ func NewConnection(dsn string) (*gorm.DB, error) {
 
 func RunRootMigrations(db *gorm.DB) error {
 	slog.Info("Running root database migrations")
-	if err := db.AutoMigrate(&models.Tenant{}, &models.User{}, &models.Route{}, &models.Event{}, &models.Command{}); err != nil {
+	if err := db.AutoMigrate(&models.Tenant{}, &models.User{}, &models.Route{}); err != nil {
 		return fmt.Errorf("failed to run root migrations: %w", err)
 	}
 	if err := db.Exec(`
-		CREATE INDEX IF NOT EXISTS events_aggregate_idx ON events(aggregate_type, aggregate_id, created_at DESC);
-		CREATE INDEX IF NOT EXISTS commands_due_idx ON commands(run_at, id)
-			WHERE status IN ('pending', 'running');
-		CREATE UNIQUE INDEX IF NOT EXISTS commands_active_dedupe_idx ON commands(dedupe_key)
-			WHERE is_active = TRUE;
+		DROP TABLE IF EXISTS events;
+		DROP TABLE IF EXISTS commands;
 	`).Error; err != nil {
-		return fmt.Errorf("failed to create workflow tables: %w", err)
+		return fmt.Errorf("failed to drop obsolete root workflow tables: %w", err)
 	}
 	slog.Info("Root migrations completed")
 	return nil
@@ -54,14 +51,53 @@ func RunRootMigrations(db *gorm.DB) error {
 
 func RunTenantMigrations(db *gorm.DB) error {
 	slog.Info("Running tenant database migrations")
-	if err := db.AutoMigrate(&models.User{}, &models.Account{}, &models.Request{}, &models.Target{}, &models.Payload{}, &models.Release{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Event{}, &models.Command{}, &models.Account{}, &models.Session{}, &models.Request{}, &models.Target{}, &models.Payload{}, &models.Release{}); err != nil {
 		return fmt.Errorf("failed to run tenant migrations: %w", err)
 	}
 	if err := db.Exec(`
+		DO $$
+		BEGIN
+			IF EXISTS (
+				SELECT 1
+				FROM information_schema.columns
+				WHERE table_name = 'events' AND column_name = 'aggregate_id' AND data_type <> 'uuid'
+			) THEN
+				ALTER TABLE events
+					ALTER COLUMN aggregate_id TYPE uuid USING aggregate_id::uuid;
+			END IF;
+			IF EXISTS (
+				SELECT 1
+				FROM information_schema.columns
+				WHERE table_name = 'commands' AND column_name = 'aggregate_id' AND data_type <> 'uuid'
+			) THEN
+				ALTER TABLE commands
+					ALTER COLUMN aggregate_id TYPE uuid USING aggregate_id::uuid;
+			END IF;
+			IF EXISTS (
+				SELECT 1
+				FROM information_schema.columns
+				WHERE table_name = 'events' AND column_name = 'tenant_id'
+			) THEN
+				ALTER TABLE events DROP COLUMN tenant_id;
+			END IF;
+			IF EXISTS (
+				SELECT 1
+				FROM information_schema.columns
+				WHERE table_name = 'commands' AND column_name = 'tenant_id'
+			) THEN
+				ALTER TABLE commands DROP COLUMN tenant_id;
+			END IF;
+		END
+		$$;
+		CREATE INDEX IF NOT EXISTS events_aggregate_idx ON events(aggregate_type, aggregate_id, created_at DESC);
+		CREATE INDEX IF NOT EXISTS commands_due_idx ON commands(run_at, id)
+			WHERE status IN ('pending', 'running');
+		CREATE UNIQUE INDEX IF NOT EXISTS commands_active_dedupe_idx ON commands(dedupe_key)
+			WHERE is_active = TRUE;
 		CREATE UNIQUE INDEX IF NOT EXISTS accounts_name_active_idx ON accounts(name)
 			WHERE deleted_at IS NULL;
 	`).Error; err != nil {
-		return fmt.Errorf("failed to create account indexes: %w", err)
+		return fmt.Errorf("failed to create tenant indexes: %w", err)
 	}
 	if err := db.Exec(`
 		DROP TRIGGER IF EXISTS releases_audit ON releases;

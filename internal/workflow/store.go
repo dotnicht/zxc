@@ -13,33 +13,23 @@ import (
 
 const defaultMaxAttempts = 5
 
-type Store struct {
-	db *gorm.DB
-}
+type Store struct{}
 
-func NewStore(db *gorm.DB) *Store {
-	return &Store{db: db}
-}
-
-func (s *Store) RootTransaction(ctx context.Context, fn func(tx *gorm.DB) error) error {
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return fn(tx.WithContext(ctx))
-	})
+func NewStore() *Store {
+	return &Store{}
 }
 
 type EventInput struct {
 	Kind          string
 	AggregateType string
-	AggregateID   string
-	TenantID      *uuid.UUID
+	AggregateID   uuid.UUID
 	Payload       any
 }
 
 type CommandInput struct {
 	Kind          string
 	AggregateType string
-	AggregateID   string
-	TenantID      *uuid.UUID
+	AggregateID   uuid.UUID
 	Payload       any
 	RunAt         time.Time
 	MaxAttempts   int
@@ -51,16 +41,13 @@ func (s *Store) RecordEvent(ctx context.Context, tx *gorm.DB, in EventInput) err
 	if err != nil {
 		return fmt.Errorf("marshal event payload: %w", err)
 	}
-
-	db := s.db.WithContext(ctx)
-	if tx != nil {
-		db = tx.WithContext(ctx)
+	if tx == nil {
+		return fmt.Errorf("event database handle is required")
 	}
-	return db.Create(&models.Event{
+	return tx.WithContext(ctx).Create(&models.Event{
 		Kind:          in.Kind,
 		AggregateType: in.AggregateType,
 		AggregateID:   in.AggregateID,
-		TenantID:      in.TenantID,
 		Payload:       body,
 	}).Error
 }
@@ -81,28 +68,26 @@ func (s *Store) EnqueueCommand(ctx context.Context, tx *gorm.DB, in CommandInput
 		maxAttempts = defaultMaxAttempts
 	}
 
-	db := s.db.WithContext(ctx)
-	if tx != nil {
-		db = tx.WithContext(ctx)
+	if tx == nil {
+		return fmt.Errorf("command database handle is required")
 	}
 	if in.DedupeKey == "" {
-		return db.Exec(`
-			INSERT INTO commands(kind, aggregate_type, aggregate_id, tenant_id, payload, status, run_at, attempt, max_attempts, is_active, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, TRUE, NOW(), NOW())
-		`, in.Kind, in.AggregateType, in.AggregateID, in.TenantID, body, models.CommandPending, runAt, maxAttempts).Error
+		return tx.WithContext(ctx).Exec(`
+			INSERT INTO commands(kind, aggregate_type, aggregate_id, payload, status, run_at, attempt, max_attempts, is_active, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, 0, ?, TRUE, NOW(), NOW())
+		`, in.Kind, in.AggregateType, in.AggregateID, body, models.CommandPending, runAt, maxAttempts).Error
 	}
 
-	return db.Exec(`
-		INSERT INTO commands(kind, aggregate_type, aggregate_id, tenant_id, payload, status, run_at, attempt, max_attempts, dedupe_key, is_active, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, TRUE, NOW(), NOW())
+	return tx.WithContext(ctx).Exec(`
+		INSERT INTO commands(kind, aggregate_type, aggregate_id, payload, status, run_at, attempt, max_attempts, dedupe_key, is_active, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, TRUE, NOW(), NOW())
 		ON CONFLICT (dedupe_key) WHERE is_active = TRUE
 		DO UPDATE SET
 			run_at = LEAST(commands.run_at, EXCLUDED.run_at),
 			payload = EXCLUDED.payload,
-			tenant_id = EXCLUDED.tenant_id,
 			aggregate_type = EXCLUDED.aggregate_type,
 			aggregate_id = EXCLUDED.aggregate_id,
 			updated_at = NOW(),
 			last_error = NULL
-	`, in.Kind, in.AggregateType, in.AggregateID, in.TenantID, body, models.CommandPending, runAt, maxAttempts, in.DedupeKey).Error
+	`, in.Kind, in.AggregateType, in.AggregateID, body, models.CommandPending, runAt, maxAttempts, in.DedupeKey).Error
 }

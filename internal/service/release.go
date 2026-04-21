@@ -90,28 +90,30 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 		return nil, status.Errorf(codes.Internal, "failed to create release: %v", err)
 	}
 
-	if err := s.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		route := &models.Route{ID: rel.ID, TenantID: tenant.ID}
 		if err := tx.Create(route).Error; err != nil {
 			return err
 		}
-		return s.store.RecordEvent(ctx, tx, workflow.EventInput{
-			Kind:          "release_created",
-			AggregateType: "release",
-			AggregateID:   rel.ID.String(),
-			TenantID:      &tenant.ID,
-			Payload: map[string]any{
-				"release_id":    rel.ID.String(),
-				"owner_id":      rel.OwnerID.String(),
-				"target_id":     targetID.String(),
-				"payload_id":    payloadID.String(),
-				"changed_by_id": rel.ChangedByID.String(),
-				"status":        rel.Status,
-			},
-		})
+		return nil
 	}); err != nil {
 		cleanupErr := tenantDB.Unscoped().Delete(&models.Release{}, "id = ?", rel.ID).Error
 		return nil, status.Errorf(codes.Internal, "failed to persist release root state: %v", errors.Join(err, cleanupErr))
+	}
+	if err := s.store.RecordEvent(ctx, tenantDB, workflow.EventInput{
+		Kind:          "release_created",
+		AggregateType: "release",
+		AggregateID:   rel.ID,
+		Payload: map[string]any{
+			"release_id":    rel.ID.String(),
+			"owner_id":      rel.OwnerID.String(),
+			"target_id":     targetID.String(),
+			"payload_id":    payloadID.String(),
+			"changed_by_id": rel.ChangedByID.String(),
+			"status":        rel.Status,
+		},
+	}); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to record release event: %v", err)
 	}
 
 	return &release.CreateResponse{Release: releaseToProto(rel)}, nil
@@ -199,12 +201,11 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 	if result.RowsAffected == 0 {
 		return nil, status.Error(codes.NotFound, "release not found")
 	}
-	if err := s.store.RootTransaction(ctx, func(tx *gorm.DB) error {
+	if err := tenantDB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := s.store.RecordEvent(ctx, tx, workflow.EventInput{
 			Kind:          "release_deploy_requested",
 			AggregateType: "release",
-			AggregateID:   releaseID.String(),
-			TenantID:      &tenant.ID,
+			AggregateID:   releaseID,
 			Payload: map[string]any{
 				"release_id": releaseID.String(),
 				"user_id":    authUserID.String(),
@@ -215,8 +216,7 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 		return s.store.EnqueueCommand(ctx, tx, workflow.CommandInput{
 			Kind:          "deploy_release",
 			AggregateType: "release",
-			AggregateID:   releaseID.String(),
-			TenantID:      &tenant.ID,
+			AggregateID:   releaseID,
 			Payload: jobs.DeployReleaseArgs{
 				TenantID:    tenant.ID,
 				ReleaseID:   releaseID,

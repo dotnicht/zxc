@@ -4,17 +4,13 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"fmt"
 	"math/big"
 	"net"
 	"os"
 	"time"
-
-	"google.golang.org/grpc/credentials"
 )
 
 func generateCerts(dir string) error {
@@ -118,23 +114,4 @@ func writeKey(path string, key *ecdsa.PrivateKey) error {
 	}
 	defer f.Close()
 	return pem.Encode(f, &pem.Block{Type: "EC PRIVATE KEY", Bytes: der})
-}
-
-func clientTLSCreds(certsDir string) (credentials.TransportCredentials, error) {
-	cert, err := tls.LoadX509KeyPair(certsDir+"/client.crt", certsDir+"/client.key")
-	if err != nil {
-		return nil, err
-	}
-	ca, err := os.ReadFile(certsDir + "/ca.crt")
-	if err != nil {
-		return nil, err
-	}
-	pool := x509.NewCertPool()
-	if !pool.AppendCertsFromPEM(ca) {
-		return nil, fmt.Errorf("parse CA cert")
-	}
-	return credentials.NewTLS(&tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      pool,
-	}), nil
 }

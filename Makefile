@@ -12,6 +12,7 @@ DOCKER_COMPOSE ?= $(shell if command -v docker-compose >/dev/null 2>&1; then ech
 
 PROTO_FILES := \
 	proto/account.proto \
+	proto/session.proto \
 	proto/user.proto \
 	proto/tenant.proto \
 	proto/release.proto \
