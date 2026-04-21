@@ -28,13 +28,13 @@ func (s *Worker) Create(ctx context.Context, req *workerapi.CreateRequest) (*wor
 	if req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
-	if _, err := authorizeAction(ctx, "worker.create", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "worker.create", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
 	record := &models.Worker{Name: req.Name}
 	if req.Id != "" {
-		id, err := parseUUID(req.Id, "id")
+		id, err := parseID(req.Id, "id")
 		if err != nil {
 			return nil, err
 		}
@@ -51,10 +51,10 @@ func (s *Worker) Create(ctx context.Context, req *workerapi.CreateRequest) (*wor
 }
 
 func (s *Worker) Get(ctx context.Context, req *workerapi.GetRequest) (*workerapi.GetResponse, error) {
-	if _, err := authorizeAction(ctx, "worker.get", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "worker.get", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
 		return nil, err
 	}
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -72,10 +72,10 @@ func (s *Worker) Update(ctx context.Context, req *workerapi.UpdateRequest) (*wor
 	if req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
-	if _, err := authorizeAction(ctx, "worker.update", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "worker.update", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
 		return nil, err
 	}
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -97,10 +97,10 @@ func (s *Worker) Update(ctx context.Context, req *workerapi.UpdateRequest) (*wor
 }
 
 func (s *Worker) Delete(ctx context.Context, req *workerapi.DeleteRequest) (*workerapi.DeleteResponse, error) {
-	if _, err := authorizeAction(ctx, "worker.delete", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "worker.delete", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
 		return nil, err
 	}
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (s *Worker) Delete(ctx context.Context, req *workerapi.DeleteRequest) (*wor
 }
 
 func (s *Worker) List(ctx context.Context, req *workerapi.ListRequest) (*workerapi.ListResponse, error) {
-	if _, err := authorizeAction(ctx, "worker.list", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "worker.list", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 	page, pageSize := normalizePage(req.Page, req.PageSize)
@@ -146,7 +146,7 @@ func (s *Worker) Search(ctx context.Context, req *workerapi.SearchRequest) (*wor
 	if req.Query == "" {
 		return nil, status.Error(codes.InvalidArgument, "search query is required")
 	}
-	if _, err := authorizeAction(ctx, "worker.search", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "worker.search", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 	page, pageSize := normalizePage(req.Page, req.PageSize)
@@ -167,7 +167,7 @@ func (s *Worker) Search(ctx context.Context, req *workerapi.SearchRequest) (*wor
 }
 
 func (s *Worker) AssignTenant(ctx context.Context, req *workerapi.AssignTenantRequest) (*workerapi.AssignTenantResponse, error) {
-	if _, err := authorizeAction(ctx, "worker.assign_tenant", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "worker.assign_tenant", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 	workerID, tenantID, err := parseWorkerTenantIDs(req.WorkerId, req.TenantId)
@@ -187,7 +187,7 @@ func (s *Worker) AssignTenant(ctx context.Context, req *workerapi.AssignTenantRe
 }
 
 func (s *Worker) UnassignTenant(ctx context.Context, req *workerapi.UnassignTenantRequest) (*workerapi.UnassignTenantResponse, error) {
-	if _, err := authorizeAction(ctx, "worker.unassign_tenant", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "worker.unassign_tenant", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 	workerID, tenantID, err := parseWorkerTenantIDs(req.WorkerId, req.TenantId)
@@ -205,10 +205,10 @@ func (s *Worker) UnassignTenant(ctx context.Context, req *workerapi.UnassignTena
 }
 
 func (s *Worker) ListTenants(ctx context.Context, req *workerapi.ListTenantsRequest) (*workerapi.ListTenantsResponse, error) {
-	if _, err := authorizeAction(ctx, "worker.list_tenants", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "worker.list_tenants", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
 		return nil, err
 	}
-	workerID, err := parseUUID(req.WorkerId, "worker_id")
+	workerID, err := parseID(req.WorkerId, "worker_id")
 	if err != nil {
 		return nil, err
 	}
@@ -236,10 +236,10 @@ func (s *Worker) ListTenants(ctx context.Context, req *workerapi.ListTenantsRequ
 }
 
 func (s *Worker) ListWorkersForTenant(ctx context.Context, req *workerapi.ListWorkersForTenantRequest) (*workerapi.ListWorkersForTenantResponse, error) {
-	if _, err := authorizeAction(ctx, "worker.list_workers_for_tenant", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "worker.list_workers_for_tenant", nil, authz.Resource{Type: "worker"}, authz.Related{}); err != nil {
 		return nil, err
 	}
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
@@ -267,11 +267,11 @@ func (s *Worker) ListWorkersForTenant(ctx context.Context, req *workerapi.ListWo
 }
 
 func parseWorkerTenantIDs(workerRaw, tenantRaw string) (uuid.UUID, uuid.UUID, error) {
-	workerID, err := parseUUID(workerRaw, "worker_id")
+	workerID, err := parseID(workerRaw, "worker_id")
 	if err != nil {
 		return uuid.Nil, uuid.Nil, err
 	}
-	tenantID, err := parseUUID(tenantRaw, "tenant_id")
+	tenantID, err := parseID(tenantRaw, "tenant_id")
 	if err != nil {
 		return uuid.Nil, uuid.Nil, err
 	}

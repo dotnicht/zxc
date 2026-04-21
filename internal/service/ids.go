@@ -11,7 +11,7 @@ import (
 	"zxc/internal/models"
 )
 
-func parseUUID(raw string, field string) (uuid.UUID, error) {
+func parseID(raw string, field string) (uuid.UUID, error) {
 	id, err := uuid.Parse(raw)
 	if err != nil {
 		return uuid.Nil, status.Errorf(codes.InvalidArgument, "invalid %s: must be a valid UUID", field)
@@ -19,12 +19,12 @@ func parseUUID(raw string, field string) (uuid.UUID, error) {
 	return id, nil
 }
 
-func requireAuthenticatedUser(raw string, authUserID uuid.UUID, field string) error {
+func assertOwner(raw string, authUserID uuid.UUID, field string) error {
 	if raw == "" {
 		return nil
 	}
 
-	id, err := parseUUID(raw, field)
+	id, err := parseID(raw, field)
 	if err != nil {
 		return err
 	}
@@ -34,8 +34,8 @@ func requireAuthenticatedUser(raw string, authUserID uuid.UUID, field string) er
 	return nil
 }
 
-func resolveTenantDB(ctx context.Context, cache *db.Cache, tenantID uuid.UUID) (*models.Tenant, *gorm.DB, error) {
-	tenant, _, err := authenticatedTenant(ctx, tenantID)
+func resolve(ctx context.Context, cache *db.Cache, tenantID uuid.UUID) (*models.Tenant, *gorm.DB, error) {
+	tenant, _, err := ctxTenant(ctx, tenantID)
 	if err != nil {
 		return nil, nil, err
 	}
