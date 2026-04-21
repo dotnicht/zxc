@@ -12,6 +12,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	accountapi "zxc/api/account"
 	payloadapi "zxc/api/payload"
 	releaseapi "zxc/api/release"
 	targetapi "zxc/api/target"
@@ -71,6 +72,7 @@ func main() {
 	cache := db.NewCache()
 	store := workflow.NewStore(database)
 	user := service.NewUser(database, cache)
+	account := service.NewAccount(database, cache, store)
 	tenant := service.NewTenant(database, cfg, &root)
 	release := service.NewRelease(database, cache, store)
 	target := service.NewTarget(database, cache, store)
@@ -83,6 +85,7 @@ func main() {
 		),
 	)
 	userapi.RegisterUserServiceServer(grpcServer, user)
+	accountapi.RegisterAccountServiceServer(grpcServer, account)
 	tenantapi.RegisterTenantServiceServer(grpcServer, tenant)
 	releaseapi.RegisterReleaseServiceServer(grpcServer, release)
 	targetapi.RegisterTargetServiceServer(grpcServer, target)

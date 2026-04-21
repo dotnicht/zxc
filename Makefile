@@ -11,6 +11,7 @@ BIN_DIR ?= bin
 DOCKER_COMPOSE ?= $(shell if command -v docker-compose >/dev/null 2>&1; then echo docker-compose; else echo "docker compose"; fi)
 
 PROTO_FILES := \
+	proto/account.proto \
 	proto/user.proto \
 	proto/tenant.proto \
 	proto/release.proto \

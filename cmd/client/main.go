@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
+	"zxc/api/account"
 	"zxc/api/payload"
 	"zxc/api/release"
 	"zxc/api/target"
@@ -31,6 +32,7 @@ type state struct {
 	conn    *grpc.ClientConn
 	tenant  tenant.TenantServiceClient
 	user    user.UserServiceClient
+	account account.AccountServiceClient
 	target  target.TargetServiceClient
 	payload payload.PayloadServiceClient
 	release release.ReleaseServiceClient
@@ -65,6 +67,7 @@ var rootCmd = &cobra.Command{
 			conn:    conn,
 			tenant:  tenant.NewTenantServiceClient(conn),
 			user:    user.NewUserServiceClient(conn),
+			account: account.NewAccountServiceClient(conn),
 			target:  target.NewTargetServiceClient(conn),
 			payload: payload.NewPayloadServiceClient(conn),
 			release: release.NewReleaseServiceClient(conn),
@@ -115,6 +118,7 @@ func loadConfig() (*clientConfig, error) {
 func main() {
 	rootCmd.AddCommand(tenantCmd())
 	rootCmd.AddCommand(userCmd())
+	rootCmd.AddCommand(accountCmd())
 	rootCmd.AddCommand(targetCmd())
 	rootCmd.AddCommand(payloadCmd())
 	rootCmd.AddCommand(releaseCmd())

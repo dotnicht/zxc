@@ -46,11 +46,13 @@ func main() {
 	deploy := jobs.NewDeployWorker(store, cache.Get, rootDB, cfg)
 	health := jobs.NewReleaseHealthWorker(store, rootDB, cache.Get)
 	alive := jobs.NewReleaseMarkAliveWorker(store, rootDB, cache.Get)
+	account := jobs.NewAccountFromRequestWorker(store, rootDB, cache.Get)
 	probe := jobs.NewTargetProbeWorker(store, rootDB, cache.Get)
 
 	workflow.Register(runner, "deploy_release", deploy.Work)
 	workflow.Register(runner, "release_health_timeout", health.Work)
 	workflow.Register(runner, "release_mark_alive", alive.Work)
+	workflow.Register(runner, "account_from_request", account.Work)
 	workflow.Register(runner, "probe_target", probe.Work)
 
 	ctx, cancel := context.WithCancel(context.Background())

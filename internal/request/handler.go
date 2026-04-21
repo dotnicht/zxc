@@ -81,19 +81,6 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	var existing models.Request
-	if err := tenantDB.Where("release_id = ?", releaseID).First(&existing).Error; err == nil {
-		existingID := existing.ID.String()
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(createResponse{
-			ID:        existingID,
-			Data:      existing.Data,
-			CreatedAt: existing.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		})
-		return
-	}
-
 	record := &models.Request{
 		ReleaseID: releaseID,
 		Data:      json.RawMessage(body),
@@ -120,7 +107,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 
-		return h.store.EnqueueCommand(r.Context(), tx, workflow.CommandInput{
+		if err := h.store.EnqueueCommand(r.Context(), tx, workflow.CommandInput{
 			Kind:          "release_mark_alive",
 			AggregateType: "release",
 			AggregateID:   releaseKey,
@@ -131,6 +118,20 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 				Body:      json.RawMessage(body),
 			},
 			DedupeKey: "release-mark-alive:" + releaseKey,
+		}); err != nil {
+			return err
+		}
+		return h.store.EnqueueCommand(r.Context(), tx, workflow.CommandInput{
+			Kind:          "account_from_request",
+			AggregateType: "request",
+			AggregateID:   requestKey,
+			TenantID:      &route.TenantID,
+			Payload: jobs.AccountFromRequestArgs{
+				TenantID:  route.TenantID,
+				RequestID: record.ID,
+				ReleaseID: releaseID,
+			},
+			DedupeKey: "request-account:" + requestKey,
 		})
 	}); err != nil {
 		cleanupErr := tenantDB.Unscoped().Delete(&models.Request{}, "id = ?", record.ID).Error

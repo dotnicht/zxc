@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"database/sql"
 	"fmt"
 	"net"
 	"os"
@@ -13,6 +14,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 const (
@@ -368,7 +371,65 @@ func TestE2E(t *testing.T) {
 		t.Fatalf("release did not reach 'alive' within 60s, last status: %q", s)
 	}
 
+	requests, linked, accounts := waitForWebhookAccounts(t, tenantName, releaseID, 35*time.Second)
+	if requests < 2 {
+		t.Fatalf("expected repeated webhook requests for release %s, got %d", releaseID, requests)
+	}
+	if linked != requests {
+		t.Fatalf("expected every webhook request to be linked to an account, linked=%d requests=%d", linked, requests)
+	}
+	if accounts != 1 {
+		t.Fatalf("expected exactly one account for repeated node callbacks, got %d", accounts)
+	}
+
 	t.Logf("end-to-end deploy completed successfully in %s", time.Since(started).Round(time.Millisecond))
+}
+
+func waitForWebhookAccounts(t *testing.T, tenantName, releaseID string, timeout time.Duration) (requests, linked, accounts int) {
+	t.Helper()
+
+	db, err := sql.Open("postgres", tenantDSN(tenantName))
+	if err != nil {
+		t.Fatalf("open tenant database: %v", err)
+	}
+	defer db.Close()
+
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		row := db.QueryRow(`
+			SELECT
+				COUNT(*)::int,
+				COUNT(account_id)::int,
+				COUNT(DISTINCT account_id)::int
+			FROM requests
+			WHERE release_id = $1 AND deleted_at IS NULL
+		`, releaseID)
+		if err := row.Scan(&requests, &linked, &accounts); err != nil {
+			t.Fatalf("scan request/account counts: %v", err)
+		}
+		if requests >= 2 && linked == requests && accounts == 1 {
+			return requests, linked, accounts
+		}
+		time.Sleep(2 * time.Second)
+	}
+
+	return requests, linked, accounts
+}
+
+func tenantDSN(tenantName string) string {
+	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s?sslmode=disable", sanitizeTenantDBName(tenantName))
+}
+
+func sanitizeTenantDBName(name string) string {
+	var result strings.Builder
+	for _, r := range name {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' {
+			result.WriteRune(r)
+		} else if r >= 'A' && r <= 'Z' {
+			result.WriteRune(r + 32)
+		}
+	}
+	return result.String()
 }
 
 func waitForMigrator(containerName string, timeout time.Duration) error {

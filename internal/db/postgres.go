@@ -54,8 +54,14 @@ func RunRootMigrations(db *gorm.DB) error {
 
 func RunTenantMigrations(db *gorm.DB) error {
 	slog.Info("Running tenant database migrations")
-	if err := db.AutoMigrate(&models.User{}, &models.Request{}, &models.Target{}, &models.Payload{}, &models.Release{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Account{}, &models.Request{}, &models.Target{}, &models.Payload{}, &models.Release{}); err != nil {
 		return fmt.Errorf("failed to run tenant migrations: %w", err)
+	}
+	if err := db.Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS accounts_name_active_idx ON accounts(name)
+			WHERE deleted_at IS NULL;
+	`).Error; err != nil {
+		return fmt.Errorf("failed to create account indexes: %w", err)
 	}
 	if err := db.Exec(`
 		DROP TRIGGER IF EXISTS releases_audit ON releases;
