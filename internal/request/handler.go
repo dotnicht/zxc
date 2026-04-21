@@ -24,12 +24,6 @@ func NewHandler(rootDB *gorm.DB, store *workflow.Store) *Handler {
 	return &Handler{rootDB: rootDB, store: store}
 }
 
-type createResponse struct {
-	ID        string          `json:"id"`
-	Data      json.RawMessage `json:"data"`
-	CreatedAt string          `json:"created_at"`
-}
-
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -135,11 +129,5 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createResponse{
-		ID:        requestKey,
-		Data:      record.Data,
-		CreatedAt: record.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-	})
 }
