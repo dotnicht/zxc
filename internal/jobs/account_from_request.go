@@ -4,12 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
 )
@@ -41,73 +40,41 @@ func (w *AccountFromRequestWorker) Work(ctx context.Context, job *workflow.Job[A
 		return err
 	}
 
-	var (
-		request        models.Request
-		account        models.Account
-		accountCreated bool
-	)
-
-	err = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&request, "id = ?", job.Args.RequestID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil
-			}
-			return err
-		}
-		if request.AccountID != nil {
+	var request models.Request
+	if err := db.WithContext(ctx).First(&request, "id = ?", job.Args.RequestID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
 		}
-
-		nodeName, ok := extractNodeName(request.Data)
-		if !ok {
-			return nil
-		}
-
-		if err := tx.Where("name = ?", nodeName).First(&account).Error; err != nil {
-			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				return err
-			}
-			account = models.Account{Name: nodeName}
-			if err := tx.Create(&account).Error; err != nil {
-				if err := tx.Where("name = ?", nodeName).First(&account).Error; err != nil {
-					return err
-				}
-			} else {
-				accountCreated = true
-			}
-		}
-
-		result := tx.Model(&models.Request{}).Where("id = ? AND account_id IS NULL", request.ID).Update("account_id", account.ID)
-		if result.Error != nil {
-			return result.Error
-		}
-		if result.RowsAffected == 0 {
-			return nil
-		}
-		request.AccountID = &account.ID
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("sync request account: %w", err)
+		return err
 	}
-	if request.ID == uuid.Nil || request.AccountID == nil {
+
+	nodeName, ok := extractNodeName(request.Data)
+	if !ok {
 		return nil
+	}
+
+	account := models.Account{Name: nodeName, Status: models.AccountUnknown}
+	if err := db.WithContext(ctx).Create(&account).Error; err != nil {
+		if strings.Contains(err.Error(), "duplicate key") {
+			slog.Info("account already exists, skipping", "name", nodeName, "request_id", job.Args.RequestID)
+			return nil
+		}
+		slog.Error("failed to create account", "name", nodeName, "request_id", job.Args.RequestID, "error", err)
+		return err
 	}
 
 	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if accountCreated {
-			if err := w.store.RecordEvent(ctx, tx, workflow.EventInput{
-				Kind:          "account_created",
-				AggregateType: "account",
-				AggregateID:   account.ID,
-				Payload: map[string]any{
-					"account_id": account.ID.String(),
-					"name":       account.Name,
-					"request_id": request.ID.String(),
-				},
-			}); err != nil {
-				return err
-			}
+		if err := w.store.RecordEvent(ctx, tx, workflow.EventInput{
+			Kind:          "account_created",
+			AggregateType: "account",
+			AggregateID:   account.ID,
+			Payload: map[string]any{
+				"account_id": account.ID.String(),
+				"name":       account.Name,
+				"request_id": request.ID.String(),
+			},
+		}); err != nil {
+			return err
 		}
 
 		return w.store.RecordEvent(ctx, tx, workflow.EventInput{

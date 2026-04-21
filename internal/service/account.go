@@ -11,15 +11,17 @@ import (
 	"zxc/internal/authz"
 	"zxc/internal/db"
 	"zxc/internal/models"
+	"zxc/internal/workflow"
 )
 
 type Account struct {
 	account.UnimplementedAccountServiceServer
 	cache *db.Cache
+	store *workflow.Store
 }
 
-func NewAccount(_ *gorm.DB, cache *db.Cache, _ any) *Account {
-	return &Account{cache: cache}
+func NewAccount(_ *gorm.DB, cache *db.Cache, store *workflow.Store) *Account {
+	return &Account{cache: cache, store: store}
 }
 
 func (s *Account) Get(ctx context.Context, req *account.GetRequest) (*account.GetResponse, error) {
@@ -139,10 +141,66 @@ func (s *Account) Search(ctx context.Context, req *account.SearchRequest) (*acco
 	return &account.SearchResponse{Accounts: protoAccounts, Total: int32(total)}, nil
 }
 
+func (s *Account) Disable(ctx context.Context, req *account.DisableRequest) (*account.DisableResponse, error) {
+	id, err := parseUUID(req.Id, "id")
+	if err != nil {
+		return nil, err
+	}
+
+	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := authorizeAction(ctx, "account.disable", tenant, authz.Resource{Type: "account"}, authz.Related{}); err != nil {
+		return nil, err
+	}
+
+	var current models.Account
+	if err := tenantDB.WithContext(ctx).First(&current, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "account not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to load account: %v", err)
+	}
+
+	result := tenantDB.WithContext(ctx).Model(&models.Account{}).
+		Where("id = ? AND status <> ?", id, models.AccountDisabled).
+		Update("status", models.AccountDisabled)
+	if result.Error != nil {
+		return nil, status.Errorf(codes.Internal, "failed to disable account: %v", result.Error)
+	}
+
+	if result.RowsAffected > 0 {
+		if err := s.store.RecordEvent(ctx, tenantDB, workflow.EventInput{
+			Kind:          "account_disabled",
+			AggregateType: "account",
+			AggregateID:   id,
+			Payload: map[string]any{
+				"account_id":      id.String(),
+				"previous_status": current.Status,
+			},
+		}); err != nil {
+			revertErr := tenantDB.WithContext(ctx).Model(&models.Account{}).
+				Where("id = ?", id).
+				Update("status", current.Status).Error
+			return nil, status.Errorf(codes.Internal, "failed to persist account disable: %v", errors.Join(err, revertErr))
+		}
+	}
+
+	current.Status = models.AccountDisabled
+	return &account.DisableResponse{Account: accountToProto(&current)}, nil
+}
+
 func accountToProto(a *models.Account) *account.Account {
 	return &account.Account{
 		Id:        a.ID.String(),
 		Name:      a.Name,
+		Status:    a.Status,
 		CreatedAt: a.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: a.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}

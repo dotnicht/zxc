@@ -109,6 +109,11 @@ allow if {
 }
 
 allow if {
+	input.action == "account.disable"
+	is_tenant_owner
+}
+
+allow if {
 	input.action == "session.create"
 	is_tenant_owner
 }

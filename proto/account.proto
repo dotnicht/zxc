@@ -8,13 +8,15 @@ service AccountService {
   rpc Get(GetRequest) returns (GetResponse);
   rpc List(ListRequest) returns (ListResponse);
   rpc Search(SearchRequest) returns (SearchResponse);
+  rpc Disable(DisableRequest) returns (DisableResponse);
 }
 
 message Account {
   string id = 1;
   string name = 2;
-  string created_at = 3;
-  string updated_at = 4;
+  string status = 3;
+  string created_at = 4;
+  string updated_at = 5;
 }
 
 message GetRequest {
@@ -47,4 +49,13 @@ message SearchRequest {
 message SearchResponse {
   repeated Account accounts = 1;
   int32 total = 2;
+}
+
+message DisableRequest {
+  string tenant_id = 1;
+  string id = 2;
+}
+
+message DisableResponse {
+  Account account = 1;
 }

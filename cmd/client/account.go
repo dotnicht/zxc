@@ -15,6 +15,7 @@ func accountCmd() *cobra.Command {
 	cmd.AddCommand(accountGetCmd())
 	cmd.AddCommand(accountListCmd())
 	cmd.AddCommand(accountSearchCmd())
+	cmd.AddCommand(accountDisableCmd())
 	return cmd
 }
 
@@ -60,9 +61,9 @@ func accountListCmd() *cobra.Command {
 				return err
 			}
 			w := newTabWriter()
-			fmt.Fprintf(w, "ID\tNAME\tCREATED\n")
+			fmt.Fprintf(w, "ID\tNAME\tSTATUS\tCREATED\n")
 			for _, a := range resp.Accounts {
-				fmt.Fprintf(w, "%s\t%s\t%s\n", a.Id, a.Name, a.CreatedAt)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", a.Id, a.Name, a.Status, a.CreatedAt)
 			}
 			w.Flush()
 			return nil
@@ -91,9 +92,9 @@ func accountSearchCmd() *cobra.Command {
 				return err
 			}
 			w := newTabWriter()
-			fmt.Fprintf(w, "ID\tNAME\tCREATED\n")
+			fmt.Fprintf(w, "ID\tNAME\tSTATUS\tCREATED\n")
 			for _, a := range resp.Accounts {
-				fmt.Fprintf(w, "%s\t%s\t%s\n", a.Id, a.Name, a.CreatedAt)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", a.Id, a.Name, a.Status, a.CreatedAt)
 			}
 			w.Flush()
 			return nil
@@ -106,10 +107,36 @@ func accountSearchCmd() *cobra.Command {
 	return cmd
 }
 
+func accountDisableCmd() *cobra.Command {
+	var id string
+	cmd := &cobra.Command{
+		Use:   "disable",
+		Short: "Disable an account",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := newCtx()
+			defer cancel()
+			authContext, tenantID, err := tenantCtx(ctx)
+			if err != nil {
+				return err
+			}
+			resp, err := st.account.Disable(authContext, &account.DisableRequest{TenantId: tenantID, Id: id})
+			if err != nil {
+				return err
+			}
+			printAccount(resp.Account)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&id, "id", "", "account ID")
+	_ = cmd.MarkFlagRequired("id")
+	return cmd
+}
+
 func printAccount(a *account.Account) {
 	printKV([][2]string{
 		{"id", a.Id},
 		{"name", a.Name},
+		{"status", a.Status},
 		{"created_at", a.CreatedAt},
 		{"updated_at", a.UpdatedAt},
 	})

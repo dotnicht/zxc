@@ -60,7 +60,8 @@ func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*sess
 		return nil, err
 	}
 
-	if err := ensureAccountExists(ctx, tenantDB, accountID); err != nil {
+	account, err := loadAccount(ctx, tenantDB, accountID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -71,17 +72,42 @@ func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*sess
 	if err := tenantDB.WithContext(ctx).Create(record).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create session: %v", err)
 	}
-	if err := s.store.RecordEvent(ctx, tenantDB, workflow.EventInput{
-		Kind:          "session_created",
-		AggregateType: "session",
-		AggregateID:   record.ID,
-		Payload: map[string]any{
-			"session_id": record.ID.String(),
-			"account_id": record.AccountID.String(),
-			"status":     record.Status,
-		},
+	if err := tenantDB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := s.store.RecordEvent(ctx, tx, workflow.EventInput{
+			Kind:          "session_created",
+			AggregateType: "session",
+			AggregateID:   record.ID,
+			Payload: map[string]any{
+				"session_id": record.ID.String(),
+				"account_id": record.AccountID.String(),
+				"status":     record.Status,
+			},
+		}); err != nil {
+			return err
+		}
+		if account.Status == models.AccountUnknown {
+			result := tx.Model(&models.Account{}).
+				Where("id = ? AND status = ?", accountID, models.AccountUnknown).
+				Update("status", models.AccountActive)
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected > 0 {
+				return s.store.RecordEvent(ctx, tx, workflow.EventInput{
+					Kind:          "account_activated",
+					AggregateType: "account",
+					AggregateID:   accountID,
+					Payload: map[string]any{
+						"account_id": accountID.String(),
+						"session_id": record.ID.String(),
+					},
+				})
+			}
+		}
+		return nil
 	}); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to record session event: %v", err)
+		cleanupErr := tenantDB.WithContext(ctx).Unscoped().Delete(&models.Session{}, "id = ?", record.ID).Error
+		return nil, status.Errorf(codes.Internal, "failed to persist session creation: %v", errors.Join(err, cleanupErr))
 	}
 
 	return &session.CreateResponse{Session: sessionToProto(record)}, nil
@@ -143,7 +169,7 @@ func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*sess
 		return nil, err
 	}
 
-	if err := ensureAccountExists(ctx, tenantDB, accountID); err != nil {
+	if _, err := loadAccount(ctx, tenantDB, accountID); err != nil {
 		return nil, err
 	}
 
@@ -335,15 +361,15 @@ func (s *Session) Search(ctx context.Context, req *session.SearchRequest) (*sess
 	return &session.SearchResponse{Sessions: out, Total: int32(total)}, nil
 }
 
-func ensureAccountExists(ctx context.Context, tenantDB *gorm.DB, accountID uuid.UUID) error {
+func loadAccount(ctx context.Context, tenantDB *gorm.DB, accountID uuid.UUID) (*models.Account, error) {
 	var account models.Account
 	if err := tenantDB.WithContext(ctx).First(&account, "id = ?", accountID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return status.Error(codes.NotFound, "account not found")
+			return nil, status.Error(codes.NotFound, "account not found")
 		}
-		return status.Errorf(codes.Internal, "failed to load account: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to load account: %v", err)
 	}
-	return nil
+	return &account, nil
 }
 
 func sessionToProto(record *models.Session) *session.Session {
