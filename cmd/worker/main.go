@@ -55,11 +55,11 @@ func main() {
 	}()
 
 	multiRunner := workflow.NewMultiRunner(rootDB, cache.Get, workflow.MultiRunnerOptions{
-		Lease:          10 * time.Minute,
-		MaxConcurrent:  8,
-		SyncInterval:   5 * time.Second,
-		AllowTenantIDs: cfg.Worker.TenantIDs,
-		DenyTenantIDs:  cfg.Worker.ExcludeTenantIDs,
+		Lease:         10 * time.Minute,
+		MaxConcurrent: 8,
+		SyncInterval:  5 * time.Second,
+		Include:       cfg.Worker.Include,
+		Exclude:       cfg.Worker.Exclude,
 	}, func(runner *workflow.Runner) {
 		workflow.Register(runner, "deploy_release", deploy.Work)
 		workflow.Register(runner, "release_health_timeout", health.Work)

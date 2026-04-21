@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	accountapi "zxc/api/account"
@@ -60,7 +61,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if cfg.Root == "" {
+	if cfg.Root == uuid.Nil {
 		slog.Error("root ID must be set in config")
 		os.Exit(1)
 	}

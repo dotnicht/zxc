@@ -9,5 +9,5 @@ cert = "certs/server.crt"
 key  = "certs/server.key"
 
 [worker]
-tenant_ids = []
-exclude_tenant_ids = []
+include = []
+exclude = []

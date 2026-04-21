@@ -5,30 +5,31 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
-	"strings"
 
+	"github.com/go-viper/mapstructure/v2"
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/credentials"
 )
 
 type TLS struct {
-	CA   string `mapstructure:"ca"`
-	Cert string `mapstructure:"cert"`
-	Key  string `mapstructure:"key"`
+	CA   string
+	Cert string
+	Key  string
 }
 
 type Worker struct {
-	TenantIDs        []string `mapstructure:"tenant_ids"`
-	ExcludeTenantIDs []string `mapstructure:"exclude_tenant_ids"`
+	Include []uuid.UUID
+	Exclude []uuid.UUID
 }
 
 type Config struct {
-	Database string `mapstructure:"database"`
-	Storage  string `mapstructure:"storage"`
-	Webhook  string `mapstructure:"webhook"`
-	Root     string `mapstructure:"root"`
-	TLS      TLS    `mapstructure:"tls"`
-	Worker   Worker `mapstructure:"worker"`
+	Database string
+	Storage  string
+	Webhook  string
+	Root     uuid.UUID
+	TLS      TLS
+	Worker   Worker
 }
 
 func Load(path string) (*Config, error) {
@@ -40,7 +41,11 @@ func Load(path string) (*Config, error) {
 	}
 
 	var config Config
-	if err := v.Unmarshal(&config); err != nil {
+	if err := v.Unmarshal(&config, viper.DecodeHook(
+		mapstructure.ComposeDecodeHookFunc(
+			mapstructure.TextUnmarshallerHookFunc(),
+		),
+	)); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
@@ -53,19 +58,18 @@ func Load(path string) (*Config, error) {
 }
 
 func (w *Worker) normalize() {
-	w.TenantIDs = normalizeList(w.TenantIDs)
-	w.ExcludeTenantIDs = normalizeList(w.ExcludeTenantIDs)
+	w.Include = normalizeUUIDList(w.Include)
+	w.Exclude = normalizeUUIDList(w.Exclude)
 }
 
-func normalizeList(values []string) []string {
+func normalizeUUIDList(values []uuid.UUID) []uuid.UUID {
 	if len(values) == 0 {
 		return nil
 	}
-	normalized := make([]string, 0, len(values))
-	seen := make(map[string]struct{}, len(values))
+	normalized := make([]uuid.UUID, 0, len(values))
+	seen := make(map[uuid.UUID]struct{}, len(values))
 	for _, value := range values {
-		value = strings.TrimSpace(value)
-		if value == "" {
+		if value == uuid.Nil {
 			continue
 		}
 		if _, ok := seen[value]; ok {

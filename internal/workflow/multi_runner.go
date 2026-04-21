@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"zxc/internal/models"
 )
@@ -15,17 +16,17 @@ type MultiRunner struct {
 	lease          time.Duration
 	maxConcurrent  int
 	syncInterval   time.Duration
-	allowTenantIDs map[string]struct{}
-	denyTenantIDs  map[string]struct{}
+	includeTenants map[uuid.UUID]struct{}
+	excludeTenants map[uuid.UUID]struct{}
 	configure      func(*Runner)
 }
 
 type MultiRunnerOptions struct {
-	Lease          time.Duration
-	MaxConcurrent  int
-	SyncInterval   time.Duration
-	AllowTenantIDs []string
-	DenyTenantIDs  []string
+	Lease         time.Duration
+	MaxConcurrent int
+	SyncInterval  time.Duration
+	Include       []uuid.UUID
+	Exclude       []uuid.UUID
 }
 
 func NewMultiRunner(rootDB *gorm.DB, newTenant func(string) (*gorm.DB, error), options MultiRunnerOptions, configure func(*Runner)) *MultiRunner {
@@ -47,17 +48,17 @@ func NewMultiRunner(rootDB *gorm.DB, newTenant func(string) (*gorm.DB, error), o
 		lease:          lease,
 		maxConcurrent:  maxConcurrent,
 		syncInterval:   syncInterval,
-		allowTenantIDs: listToSet(options.AllowTenantIDs),
-		denyTenantIDs:  listToSet(options.DenyTenantIDs),
+		includeTenants: uuidListToSet(options.Include),
+		excludeTenants: uuidListToSet(options.Exclude),
 		configure:      configure,
 	}
 }
 
-func listToSet(values []string) map[string]struct{} {
+func uuidListToSet(values []uuid.UUID) map[uuid.UUID]struct{} {
 	if len(values) == 0 {
 		return nil
 	}
-	set := make(map[string]struct{}, len(values))
+	set := make(map[uuid.UUID]struct{}, len(values))
 	for _, value := range values {
 		set[value] = struct{}{}
 	}
@@ -65,15 +66,13 @@ func listToSet(values []string) map[string]struct{} {
 }
 
 func (m *MultiRunner) matchesTenant(tenant models.Tenant) bool {
-	tenantID := tenant.ID.String()
-
-	if len(m.allowTenantIDs) > 0 {
-		if _, ok := m.allowTenantIDs[tenantID]; !ok {
+	if len(m.includeTenants) > 0 {
+		if _, ok := m.includeTenants[tenant.ID]; !ok {
 			return false
 		}
 	}
 
-	if _, ok := m.denyTenantIDs[tenantID]; ok {
+	if _, ok := m.excludeTenants[tenant.ID]; ok {
 		return false
 	}
 
