@@ -26,21 +26,21 @@ func NewAccount(_ *gorm.DB, cache *db.Cache, store *workflow.Store) *Account {
 }
 
 func (s *Account) Get(ctx context.Context, req *account.GetRequest) (*account.GetResponse, error) {
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "account.get", tenant, authz.Resource{Type: "account"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "account.get", tenant, authz.Resource{Type: "account"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -64,16 +64,16 @@ func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.
 		pageSize = 10
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "account.list", tenant, authz.Resource{Type: "account"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "account.list", tenant, authz.Resource{Type: "account"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -88,12 +88,12 @@ func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.
 		return nil, status.Errorf(codes.Internal, "failed to list accounts: %v", err)
 	}
 
-	protoAccounts := make([]*account.Account, len(accounts))
+	out := make([]*account.Account, len(accounts))
 	for i, a := range accounts {
-		protoAccounts[i] = accountToProto(a)
+		out[i] = accountToProto(a)
 	}
 
-	return &account.ListResponse{Accounts: protoAccounts, Total: int32(total)}, nil
+	return &account.ListResponse{Accounts: out, Total: int32(total)}, nil
 }
 
 func (s *Account) Search(ctx context.Context, req *account.SearchRequest) (*account.SearchResponse, error) {
@@ -109,16 +109,16 @@ func (s *Account) Search(ctx context.Context, req *account.SearchRequest) (*acco
 		pageSize = 10
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "account.search", tenant, authz.Resource{Type: "account"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "account.search", tenant, authz.Resource{Type: "account"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -134,30 +134,30 @@ func (s *Account) Search(ctx context.Context, req *account.SearchRequest) (*acco
 		return nil, status.Errorf(codes.Internal, "failed to search accounts: %v", err)
 	}
 
-	protoAccounts := make([]*account.Account, len(accounts))
+	out := make([]*account.Account, len(accounts))
 	for i, a := range accounts {
-		protoAccounts[i] = accountToProto(a)
+		out[i] = accountToProto(a)
 	}
 
-	return &account.SearchResponse{Accounts: protoAccounts, Total: int32(total)}, nil
+	return &account.SearchResponse{Accounts: out, Total: int32(total)}, nil
 }
 
 func (s *Account) Disable(ctx context.Context, req *account.DisableRequest) (*account.DisableResponse, error) {
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "account.disable", tenant, authz.Resource{Type: "account"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "account.disable", tenant, authz.Resource{Type: "account"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 

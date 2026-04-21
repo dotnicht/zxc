@@ -10,7 +10,7 @@ import (
 	"zxc/internal/models"
 )
 
-func authorizeAction(ctx context.Context, action string, tenant *models.Tenant, resource authz.Resource, related authz.Related) (authz.Decision, error) {
+func authorize(ctx context.Context, action string, tenant *models.Tenant, resource authz.Resource, related authz.Related) (authz.Decision, error) {
 	engine, err := authz.Default()
 	if err != nil {
 		return authz.Decision{}, status.Errorf(codes.Internal, "failed to load authorization policy: %v", err)

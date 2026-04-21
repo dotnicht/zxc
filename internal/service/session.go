@@ -40,7 +40,7 @@ func validateSessionStatus(raw string) error {
 }
 
 func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*session.CreateResponse, error) {
-	accountID, err := parseUUID(req.AccountId, "account_id")
+	accountID, err := parseID(req.AccountId, "account_id")
 	if err != nil {
 		return nil, err
 	}
@@ -48,16 +48,16 @@ func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*sess
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "session.create", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "session.create", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -105,21 +105,21 @@ func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*sess
 }
 
 func (s *Session) Get(ctx context.Context, req *session.GetRequest) (*session.GetResponse, error) {
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "session.get", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "session.get", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -135,11 +135,11 @@ func (s *Session) Get(ctx context.Context, req *session.GetRequest) (*session.Ge
 }
 
 func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*session.UpdateResponse, error) {
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
-	accountID, err := parseUUID(req.AccountId, "account_id")
+	accountID, err := parseID(req.AccountId, "account_id")
 	if err != nil {
 		return nil, err
 	}
@@ -147,16 +147,16 @@ func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*sess
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "session.update", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "session.update", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -203,21 +203,21 @@ func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*sess
 }
 
 func (s *Session) Delete(ctx context.Context, req *session.DeleteRequest) (*session.DeleteResponse, error) {
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "session.delete", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "session.delete", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -260,16 +260,16 @@ func (s *Session) List(ctx context.Context, req *session.ListRequest) (*session.
 		pageSize = 10
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "session.list", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "session.list", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -305,16 +305,16 @@ func (s *Session) Search(ctx context.Context, req *session.SearchRequest) (*sess
 		pageSize = 10
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "session.search", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "session.search", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 

@@ -36,30 +36,30 @@ func NewRelease(db *gorm.DB, cache *db.Cache, store *workflow.Store) *Release {
 }
 
 func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*release.CreateResponse, error) {
-	authUserID, err := authenticatedUserID(ctx)
+	authUserID, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err := requireAuthenticatedUser(req.OwnerId, authUserID, "owner_id"); err != nil {
+	if err := assertOwner(req.OwnerId, authUserID, "owner_id"); err != nil {
 		return nil, err
 	}
 
-	targetID, err := parseUUID(req.TargetId, "target_id")
-	if err != nil {
-		return nil, err
-	}
-
-	payloadID, err := parseUUID(req.PayloadId, "payload_id")
+	targetID, err := parseID(req.TargetId, "target_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	payloadID, err := parseID(req.PayloadId, "payload_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenantID, err := parseID(req.TenantId, "tenant_id")
+	if err != nil {
+		return nil, err
+	}
+
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 	if err := tenantDB.First(&p, "id = ?", payloadID).Error; err != nil {
 		return nil, status.Errorf(codes.NotFound, "payload not found")
 	}
-	if _, err := authorizeAction(ctx, "release.create", tenant, authz.Resource{Type: "release"}, authz.Related{
+	if _, err := authorize(ctx, "release.create", tenant, authz.Resource{Type: "release"}, authz.Related{
 		TargetOwnerID:  t.OwnerID.String(),
 		PayloadOwnerID: p.OwnerID.String(),
 	}); err != nil {
@@ -116,17 +116,17 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 }
 
 func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.GetResponse, error) {
-	releaseID, err := parseUUID(req.Id, "id")
+	releaseID, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.Ge
 		}
 		return nil, status.Errorf(codes.Internal, "failed to get release: %v", err)
 	}
-	if _, err := authorizeAction(ctx, "release.get", tenant, authz.Resource{
+	if _, err := authorize(ctx, "release.get", tenant, authz.Resource{
 		Type:    "release",
 		OwnerID: rel.OwnerID.String(),
 		Status:  rel.Status,
@@ -150,25 +150,25 @@ func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.Ge
 }
 
 func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*release.DeployResponse, error) {
-	releaseID, err := parseUUID(req.Id, "id")
+	releaseID, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
 
-	authUserID, err := authenticatedUserID(ctx)
+	authUserID, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err := requireAuthenticatedUser(req.UserId, authUserID, "user_id"); err != nil {
+	if err := assertOwner(req.UserId, authUserID, "user_id"); err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +180,7 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load release: %v", err)
 	}
-	if _, err := authorizeAction(ctx, "release.deploy", tenant, authz.Resource{
+	if _, err := authorize(ctx, "release.deploy", tenant, authz.Resource{
 		Type:    "release",
 		OwnerID: current.OwnerID.String(),
 		Status:  current.Status,
@@ -239,16 +239,16 @@ func (s *Release) List(ctx context.Context, req *release.ListRequest) (*release.
 		pageSize = 10
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "release.list", tenant, authz.Resource{Type: "release"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "release.list", tenant, authz.Resource{Type: "release"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -263,12 +263,12 @@ func (s *Release) List(ctx context.Context, req *release.ListRequest) (*release.
 		return nil, status.Errorf(codes.Internal, "failed to list releases: %v", err)
 	}
 
-	protoReleases := make([]*release.Release, len(releases))
+	out := make([]*release.Release, len(releases))
 	for i, r := range releases {
-		protoReleases[i] = releaseToProto(r)
+		out[i] = releaseToProto(r)
 	}
 
-	return &release.ListResponse{Releases: protoReleases, Total: int32(total)}, nil
+	return &release.ListResponse{Releases: out, Total: int32(total)}, nil
 }
 
 func (s *Release) Search(ctx context.Context, req *release.SearchRequest) (*release.SearchResponse, error) {
@@ -284,16 +284,16 @@ func (s *Release) Search(ctx context.Context, req *release.SearchRequest) (*rele
 		pageSize = 10
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "release.search", tenant, authz.Resource{Type: "release"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "release.search", tenant, authz.Resource{Type: "release"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -308,12 +308,12 @@ func (s *Release) Search(ctx context.Context, req *release.SearchRequest) (*rele
 		return nil, status.Errorf(codes.Internal, "failed to search releases: %v", err)
 	}
 
-	protoReleases := make([]*release.Release, len(releases))
+	out := make([]*release.Release, len(releases))
 	for i, r := range releases {
-		protoReleases[i] = releaseToProto(r)
+		out[i] = releaseToProto(r)
 	}
 
-	return &release.SearchResponse{Releases: protoReleases, Total: int32(total)}, nil
+	return &release.SearchResponse{Releases: out, Total: int32(total)}, nil
 }
 
 func releaseToProto(r *models.Release) *release.Release {

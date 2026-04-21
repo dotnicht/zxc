@@ -78,24 +78,24 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 		return nil, status.Errorf(codes.InvalidArgument, "invalid payload zip: %v", err)
 	}
 
-	authUserID, err := authenticatedUserID(ctx)
+	authUserID, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err := requireAuthenticatedUser(req.OwnerId, authUserID, "owner_id"); err != nil {
+	if err := assertOwner(req.OwnerId, authUserID, "owner_id"); err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	ten, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	ten, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "payload.create", ten, authz.Resource{Type: "payload"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "payload.create", ten, authz.Resource{Type: "payload"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -131,17 +131,17 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 }
 
 func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.GetResponse, error) {
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.Ge
 		}
 		return nil, status.Errorf(codes.Internal, "failed to get payload: %v", err)
 	}
-	if _, err := authorizeAction(ctx, "payload.get", tenant, authz.Resource{
+	if _, err := authorize(ctx, "payload.get", tenant, authz.Resource{
 		Type:    "payload",
 		OwnerID: p.OwnerID.String(),
 	}, authz.Related{}); err != nil {
@@ -164,17 +164,17 @@ func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.Ge
 }
 
 func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payload.UpdateResponse, error) {
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +186,7 @@ func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payl
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load payload: %v", err)
 	}
-	if _, err := authorizeAction(ctx, "payload.update", tenant, authz.Resource{
+	if _, err := authorize(ctx, "payload.update", tenant, authz.Resource{
 		Type:    "payload",
 		OwnerID: current.OwnerID.String(),
 	}, authz.Related{}); err != nil {
@@ -210,17 +210,17 @@ func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payl
 }
 
 func (s *Payload) Delete(ctx context.Context, req *payload.DeleteRequest) (*payload.DeleteResponse, error) {
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +232,7 @@ func (s *Payload) Delete(ctx context.Context, req *payload.DeleteRequest) (*payl
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load payload: %v", err)
 	}
-	if _, err := authorizeAction(ctx, "payload.delete", tenant, authz.Resource{
+	if _, err := authorize(ctx, "payload.delete", tenant, authz.Resource{
 		Type:    "payload",
 		OwnerID: current.OwnerID.String(),
 	}, authz.Related{}); err != nil {
@@ -259,16 +259,16 @@ func (s *Payload) List(ctx context.Context, req *payload.ListRequest) (*payload.
 		pageSize = 10
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "payload.list", tenant, authz.Resource{Type: "payload"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "payload.list", tenant, authz.Resource{Type: "payload"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -283,12 +283,12 @@ func (s *Payload) List(ctx context.Context, req *payload.ListRequest) (*payload.
 		return nil, status.Errorf(codes.Internal, "failed to list payloads: %v", err)
 	}
 
-	protoPayloads := make([]*payload.Payload, len(payloads))
+	out := make([]*payload.Payload, len(payloads))
 	for i, p := range payloads {
-		protoPayloads[i] = payloadToProto(p)
+		out[i] = payloadToProto(p)
 	}
 
-	return &payload.ListResponse{Payloads: protoPayloads, Total: int32(total)}, nil
+	return &payload.ListResponse{Payloads: out, Total: int32(total)}, nil
 }
 
 func payloadToProto(p *models.Payload) *payload.Payload {
