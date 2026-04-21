@@ -11,6 +11,7 @@ import (
 	"zxc/api/target"
 	"zxc/internal/authz"
 	"zxc/internal/db"
+	"zxc/internal/events"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
@@ -32,24 +33,24 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 		return nil, status.Error(codes.InvalidArgument, "address is required")
 	}
 
-	authUserID, err := authenticatedUserID(ctx)
+	authUserID, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err := requireAuthenticatedUser(req.OwnerId, authUserID, "owner_id"); err != nil {
+	if err := assertOwner(req.OwnerId, authUserID, "owner_id"); err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "target.create", tenant, authz.Resource{Type: "target"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "target.create", tenant, authz.Resource{Type: "target"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -58,15 +59,10 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to create target: %v", err)
 	}
 	if err := tenantDB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := s.store.RecordEvent(ctx, tx, workflow.EventInput{
-			Kind:          "target_created",
-			AggregateType: "target",
-			AggregateID:   t.ID,
-			Payload: map[string]any{
-				"target_id": t.ID.String(),
-				"address":   t.Address,
-				"user":      t.User,
-			},
+		if err := s.store.RecordEvent(ctx, tx, events.TargetCreated{
+			TargetID: t.ID,
+			Address:  t.Address,
+			User:     t.User,
 		}); err != nil {
 			return err
 		}
@@ -76,7 +72,7 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to persist target creation: %v", errors.Join(err, cleanupErr))
 	}
 
-	decision, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
+	decision, err := authorize(ctx, "target.get", tenant, authz.Resource{
 		Type:    "target",
 		OwnerID: t.OwnerID,
 	}, authz.Related{})
@@ -87,17 +83,17 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 }
 
 func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetResponse, error) {
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +105,7 @@ func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetRe
 		}
 		return nil, status.Errorf(codes.Internal, "failed to get target: %v", err)
 	}
-	decision, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
+	decision, err := authorize(ctx, "target.get", tenant, authz.Resource{
 		Type:    "target",
 		OwnerID: t.OwnerID,
 	}, authz.Related{})
@@ -120,7 +116,7 @@ func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetRe
 }
 
 func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target.UpdateResponse, error) {
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -129,12 +125,12 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		return nil, status.Error(codes.InvalidArgument, "address is required")
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +142,7 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load previous target state: %v", err)
 	}
-	if _, err := authorizeAction(ctx, "target.update", tenant, authz.Resource{
+	if _, err := authorize(ctx, "target.update", tenant, authz.Resource{
 		Type:    "target",
 		OwnerID: previous.OwnerID,
 	}, authz.Related{}); err != nil {
@@ -166,15 +162,10 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated target: %v", err)
 	}
 	if err := tenantDB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := s.store.RecordEvent(ctx, tx, workflow.EventInput{
-			Kind:          "target_updated",
-			AggregateType: "target",
-			AggregateID:   updated.ID,
-			Payload: map[string]any{
-				"target_id": updated.ID.String(),
-				"address":   updated.Address,
-				"user":      updated.User,
-			},
+		if err := s.store.RecordEvent(ctx, tx, events.TargetUpdated{
+			TargetID: updated.ID,
+			Address:  updated.Address,
+			User:     updated.User,
 		}); err != nil {
 			return err
 		}
@@ -192,7 +183,7 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to persist target update: %v", errors.Join(err, revertErr))
 	}
 
-	decision, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
+	decision, err := authorize(ctx, "target.get", tenant, authz.Resource{
 		Type:    "target",
 		OwnerID: updated.OwnerID,
 	}, authz.Related{})
@@ -203,17 +194,17 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 }
 
 func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target.DeleteResponse, error) {
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +216,7 @@ func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load target: %v", err)
 	}
-	if _, err := authorizeAction(ctx, "target.delete", tenant, authz.Resource{
+	if _, err := authorize(ctx, "target.delete", tenant, authz.Resource{
 		Type:    "target",
 		OwnerID: existing.OwnerID,
 	}, authz.Related{}); err != nil {
@@ -239,13 +230,8 @@ func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target
 	if result.RowsAffected == 0 {
 		return nil, status.Error(codes.NotFound, "target not found")
 	}
-	if err := s.store.RecordEvent(ctx, tenantDB, workflow.EventInput{
-		Kind:          "target_deleted",
-		AggregateType: "target",
-		AggregateID:   id,
-		Payload: map[string]any{
-			"target_id": id.String(),
-		},
+	if err := s.store.RecordEvent(ctx, tenantDB, events.TargetDeleted{
+		TargetID: id,
 	}); err != nil {
 		revertErr := tenantDB.Unscoped().Model(&models.Target{}).Where("id = ?", existing.ID).Updates(map[string]any{
 			"deleted_at": nil,
@@ -266,16 +252,16 @@ func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.Lis
 		pageSize = 10
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "target.list", tenant, authz.Resource{Type: "target"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "target.list", tenant, authz.Resource{Type: "target"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -290,19 +276,19 @@ func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.Lis
 		return nil, status.Errorf(codes.Internal, "failed to list targets: %v", err)
 	}
 
-	protoTargets := make([]*target.Target, len(targets))
+	out := make([]*target.Target, len(targets))
 	for i, t := range targets {
-		d, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
+		d, err := authorize(ctx, "target.get", tenant, authz.Resource{
 			Type:    "target",
 			OwnerID: t.OwnerID,
 		}, authz.Related{})
 		if err != nil {
 			return nil, err
 		}
-		protoTargets[i] = s.targetToProto(t, d.RevealSecret)
+		out[i] = s.targetToProto(t, d.RevealSecret)
 	}
 
-	return &target.ListResponse{Targets: protoTargets, Total: int32(total)}, nil
+	return &target.ListResponse{Targets: out, Total: int32(total)}, nil
 }
 
 func (s *Target) Search(ctx context.Context, req *target.SearchRequest) (*target.SearchResponse, error) {
@@ -318,16 +304,16 @@ func (s *Target) Search(ctx context.Context, req *target.SearchRequest) (*target
 		pageSize = 10
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "target.search", tenant, authz.Resource{Type: "target"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "target.search", tenant, authz.Resource{Type: "target"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -343,19 +329,19 @@ func (s *Target) Search(ctx context.Context, req *target.SearchRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to search targets: %v", err)
 	}
 
-	protoTargets := make([]*target.Target, len(targets))
+	out := make([]*target.Target, len(targets))
 	for i, t := range targets {
-		d, err := authorizeAction(ctx, "target.get", tenant, authz.Resource{
+		d, err := authorize(ctx, "target.get", tenant, authz.Resource{
 			Type:    "target",
 			OwnerID: t.OwnerID,
 		}, authz.Related{})
 		if err != nil {
 			return nil, err
 		}
-		protoTargets[i] = s.targetToProto(t, d.RevealSecret)
+		out[i] = s.targetToProto(t, d.RevealSecret)
 	}
 
-	return &target.SearchResponse{Targets: protoTargets, Total: int32(total)}, nil
+	return &target.SearchResponse{Targets: out, Total: int32(total)}, nil
 }
 
 func targetToProto(t *models.Target) *target.Target {

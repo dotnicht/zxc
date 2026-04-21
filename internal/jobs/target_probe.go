@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"zxc/internal/deployer"
+	"zxc/internal/events"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
 )
@@ -47,10 +48,10 @@ func (w *TargetProbeWorker) Work(ctx context.Context, job *workflow.Job[TargetPr
 	}
 
 	newStatus := models.TargetOnline
-	eventKind := "target_probe_succeeded"
+	var probeEvent workflow.Event = events.TargetProbeSucceeded{TargetID: target.ID, Status: newStatus}
 	if err := deployer.Ping(ctx, target.Address, target.User, []byte(target.Key)); err != nil {
 		newStatus = models.TargetOffline
-		eventKind = "target_probe_failed"
+		probeEvent = events.TargetProbeFailed{TargetID: target.ID, Status: newStatus}
 	}
 
 	previousStatus := target.Status
@@ -61,15 +62,7 @@ func (w *TargetProbeWorker) Work(ctx context.Context, job *workflow.Job[TargetPr
 	}
 
 	if previousStatus != newStatus {
-		if err := w.store.RecordEvent(ctx, db, workflow.EventInput{
-			Kind:          eventKind,
-			AggregateType: "target",
-			AggregateID:   target.ID,
-			Payload: map[string]any{
-				"target_id": target.ID.String(),
-				"status":    newStatus,
-			},
-		}); err != nil {
+		if err := w.store.RecordEvent(ctx, db, probeEvent); err != nil {
 			revertErr := db.WithContext(ctx).Model(&models.Target{}).
 				Where("id = ? AND status = ?", target.ID, newStatus).
 				Update("status", previousStatus).Error

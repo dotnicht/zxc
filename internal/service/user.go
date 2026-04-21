@@ -29,16 +29,16 @@ func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.Creat
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "user.create", tenant, authz.Resource{Type: "user"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "user.create", tenant, authz.Resource{Type: "user"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -47,44 +47,44 @@ func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.Creat
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create user: %v", err))
 	}
 
-	return &user.CreateResponse{User: modelToProto(u)}, nil
+	return &user.CreateResponse{User: userToProto(u)}, nil
 }
 
 func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse, error) {
-	userID, err := parseUUID(req.Id, "id")
+	uid, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
 
 	var u models.User
-	if err := tenantDB.First(&u, "id = ?", userID).Error; err != nil {
+	if err := tenantDB.First(&u, "id = ?", uid).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to get user: %v", err))
 	}
-	if _, err := authorizeAction(ctx, "user.get", tenant, authz.Resource{
+	if _, err := authorize(ctx, "user.get", tenant, authz.Resource{
 		Type:    "user",
 		OwnerID: u.ID,
 	}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
-	return &user.GetResponse{User: modelToProto(&u)}, nil
+	return &user.GetResponse{User: userToProto(&u)}, nil
 }
 
 func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.UpdateResponse, error) {
-	userID, err := parseUUID(req.Id, "id")
+	uid, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -93,31 +93,31 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
 
 	var current models.User
-	if err := tenantDB.First(&current, "id = ?", userID).Error; err != nil {
+	if err := tenantDB.First(&current, "id = ?", uid).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to load user: %v", err))
 	}
-	if _, err := authorizeAction(ctx, "user.update", tenant, authz.Resource{
+	if _, err := authorize(ctx, "user.update", tenant, authz.Resource{
 		Type:    "user",
 		OwnerID: current.ID,
 	}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
-	result := tenantDB.Model(&models.User{}).Where("id = ?", userID).Updates(&models.User{Name: req.Name})
+	result := tenantDB.Model(&models.User{}).Where("id = ?", uid).Updates(&models.User{Name: req.Name})
 	if result.Error != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to update user: %v", result.Error))
 	}
@@ -126,36 +126,36 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 	}
 
 	var updated models.User
-	if err := tenantDB.First(&updated, "id = ?", userID).Error; err != nil {
+	if err := tenantDB.First(&updated, "id = ?", uid).Error; err != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to fetch updated user: %v", err))
 	}
 
-	return &user.UpdateResponse{User: modelToProto(&updated)}, nil
+	return &user.UpdateResponse{User: userToProto(&updated)}, nil
 }
 
 func (s *User) Delete(ctx context.Context, req *user.DeleteRequest) (*user.DeleteResponse, error) {
-	userID, err := parseUUID(req.Id, "id")
+	uid, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "user.delete", tenant, authz.Resource{
+	if _, err := authorize(ctx, "user.delete", tenant, authz.Resource{
 		Type:    "user",
-		OwnerID: userID,
+		OwnerID: uid,
 	}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
-	result := tenantDB.Where("id = ?", userID).Delete(&models.User{})
+	result := tenantDB.Where("id = ?", uid).Delete(&models.User{})
 	if result.Error != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to delete user: %v", result.Error))
 	}
@@ -175,16 +175,16 @@ func (s *User) List(ctx context.Context, req *user.ListRequest) (*user.ListRespo
 		pageSize = 10
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "user.list", tenant, authz.Resource{Type: "user"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "user.list", tenant, authz.Resource{Type: "user"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -199,12 +199,12 @@ func (s *User) List(ctx context.Context, req *user.ListRequest) (*user.ListRespo
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to list users: %v", err))
 	}
 
-	protoUsers := make([]*user.User, len(users))
+	out := make([]*user.User, len(users))
 	for i, u := range users {
-		protoUsers[i] = modelToProto(u)
+		out[i] = userToProto(u)
 	}
 
-	return &user.ListResponse{Users: protoUsers, Total: int32(total)}, nil
+	return &user.ListResponse{Users: out, Total: int32(total)}, nil
 }
 
 func (s *User) Search(ctx context.Context, req *user.SearchRequest) (*user.SearchResponse, error) {
@@ -220,16 +220,16 @@ func (s *User) Search(ctx context.Context, req *user.SearchRequest) (*user.Searc
 		pageSize = 10
 	}
 
-	tenantID, err := parseUUID(req.TenantId, "tenant_id")
+	tenantID, err := parseID(req.TenantId, "tenant_id")
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := resolveTenantDB(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorizeAction(ctx, "user.search", tenant, authz.Resource{Type: "user"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "user.search", tenant, authz.Resource{Type: "user"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -245,15 +245,15 @@ func (s *User) Search(ctx context.Context, req *user.SearchRequest) (*user.Searc
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to search users: %v", err))
 	}
 
-	protoUsers := make([]*user.User, len(users))
+	out := make([]*user.User, len(users))
 	for i, u := range users {
-		protoUsers[i] = modelToProto(u)
+		out[i] = userToProto(u)
 	}
 
-	return &user.SearchResponse{Users: protoUsers, Total: int32(total)}, nil
+	return &user.SearchResponse{Users: out, Total: int32(total)}, nil
 }
 
-func modelToProto(m *models.User) *user.User {
+func userToProto(m *models.User) *user.User {
 	return &user.User{
 		Id:        m.ID.String(),
 		Name:      m.Name,

@@ -10,7 +10,7 @@ import (
 	"zxc/internal/models"
 )
 
-func authenticatedTenant(ctx context.Context, tenantID uuid.UUID) (*models.Tenant, *models.User, error) {
+func ctxTenant(ctx context.Context, tenantID uuid.UUID) (*models.Tenant, *models.User, error) {
 	user, ok := middleware.UserFromContext(ctx)
 	if !ok || user == nil {
 		return nil, nil, status.Error(codes.Unauthenticated, "authenticated tenant user is required")
@@ -24,7 +24,7 @@ func authenticatedTenant(ctx context.Context, tenantID uuid.UUID) (*models.Tenan
 	return tenant, user, nil
 }
 
-func authenticatedUserID(ctx context.Context) (uuid.UUID, error) {
+func userID(ctx context.Context) (uuid.UUID, error) {
 	user, ok := middleware.UserFromContext(ctx)
 	if !ok || user == nil {
 		return uuid.Nil, status.Error(codes.Unauthenticated, "authenticated tenant user is required")

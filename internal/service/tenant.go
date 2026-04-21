@@ -51,7 +51,7 @@ func validateTenantName(name string) error {
 }
 
 func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant.CreateResponse, error) {
-	if _, err := authorizeAction(ctx, "tenant.create", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "tenant.create", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -117,11 +117,11 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 }
 
 func (s *Tenant) Get(ctx context.Context, req *tenant.GetRequest) (*tenant.GetResponse, error) {
-	if _, err := authorizeAction(ctx, "tenant.get", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "tenant.get", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -138,11 +138,11 @@ func (s *Tenant) Get(ctx context.Context, req *tenant.GetRequest) (*tenant.GetRe
 }
 
 func (s *Tenant) Update(ctx context.Context, req *tenant.UpdateRequest) (*tenant.UpdateResponse, error) {
-	if _, err := authorizeAction(ctx, "tenant.update", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "tenant.update", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func (s *Tenant) Update(ctx context.Context, req *tenant.UpdateRequest) (*tenant
 		t.Storage = req.Storage
 	}
 	if req.OwnerId != "" {
-		ownerID, err := parseUUID(req.OwnerId, "owner_id")
+		ownerID, err := parseID(req.OwnerId, "owner_id")
 		if err != nil {
 			return nil, err
 		}
@@ -186,11 +186,11 @@ func (s *Tenant) Update(ctx context.Context, req *tenant.UpdateRequest) (*tenant
 }
 
 func (s *Tenant) Delete(ctx context.Context, req *tenant.DeleteRequest) (*tenant.DeleteResponse, error) {
-	if _, err := authorizeAction(ctx, "tenant.delete", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "tenant.delete", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
-	id, err := parseUUID(req.Id, "id")
+	id, err := parseID(req.Id, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func (s *Tenant) Delete(ctx context.Context, req *tenant.DeleteRequest) (*tenant
 }
 
 func (s *Tenant) List(ctx context.Context, req *tenant.ListRequest) (*tenant.ListResponse, error) {
-	if _, err := authorizeAction(ctx, "tenant.list", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "tenant.list", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -231,16 +231,16 @@ func (s *Tenant) List(ctx context.Context, req *tenant.ListRequest) (*tenant.Lis
 		return nil, status.Errorf(codes.Internal, "failed to list tenants: %v", err)
 	}
 
-	protoTenants := make([]*tenant.Tenant, len(tenants))
+	out := make([]*tenant.Tenant, len(tenants))
 	for i, t := range tenants {
-		protoTenants[i] = s.modelToProto(t)
+		out[i] = s.modelToProto(t)
 	}
 
-	return &tenant.ListResponse{Tenants: protoTenants, Total: int32(total)}, nil
+	return &tenant.ListResponse{Tenants: out, Total: int32(total)}, nil
 }
 
 func (s *Tenant) Search(ctx context.Context, req *tenant.SearchRequest) (*tenant.SearchResponse, error) {
-	if _, err := authorizeAction(ctx, "tenant.search", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "tenant.search", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -269,12 +269,12 @@ func (s *Tenant) Search(ctx context.Context, req *tenant.SearchRequest) (*tenant
 		return nil, status.Errorf(codes.Internal, "failed to search tenants: %v", err)
 	}
 
-	protoTenants := make([]*tenant.Tenant, len(tenants))
+	out := make([]*tenant.Tenant, len(tenants))
 	for i, t := range tenants {
-		protoTenants[i] = s.modelToProto(t)
+		out[i] = s.modelToProto(t)
 	}
 
-	return &tenant.SearchResponse{Tenants: protoTenants, Total: int32(total)}, nil
+	return &tenant.SearchResponse{Tenants: out, Total: int32(total)}, nil
 }
 
 func (s *Tenant) generateConnectionString(tenantName string) string {
