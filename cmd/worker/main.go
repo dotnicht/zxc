@@ -34,7 +34,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	rootDB, err := db.NewConnection(cfg.Database)
+	root, err := db.NewConnection(cfg.Database)
 	if err != nil {
 		slog.Error("failed to connect to root database", "error", err)
 		os.Exit(1)
@@ -43,11 +43,11 @@ func main() {
 	cache := db.NewCache()
 	store := workflow.NewStore()
 
-	deploy := jobs.NewDeployWorker(store, cache.Get, rootDB, cfg)
-	health := jobs.NewReleaseHealthWorker(store, rootDB, cache.Get)
-	alive := jobs.NewReleaseMarkAliveWorker(store, rootDB, cache.Get)
-	account := jobs.NewAccountFromRequestWorker(store, rootDB, cache.Get)
-	probe := jobs.NewTargetProbeWorker(store, rootDB, cache.Get)
+	deploy := jobs.NewDeployWorker(store, cache.Get, root, cfg)
+	health := jobs.NewReleaseHealthWorker(store, root, cache.Get)
+	alive := jobs.NewReleaseMarkAliveWorker(store, root, cache.Get)
+	account := jobs.NewAccountFromRequestWorker(store, root, cache.Get)
+	probe := jobs.NewTargetProbeWorker(store, root, cache.Get)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -59,7 +59,7 @@ func main() {
 		cancel()
 	}()
 
-	multiRunner := workflow.NewMultiRunner(rootDB, cache.Get, workflow.MultiRunnerOptions{
+	multiRunner := workflow.NewMultiRunner(root, cache.Get, workflow.MultiRunnerOptions{
 		WorkerID:      cfg.Worker.ID,
 		Lease:         10 * time.Minute,
 		MaxConcurrent: 8,
