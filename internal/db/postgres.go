@@ -36,7 +36,7 @@ func NewConnection(dsn string) (*gorm.DB, error) {
 
 func RunRootMigrations(db *gorm.DB) error {
 	slog.Info("Running root database migrations")
-	if err := db.AutoMigrate(&models.Tenant{}, &models.User{}, &models.Route{}, &models.Worker{}, &models.WorkerTenantAssignment{}); err != nil {
+	if err := db.AutoMigrate(&models.Tenant{}, &models.User{}, &models.Route{}); err != nil {
 		return fmt.Errorf("failed to run root migrations: %w", err)
 	}
 	slog.Info("Root migrations completed")
@@ -45,7 +45,7 @@ func RunRootMigrations(db *gorm.DB) error {
 
 func RunTenantMigrations(db *gorm.DB) error {
 	slog.Info("Running tenant database migrations")
-	if err := db.AutoMigrate(&models.User{}, &models.Event{}, &models.Command{}, &models.Account{}, &models.Session{}, &models.Request{}, &models.Target{}, &models.Payload{}, &models.Release{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Command{}, &models.Account{}, &models.Session{}, &models.Request{}, &models.Target{}, &models.Payload{}, &models.Release{}); err != nil {
 		return fmt.Errorf("failed to run tenant migrations: %w", err)
 	}
 	slog.Info("Tenant migrations completed")

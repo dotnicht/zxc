@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"zxc/internal/events"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
 )
@@ -63,22 +62,7 @@ func (w *ReleaseMarkAliveWorker) Work(ctx context.Context, job *workflow.Job[Rel
 		result := db.WithContext(ctx).Model(&models.Release{}).
 			Where("id = ? AND status = ?", release.ID, models.ReleaseDeployed).
 			Update("status", models.ReleaseAlive)
-		if result.Error != nil {
-			return result.Error
-		}
-		if result.RowsAffected == 0 {
-			return nil
-		}
-		if err := w.store.RecordEvent(ctx, db, events.ReleaseAlive{
-			ReleaseID: release.ID,
-			Body:      job.Args.Body,
-		}); err != nil {
-			revertErr := db.WithContext(ctx).Model(&models.Release{}).
-				Where("id = ? AND status = ?", release.ID, models.ReleaseAlive).
-				Update("status", models.ReleaseDeployed).Error
-			return errors.Join(err, revertErr)
-		}
-		return nil
+		return result.Error
 	default:
 		return nil
 	}

@@ -19,19 +19,6 @@ func NewStore() *Store {
 	return &Store{}
 }
 
-type Event interface {
-	Kind() string
-	AggregateType() string
-	AggregateID() uuid.UUID
-}
-
-type EventInput struct {
-	Kind          string
-	AggregateType string
-	AggregateID   uuid.UUID
-	Payload       any
-}
-
 type CommandInput struct {
 	Kind          string
 	AggregateType string
@@ -40,22 +27,6 @@ type CommandInput struct {
 	RunAt         time.Time
 	MaxAttempts   int
 	DedupeKey     string
-}
-
-func (s *Store) RecordEvent(ctx context.Context, tx *gorm.DB, e Event) error {
-	body, err := json.Marshal(e)
-	if err != nil {
-		return fmt.Errorf("marshal event payload: %w", err)
-	}
-	if tx == nil {
-		return fmt.Errorf("event database handle is required")
-	}
-	return tx.WithContext(ctx).Create(&models.Event{
-		Kind:          e.Kind(),
-		AggregateType: e.AggregateType(),
-		AggregateID:   e.AggregateID(),
-		Payload:       body,
-	}).Error
 }
 
 func (s *Store) EnqueueCommand(ctx context.Context, tx *gorm.DB, in CommandInput) error {

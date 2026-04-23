@@ -10,7 +10,6 @@ import (
 	"zxc/api/release"
 	"zxc/internal/authz"
 	"zxc/internal/db"
-	"zxc/internal/events"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
@@ -91,25 +90,9 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 		return nil, status.Errorf(codes.Internal, "failed to create release: %v", err)
 	}
 
-	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		route := &models.Route{ID: rel.ID, TenantID: tenant.ID}
-		if err := tx.Create(route).Error; err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
+	if err := s.db.WithContext(ctx).Create(&models.Route{ID: rel.ID, TenantID: tenant.ID}).Error; err != nil {
 		cleanupErr := tenantDB.Unscoped().Delete(&models.Release{}, "id = ?", rel.ID).Error
-		return nil, status.Errorf(codes.Internal, "failed to persist release root state: %v", errors.Join(err, cleanupErr))
-	}
-	if err := s.store.RecordEvent(ctx, tenantDB, events.ReleaseCreated{
-		ReleaseID:   rel.ID,
-		OwnerID:     rel.OwnerID,
-		TargetID:    targetID,
-		PayloadID:   payloadID,
-		ChangedByID: rel.ChangedByID,
-		Status:      rel.Status,
-	}); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to record release event: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to persist release route: %v", errors.Join(err, cleanupErr))
 	}
 
 	return &release.CreateResponse{Release: releaseToProto(rel)}, nil
@@ -198,12 +181,6 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 		return nil, status.Error(codes.NotFound, "release not found")
 	}
 	if err := tenantDB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := s.store.RecordEvent(ctx, tx, events.ReleaseDeployRequested{
-			ReleaseID: releaseID,
-			UserID:    authUserID,
-		}); err != nil {
-			return err
-		}
 		return s.store.EnqueueCommand(ctx, tx, workflow.CommandInput{
 			Kind:          "deploy_release",
 			AggregateType: "release",

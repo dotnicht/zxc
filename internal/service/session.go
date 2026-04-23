@@ -11,7 +11,6 @@ import (
 	"zxc/api/session"
 	"zxc/internal/authz"
 	"zxc/internal/db"
-	"zxc/internal/events"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
 )
@@ -25,11 +24,10 @@ var validSessionStatuses = map[string]bool{
 type Session struct {
 	session.UnimplementedSessionServiceServer
 	cache *db.Cache
-	store *workflow.Store
 }
 
 func NewSession(_ *gorm.DB, cache *db.Cache, store *workflow.Store) *Session {
-	return &Session{cache: cache, store: store}
+	return &Session{cache: cache}
 }
 
 func validateSessionStatus(raw string) error {
@@ -73,32 +71,13 @@ func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*sess
 	if err := tenantDB.WithContext(ctx).Create(record).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create session: %v", err)
 	}
-	if err := tenantDB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := s.store.RecordEvent(ctx, tx, events.SessionCreated{
-			SessionID: record.ID,
-			AccountID: record.AccountID,
-			Status:    record.Status,
-		}); err != nil {
-			return err
+	if account.Status == models.AccountUnknown {
+		if err := tenantDB.WithContext(ctx).Model(&models.Account{}).
+			Where("id = ? AND status = ?", accountID, models.AccountUnknown).
+			Update("status", models.AccountActive).Error; err != nil {
+			cleanupErr := tenantDB.WithContext(ctx).Unscoped().Delete(&models.Session{}, "id = ?", record.ID).Error
+			return nil, status.Errorf(codes.Internal, "failed to activate account: %v", errors.Join(err, cleanupErr))
 		}
-		if account.Status == models.AccountUnknown {
-			result := tx.Model(&models.Account{}).
-				Where("id = ? AND status = ?", accountID, models.AccountUnknown).
-				Update("status", models.AccountActive)
-			if result.Error != nil {
-				return result.Error
-			}
-			if result.RowsAffected > 0 {
-				return s.store.RecordEvent(ctx, tx, events.AccountActivated{
-					AccountID: accountID,
-					SessionID: record.ID,
-				})
-			}
-		}
-		return nil
-	}); err != nil {
-		cleanupErr := tenantDB.WithContext(ctx).Unscoped().Delete(&models.Session{}, "id = ?", record.ID).Error
-		return nil, status.Errorf(codes.Internal, "failed to persist session creation: %v", errors.Join(err, cleanupErr))
 	}
 
 	return &session.CreateResponse{Session: sessionToProto(record)}, nil
@@ -187,17 +166,6 @@ func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*sess
 	if err := tenantDB.WithContext(ctx).First(&updated, "id = ?", id).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated session: %v", err)
 	}
-	if err := s.store.RecordEvent(ctx, tenantDB, events.SessionUpdated{
-		SessionID: updated.ID,
-		AccountID: updated.AccountID,
-		Status:    updated.Status,
-	}); err != nil {
-		revertErr := tenantDB.WithContext(ctx).Model(&models.Session{}).Where("id = ?", id).Updates(map[string]any{
-			"account_id": previous.AccountID,
-			"status":     previous.Status,
-		}).Error
-		return nil, status.Errorf(codes.Internal, "failed to persist session update: %v", errors.Join(err, revertErr))
-	}
 
 	return &session.UpdateResponse{Session: sessionToProto(&updated)}, nil
 }
@@ -235,17 +203,6 @@ func (s *Session) Delete(ctx context.Context, req *session.DeleteRequest) (*sess
 	}
 	if result.RowsAffected == 0 {
 		return nil, status.Error(codes.NotFound, "session not found")
-	}
-	if err := s.store.RecordEvent(ctx, tenantDB, events.SessionDeleted{
-		SessionID: current.ID,
-		AccountID: current.AccountID,
-		Status:    current.Status,
-	}); err != nil {
-		revertErr := tenantDB.WithContext(ctx).Unscoped().Model(&models.Session{}).Where("id = ?", current.ID).Updates(map[string]any{
-			"deleted_at": nil,
-			"updated_at": current.UpdatedAt,
-		}).Error
-		return nil, status.Errorf(codes.Internal, "failed to persist session deletion: %v", errors.Join(err, revertErr))
 	}
 
 	return &session.DeleteResponse{Success: true}, nil

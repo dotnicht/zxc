@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"zxc/internal/events"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
 )
@@ -64,22 +63,7 @@ func (w *AccountFromRequestWorker) Work(ctx context.Context, job *workflow.Job[A
 		return err
 	}
 
-	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := w.store.RecordEvent(ctx, tx, events.AccountCreated{
-			AccountID: account.ID,
-			Name:      account.Name,
-			RequestID: request.ID,
-		}); err != nil {
-			return err
-		}
-
-		return w.store.RecordEvent(ctx, tx, events.RequestAccountLinked{
-			RequestID: request.ID,
-			ReleaseID: job.Args.ReleaseID,
-			AccountID: account.ID,
-			Name:      account.Name,
-		})
-	})
+	return nil
 }
 
 func extractNodeName(data json.RawMessage) (string, bool) {

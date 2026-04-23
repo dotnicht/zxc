@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"zxc/internal/db"
-	"zxc/internal/events"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
@@ -88,13 +87,6 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	releaseKey := releaseID.String()
 	requestKey := record.ID.String()
 	if err := tenantDB.WithContext(r.Context()).Transaction(func(tx *gorm.DB) error {
-		if err := h.store.RecordEvent(r.Context(), tx, events.WebhookReceived{
-			ReleaseID: releaseID,
-			RequestID: record.ID,
-			Body:      json.RawMessage(body),
-		}); err != nil {
-			return err
-		}
 		if err := h.store.EnqueueCommand(r.Context(), tx, workflow.CommandInput{
 			Kind:          "release_mark_alive",
 			AggregateType: "release",

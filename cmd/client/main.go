@@ -17,7 +17,6 @@ import (
 	"zxc/api/target"
 	"zxc/api/tenant"
 	"zxc/api/user"
-	"zxc/api/worker"
 	"zxc/internal/config"
 )
 
@@ -40,7 +39,6 @@ type state struct {
 	target  target.TargetServiceClient
 	payload payload.PayloadServiceClient
 	release release.ReleaseServiceClient
-	worker  worker.WorkerServiceClient
 }
 
 var st state
@@ -78,7 +76,6 @@ var rootCmd = &cobra.Command{
 			target:  target.NewTargetServiceClient(conn),
 			payload: payload.NewPayloadServiceClient(conn),
 			release: release.NewReleaseServiceClient(conn),
-			worker:  worker.NewWorkerServiceClient(conn),
 		}
 		return nil
 	},
@@ -137,7 +134,6 @@ func main() {
 	rootCmd.AddCommand(targetCmd())
 	rootCmd.AddCommand(payloadCmd())
 	rootCmd.AddCommand(releaseCmd())
-	rootCmd.AddCommand(workerCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

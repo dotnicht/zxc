@@ -11,7 +11,6 @@ import (
 	"zxc/api/target"
 	"zxc/internal/authz"
 	"zxc/internal/db"
-	"zxc/internal/events"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
@@ -59,13 +58,6 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to create target: %v", err)
 	}
 	if err := tenantDB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := s.store.RecordEvent(ctx, tx, events.TargetCreated{
-			TargetID: t.ID,
-			Address:  t.Address,
-			User:     t.User,
-		}); err != nil {
-			return err
-		}
 		return s.enqueueProbe(ctx, tx, tenantID, t.ID)
 	}); err != nil {
 		cleanupErr := tenantDB.Unscoped().Delete(&models.Target{}, "id = ?", t.ID).Error
@@ -162,13 +154,6 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated target: %v", err)
 	}
 	if err := tenantDB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := s.store.RecordEvent(ctx, tx, events.TargetUpdated{
-			TargetID: updated.ID,
-			Address:  updated.Address,
-			User:     updated.User,
-		}); err != nil {
-			return err
-		}
 		return s.enqueueProbe(ctx, tx, tenantID, updated.ID)
 	}); err != nil {
 		revertErr := tenantDB.Model(&models.Target{}).Where("id = ?", id).Updates(map[string]any{
@@ -229,15 +214,6 @@ func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target
 	}
 	if result.RowsAffected == 0 {
 		return nil, status.Error(codes.NotFound, "target not found")
-	}
-	if err := s.store.RecordEvent(ctx, tenantDB, events.TargetDeleted{
-		TargetID: id,
-	}); err != nil {
-		revertErr := tenantDB.Unscoped().Model(&models.Target{}).Where("id = ?", existing.ID).Updates(map[string]any{
-			"deleted_at": nil,
-			"updated_at": existing.UpdatedAt,
-		}).Error
-		return nil, status.Errorf(codes.Internal, "failed to persist target deletion: %v", errors.Join(err, revertErr))
 	}
 
 	return &target.DeleteResponse{Success: true}, nil

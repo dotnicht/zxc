@@ -16,7 +16,6 @@ import (
 	"zxc/internal/config"
 	"zxc/internal/consts"
 	"zxc/internal/deployer"
-	"zxc/internal/events"
 	"zxc/internal/models"
 	"zxc/internal/storage"
 	"zxc/internal/workflow"
@@ -135,12 +134,6 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 		Update("status", models.TargetOnline).Error; err != nil {
 		slog.Error("failed to update target status", "target_id", release.Target.ID, "error", err)
 	}
-	if err := w.store.RecordEvent(ctx, db, events.TargetProbeSucceeded{
-		TargetID: release.Target.ID,
-		Status:   models.TargetOnline,
-	}); err != nil {
-		slog.Error("record target online event", "target_id", release.Target.ID, "error", err)
-	}
 
 	if release.Status == models.ReleaseWait {
 		if err := authorizeReleaseTransition(ctx, &tenant, models.ReleaseWait, models.ReleaseDeployed); err != nil {
@@ -160,12 +153,6 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 
 	if result.RowsAffected > 0 {
 		if err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-			if err := w.store.RecordEvent(ctx, tx, events.ReleaseDeployed{
-				ReleaseID:   release.ID,
-				ChangedByID: job.Args.ChangedByID,
-			}); err != nil {
-				return err
-			}
 			return w.store.EnqueueCommand(ctx, tx, workflow.CommandInput{
 				Kind:          "release_health_timeout",
 				AggregateType: "release",
@@ -208,21 +195,6 @@ func (w *DeployWorker) markReleaseDead(ctx context.Context, db *gorm.DB, args De
 		})
 	if result.Error != nil {
 		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return nil
-	}
-	if err := w.store.RecordEvent(ctx, db, events.ReleaseFailed{
-		ReleaseID:   args.ReleaseID,
-		ChangedByID: args.ChangedByID,
-	}); err != nil {
-		revertErr := db.WithContext(ctx).Model(&models.Release{}).
-			Where("id = ? AND status = ?", args.ReleaseID, models.ReleaseDead).
-			Updates(map[string]any{
-				"status":        previousStatus,
-				"changed_by_id": args.ChangedByID,
-			}).Error
-		return errors.Join(err, revertErr)
 	}
 	return nil
 }

@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/uuid"
 	"zxc/internal/config"
 	"zxc/internal/db"
 	"zxc/internal/jobs"
@@ -27,10 +26,6 @@ func main() {
 	cfg, err := config.Load(*configPath)
 	if err != nil {
 		slog.Error("failed to load configuration", "error", err)
-		os.Exit(1)
-	}
-	if cfg.Worker.ID == uuid.Nil {
-		slog.Error("worker.id must be set in config")
 		os.Exit(1)
 	}
 
@@ -60,7 +55,6 @@ func main() {
 	}()
 
 	multiRunner := workflow.NewMultiRunner(root, cache.Get, workflow.MultiRunnerOptions{
-		WorkerID:      cfg.Worker.ID,
 		Lease:         10 * time.Minute,
 		MaxConcurrent: 8,
 		SyncInterval:  5 * time.Second,

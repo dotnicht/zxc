@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"zxc/internal/deployer"
-	"zxc/internal/events"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
 )
@@ -48,26 +47,14 @@ func (w *TargetProbeWorker) Work(ctx context.Context, job *workflow.Job[TargetPr
 	}
 
 	newStatus := models.TargetOnline
-	var probeEvent workflow.Event = events.TargetProbeSucceeded{TargetID: target.ID, Status: newStatus}
 	if err := deployer.Ping(ctx, target.Address, target.User, []byte(target.Key)); err != nil {
 		newStatus = models.TargetOffline
-		probeEvent = events.TargetProbeFailed{TargetID: target.ID, Status: newStatus}
 	}
 
-	previousStatus := target.Status
 	if err := db.WithContext(ctx).Model(&models.Target{}).
 		Where("id = ? AND status <> ?", target.ID, newStatus).
 		Update("status", newStatus).Error; err != nil {
 		return err
-	}
-
-	if previousStatus != newStatus {
-		if err := w.store.RecordEvent(ctx, db, probeEvent); err != nil {
-			revertErr := db.WithContext(ctx).Model(&models.Target{}).
-				Where("id = ? AND status = ?", target.ID, newStatus).
-				Update("status", previousStatus).Error
-			return errors.Join(err, revertErr)
-		}
 	}
 
 	return workflow.Snooze(30 * time.Second)

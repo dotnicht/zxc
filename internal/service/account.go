@@ -10,7 +10,6 @@ import (
 	"zxc/api/account"
 	"zxc/internal/authz"
 	"zxc/internal/db"
-	"zxc/internal/events"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
 )
@@ -18,11 +17,10 @@ import (
 type Account struct {
 	account.UnimplementedAccountServiceServer
 	cache *db.Cache
-	store *workflow.Store
 }
 
 func NewAccount(_ *gorm.DB, cache *db.Cache, store *workflow.Store) *Account {
-	return &Account{cache: cache, store: store}
+	return &Account{cache: cache}
 }
 
 func (s *Account) Get(ctx context.Context, req *account.GetRequest) (*account.GetResponse, error) {
@@ -174,18 +172,6 @@ func (s *Account) Disable(ctx context.Context, req *account.DisableRequest) (*ac
 		Update("status", models.AccountDisabled)
 	if result.Error != nil {
 		return nil, status.Errorf(codes.Internal, "failed to disable account: %v", result.Error)
-	}
-
-	if result.RowsAffected > 0 {
-		if err := s.store.RecordEvent(ctx, tenantDB, events.AccountDisabled{
-			AccountID:      id,
-			PreviousStatus: current.Status,
-		}); err != nil {
-			revertErr := tenantDB.WithContext(ctx).Model(&models.Account{}).
-				Where("id = ?", id).
-				Update("status", current.Status).Error
-			return nil, status.Errorf(codes.Internal, "failed to persist account disable: %v", errors.Join(err, revertErr))
-		}
 	}
 
 	current.Status = models.AccountDisabled

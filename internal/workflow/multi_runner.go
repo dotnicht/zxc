@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"zxc/internal/models"
 )
@@ -13,7 +12,6 @@ import (
 type MultiRunner struct {
 	rootDB        *gorm.DB
 	newTenant     func(string) (*gorm.DB, error)
-	workerID      uuid.UUID
 	lease         time.Duration
 	maxConcurrent int
 	syncInterval  time.Duration
@@ -21,7 +19,6 @@ type MultiRunner struct {
 }
 
 type MultiRunnerOptions struct {
-	WorkerID      uuid.UUID
 	Lease         time.Duration
 	MaxConcurrent int
 	SyncInterval  time.Duration
@@ -43,25 +40,11 @@ func NewMultiRunner(rootDB *gorm.DB, newTenant func(string) (*gorm.DB, error), o
 	return &MultiRunner{
 		rootDB:        rootDB,
 		newTenant:     newTenant,
-		workerID:      options.WorkerID,
 		lease:         lease,
 		maxConcurrent: maxConcurrent,
 		syncInterval:  syncInterval,
 		configure:     configure,
 	}
-}
-
-func (m *MultiRunner) assignedTenants(ctx context.Context) ([]models.Tenant, error) {
-	var tenants []models.Tenant
-	err := m.rootDB.WithContext(ctx).
-		Model(&models.Tenant{}).
-		Distinct("tenants.*").
-		Joins("JOIN worker_tenant_assignments ON worker_tenant_assignments.tenant_id = tenants.id").
-		Joins("JOIN workers ON workers.id = worker_tenant_assignments.worker_id").
-		Where("worker_tenant_assignments.worker_id = ?", m.workerID).
-		Where("workers.deleted_at IS NULL").
-		Find(&tenants).Error
-	return tenants, err
 }
 
 func (m *MultiRunner) Run(ctx context.Context) {
@@ -75,9 +58,9 @@ func (m *MultiRunner) Run(ctx context.Context) {
 	defer ticker.Stop()
 
 	syncRunners := func() {
-		tenants, err := m.assignedTenants(ctx)
-		if err != nil {
-			slog.Error("failed to load assigned tenants for worker runners", "worker_id", m.workerID, "error", err)
+		var tenants []models.Tenant
+		if err := m.rootDB.WithContext(ctx).Find(&tenants).Error; err != nil {
+			slog.Error("failed to load tenants for worker runners", "error", err)
 			return
 		}
 
@@ -97,13 +80,13 @@ func (m *MultiRunner) Run(ctx context.Context) {
 
 			tenantDB, err := m.newTenant(tenant.Database)
 			if err != nil {
-				slog.Error("failed to connect tenant runner database", "worker_id", m.workerID, "tenant_id", tenant.ID, "error", err)
+				slog.Error("failed to connect tenant runner database", "tenant_id", tenant.ID, "error", err)
 				continue
 			}
 
 			runner, err := NewRunner(tenantDB, m.lease, m.maxConcurrent)
 			if err != nil {
-				slog.Error("failed to create tenant runner", "worker_id", m.workerID, "tenant_id", tenant.ID, "error", err)
+				slog.Error("failed to create tenant runner", "tenant_id", tenant.ID, "error", err)
 				continue
 			}
 			if m.configure != nil {
@@ -115,7 +98,7 @@ func (m *MultiRunner) Run(ctx context.Context) {
 				database: tenant.Database,
 				cancel:   tenantCancel,
 			}
-			slog.Info("started tenant runner", "worker_id", m.workerID, "tenant_id", tenant.ID, "tenant_name", tenant.Name)
+			slog.Info("started tenant runner", "tenant_id", tenant.ID, "tenant_name", tenant.Name)
 			go runner.Run(tenantCtx)
 		}
 
@@ -123,7 +106,7 @@ func (m *MultiRunner) Run(ctx context.Context) {
 			if _, ok := active[tenantKey]; ok {
 				continue
 			}
-			slog.Info("stopped tenant runner", "worker_id", m.workerID, "tenant_id", tenantKey)
+			slog.Info("stopped tenant runner", "tenant_id", tenantKey)
 			runner.cancel()
 			delete(runners, tenantKey)
 		}

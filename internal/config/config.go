@@ -18,17 +18,12 @@ type TLS struct {
 	Key  string
 }
 
-type Worker struct {
-	ID uuid.UUID
-}
-
 type Config struct {
 	Database string
 	Storage  string
 	Webhook  string
 	Root     uuid.UUID
 	TLS      TLS
-	Worker   Worker
 }
 
 func Load(path string) (*Config, error) {
