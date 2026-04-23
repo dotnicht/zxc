@@ -21,13 +21,10 @@ import (
 const (
 	grpcAddr     = "localhost:50051"
 	migratorName = "zxc-migrator"
-	workerAName  = "zxc-worker-a"
-	workerBName  = "zxc-worker-b"
+	workerName   = "zxc-worker"
 	projectRoot  = ".."
 	certsDir     = projectRoot + "/test/certs"
 	rootUserID   = "00000000-0000-0000-0000-000000000001"
-	workerAID    = "00000000-0000-0000-0000-000000000201"
-	workerBID    = "00000000-0000-0000-0000-000000000202"
 )
 
 var (
@@ -79,14 +76,8 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	logStep("waiting for worker container %q to be running", workerAName)
-	if err := waitForContainer(workerAName, 60*time.Second); err != nil {
-		printComposeDiagnostics()
-		fmt.Printf("worker not running: %v\n", err)
-		os.Exit(1)
-	}
-	logStep("waiting for worker container %q to be running", workerBName)
-	if err := waitForContainer(workerBName, 60*time.Second); err != nil {
+	logStep("waiting for worker container %q to be running", workerName)
+	if err := waitForContainer(workerName, 60*time.Second); err != nil {
 		printComposeDiagnostics()
 		fmt.Printf("worker not running: %v\n", err)
 		os.Exit(1)
@@ -318,15 +309,6 @@ func TestE2E(t *testing.T) {
 	t.Logf("fixture setup complete: tenantB=%s owner=%s target=%s payload=%s", tenantBID, ownerBID, targetBID, payloadBID)
 	t.Logf("fixture setup complete: tenantC=%s owner=%s target=%s payload=%s", tenantCID, ownerCID, targetCID, payloadCID)
 
-	t.Log("registering root workers")
-	parseKVOutput(t, runClient(t, "worker", "add", "--id", workerAID, "--name", "worker-a"))
-	parseKVOutput(t, runClient(t, "worker", "add", "--id", workerBID, "--name", "worker-b"))
-
-	t.Log("assigning tenant A to worker A")
-	runClient(t, "worker", "assign", "--worker-id", workerAID, "--tenant-name", tenantAName)
-	t.Log("assigning tenant B to worker B")
-	runClient(t, "worker", "assign", "--worker-id", workerBID, "--tenant-name", tenantBName)
-
 	createRelease := func(tenantName, targetID, payloadID string) string {
 		t.Helper()
 		t.Logf("creating release for tenant %s", tenantName)
@@ -403,45 +385,39 @@ func TestE2E(t *testing.T) {
 		return last
 	}
 
-	if s := pollForAtLeast(tenantAName, releaseAID, "deployed", 90*time.Second); statusRank(s) < statusRank("deployed") {
-		t.Fatalf("tenant A release did not reach 'deployed' within 90s, last status: %q", s)
-	}
-	if s := pollForAtLeast(tenantAName, releaseAID, "alive", 60*time.Second); s != "alive" {
-		t.Fatalf("tenant A release did not reach 'alive' within 60s, last status: %q", s)
-	}
-	if s := pollForAtLeast(tenantBName, releaseBID, "deployed", 90*time.Second); statusRank(s) < statusRank("deployed") {
-		t.Fatalf("tenant B release did not reach 'deployed' within 90s, last status: %q", s)
-	}
-	if s := pollForAtLeast(tenantBName, releaseBID, "alive", 60*time.Second); s != "alive" {
-		t.Fatalf("tenant B release did not reach 'alive' within 60s, last status: %q", s)
-	}
-
-	if s := pollForAtLeast(tenantCName, releaseCID, "wait", 15*time.Second); s != "wait" {
-		t.Fatalf("expected unassigned tenant C release to remain 'wait', got %q", s)
-	}
-
-	requests, accounts := waitForWebhookAccounts(t, tenantAName, releaseAID, 35*time.Second)
-	if requests < 2 {
-		t.Fatalf("expected repeated webhook requests for tenant A release %s, got %d", releaseAID, requests)
-	}
-	if accounts < 1 {
-		t.Fatalf("expected at least one account for tenant A release %s, got %d", releaseAID, accounts)
+	for _, tc := range []struct {
+		name      string
+		tenantName string
+		releaseID  string
+	}{
+		{"A", tenantAName, releaseAID},
+		{"B", tenantBName, releaseBID},
+		{"C", tenantCName, releaseCID},
+	} {
+		if s := pollForAtLeast(tc.tenantName, tc.releaseID, "deployed", 90*time.Second); statusRank(s) < statusRank("deployed") {
+			t.Fatalf("tenant %s release did not reach 'deployed' within 90s, last status: %q", tc.name, s)
+		}
+		if s := pollForAtLeast(tc.tenantName, tc.releaseID, "alive", 60*time.Second); s != "alive" {
+			t.Fatalf("tenant %s release did not reach 'alive' within 60s, last status: %q", tc.name, s)
+		}
 	}
 
-	requests, accounts = waitForWebhookAccounts(t, tenantBName, releaseBID, 35*time.Second)
-	if requests < 2 {
-		t.Fatalf("expected repeated webhook requests for tenant B release %s, got %d", releaseBID, requests)
+	for _, tc := range []struct {
+		name       string
+		tenantName string
+		releaseID  string
+	}{
+		{"A", tenantAName, releaseAID},
+		{"B", tenantBName, releaseBID},
+	} {
+		requests, accounts := waitForWebhookAccounts(t, tc.tenantName, tc.releaseID, 35*time.Second)
+		if requests < 2 {
+			t.Fatalf("expected repeated webhook requests for tenant %s release %s, got %d", tc.name, tc.releaseID, requests)
+		}
+		if accounts < 1 {
+			t.Fatalf("expected at least one account for tenant %s release %s, got %d", tc.name, tc.releaseID, accounts)
+		}
 	}
-	if accounts < 1 {
-		t.Fatalf("expected at least one account for tenant B release %s, got %d", releaseBID, accounts)
-	}
-
-	waitForWorkerLog(t, workerAName, tenantAID, 30*time.Second)
-	waitForWorkerLog(t, workerBName, tenantBID, 30*time.Second)
-	assertWorkerLogsDoNotContain(t, workerAName, tenantBID)
-	assertWorkerLogsDoNotContain(t, workerAName, tenantCID)
-	assertWorkerLogsDoNotContain(t, workerBName, tenantAID)
-	assertWorkerLogsDoNotContain(t, workerBName, tenantCID)
 
 	t.Logf("end-to-end deploy completed successfully in %s", time.Since(started).Round(time.Millisecond))
 }
@@ -534,28 +510,4 @@ func waitForContainer(containerName string, timeout time.Duration) error {
 		time.Sleep(2 * time.Second)
 	}
 	return fmt.Errorf("container %s not running within %v", containerName, timeout)
-}
-
-func waitForWorkerLog(t *testing.T, containerName, needle string, timeout time.Duration) {
-	t.Helper()
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		out, err := exec.Command("docker", "logs", containerName).CombinedOutput()
-		if err == nil && strings.Contains(string(out), needle) {
-			return
-		}
-		time.Sleep(2 * time.Second)
-	}
-	t.Fatalf("worker %s logs did not contain %q within %s", containerName, needle, timeout)
-}
-
-func assertWorkerLogsDoNotContain(t *testing.T, containerName, needle string) {
-	t.Helper()
-	out, err := exec.Command("docker", "logs", containerName).CombinedOutput()
-	if err != nil {
-		t.Fatalf("read worker logs for %s: %v", containerName, err)
-	}
-	if strings.Contains(string(out), needle) {
-		t.Fatalf("expected worker %s logs not to contain %q", containerName, needle)
-	}
 }

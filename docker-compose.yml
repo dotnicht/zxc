@@ -96,38 +96,15 @@ services:
       - zxc-network
     restart: unless-stopped
 
-  worker-a:
+  worker:
     build:
       context: .
       dockerfile: Dockerfile
       args:
         CMD: worker
-    container_name: zxc-worker-a
+    container_name: zxc-worker
     volumes:
       - ./config.worker-a.docker.toml:/app/config.toml
-      - ./test/fixtures/id_ed25519:/app/deploy_key:ro
-    depends_on:
-      postgres:
-        condition: service_healthy
-      migrator:
-        condition: service_completed_successfully
-      storage:
-        condition: service_healthy
-      target:
-        condition: service_started
-    networks:
-      - zxc-network
-    restart: unless-stopped
-
-  worker-b:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        CMD: worker
-    container_name: zxc-worker-b
-    volumes:
-      - ./config.worker-b.docker.toml:/app/config.toml
       - ./test/fixtures/id_ed25519:/app/deploy_key:ro
     depends_on:
       postgres:
