@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lestrrat-go/jwx/v3/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwt"
 	"gorm.io/gorm"
 	"zxc/internal/config"
 	"zxc/internal/consts"
@@ -103,7 +105,7 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 		return fmt.Errorf("read payload script: %w", err)
 	}
 
-	deployZip, err := injectConfig(scriptContent, release.Payload.Config, release.ID.String(), w.cfg.Webhook, release.Target.Key)
+	deployZip, err := injectConfig(scriptContent, release.Payload.Config, release.ID, job.Args.TenantID, w.cfg.Webhook, w.cfg.Secret, release.Target.Key)
 	if err != nil {
 		return fmt.Errorf("create deploy zip: %w", err)
 	}
@@ -199,7 +201,19 @@ func (w *DeployWorker) markReleaseDead(ctx context.Context, db *gorm.DB, args De
 	return nil
 }
 
-func injectConfig(zipContent []byte, config, releaseID, webhookURL, key string) ([]byte, error) {
+func injectConfig(zipContent []byte, config string, releaseID, tenantID uuid.UUID, webhookURL, secret, key string) ([]byte, error) {
+	token, err := jwt.NewBuilder().
+		Claim("release_id", releaseID.String()).
+		Claim("tenant_id", tenantID.String()).
+		Build()
+	if err != nil {
+		return nil, fmt.Errorf("build jwt: %w", err)
+	}
+	signed, err := jwt.Sign(token, jwt.WithKey(jwa.HS256(), []byte(secret)))
+	if err != nil {
+		return nil, fmt.Errorf("sign jwt: %w", err)
+	}
+
 	r, err := zip.NewReader(bytes.NewReader(zipContent), int64(len(zipContent)))
 	if err != nil {
 		return nil, err
@@ -221,7 +235,7 @@ func injectConfig(zipContent []byte, config, releaseID, webhookURL, key string) 
 
 		if f.Name == config {
 			s := strings.ReplaceAll(string(b), consts.URL, webhookURL)
-			s = strings.ReplaceAll(s, consts.AUTH, releaseID)
+			s = strings.ReplaceAll(s, consts.AUTH, string(signed))
 			b = []byte(s)
 		}
 

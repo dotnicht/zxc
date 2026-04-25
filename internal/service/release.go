@@ -90,11 +90,6 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 		return nil, status.Errorf(codes.Internal, "failed to create release: %v", err)
 	}
 
-	if err := s.db.WithContext(ctx).Create(&models.Route{ID: rel.ID, TenantID: tenant.ID}).Error; err != nil {
-		cleanupErr := tenantDB.Unscoped().Delete(&models.Release{}, "id = ?", rel.ID).Error
-		return nil, status.Errorf(codes.Internal, "failed to persist release route: %v", errors.Join(err, cleanupErr))
-	}
-
 	return &release.CreateResponse{Release: releaseToProto(rel)}, nil
 }
 

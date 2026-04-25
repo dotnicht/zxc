@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/lestrrat-go/jwx/v3/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwt"
 	"gorm.io/gorm"
 	"zxc/internal/db"
 	"zxc/internal/jobs"
@@ -16,12 +18,14 @@ import (
 )
 
 type Handler struct {
+	secret []byte
 	rootDB *gorm.DB
+	cache  *db.Cache
 	store  *workflow.Store
 }
 
-func NewHandler(rootDB *gorm.DB, store *workflow.Store) *Handler {
-	return &Handler{rootDB: rootDB, store: store}
+func NewHandler(secret []byte, rootDB *gorm.DB, cache *db.Cache, store *workflow.Store) *Handler {
+	return &Handler{secret: secret, rootDB: rootDB, cache: cache, store: store}
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -31,25 +35,42 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	auth := r.Header.Get("Authorization")
-	releaseIDStr := strings.TrimPrefix(auth, "Bearer ")
-	if releaseIDStr == auth || releaseIDStr == "" {
-		http.Error(w, "Authorization: Bearer <release-id> header is required", http.StatusBadRequest)
+	tokenStr := strings.TrimPrefix(auth, "Bearer ")
+	if tokenStr == auth || tokenStr == "" {
+		http.Error(w, "Authorization: Bearer <token> header is required", http.StatusBadRequest)
 		return
 	}
 
-	releaseID, err := uuid.Parse(releaseIDStr)
+	token, err := jwt.Parse([]byte(tokenStr), jwt.WithKey(jwa.HS256(), h.secret))
 	if err != nil {
-		http.Error(w, "release header must be a valid UUID", http.StatusBadRequest)
+		http.Error(w, "invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	var route models.Route
-	if err := h.rootDB.Preload("Tenant").First(&route, "id = ?", releaseID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			http.Error(w, "release not found", http.StatusNotFound)
-			return
-		}
-		http.Error(w, "failed to resolve release", http.StatusInternalServerError)
+	var releaseIDVal, tenantIDVal string
+	token.Get("release_id", &releaseIDVal)
+	token.Get("tenant_id", &tenantIDVal)
+
+	releaseID, err := uuid.Parse(releaseIDVal)
+	if err != nil {
+		http.Error(w, "invalid release_id in token", http.StatusBadRequest)
+		return
+	}
+	tenantID, err := uuid.Parse(tenantIDVal)
+	if err != nil {
+		http.Error(w, "invalid tenant_id in token", http.StatusBadRequest)
+		return
+	}
+
+	var tenant models.Tenant
+	if err := h.rootDB.WithContext(r.Context()).First(&tenant, "id = ?", tenantID).Error; err != nil {
+		http.Error(w, "tenant not found", http.StatusNotFound)
+		return
+	}
+
+	tenantDB, err := h.cache.Get(tenant.Database)
+	if err != nil {
+		http.Error(w, "failed to connect to tenant database", http.StatusInternalServerError)
 		return
 	}
 
@@ -63,17 +84,6 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}
-
-	tenantDB, err := db.NewConnection(route.Tenant.Database)
-	if err != nil {
-		http.Error(w, "failed to connect to tenant database", http.StatusInternalServerError)
-		return
-	}
-	defer func() {
-		if sqlDB, err := tenantDB.DB(); err == nil {
-			sqlDB.Close()
-		}
-	}()
 
 	record := &models.Request{
 		ReleaseID: releaseID,
@@ -92,7 +102,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 			AggregateType: "release",
 			AggregateID:   releaseID,
 			Payload: jobs.ReleaseMarkAliveArgs{
-				TenantID:  route.TenantID,
+				TenantID:  tenantID,
 				ReleaseID: releaseID,
 				Body:      json.RawMessage(body),
 			},
@@ -105,7 +115,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 			AggregateType: "request",
 			AggregateID:   record.ID,
 			Payload: jobs.AccountFromRequestArgs{
-				TenantID:  route.TenantID,
+				TenantID:  tenantID,
 				RequestID: record.ID,
 				ReleaseID: releaseID,
 			},

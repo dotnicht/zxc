@@ -22,6 +22,7 @@ type Config struct {
 	Database string
 	Storage  string
 	Webhook  string
+	Secret   string
 	Root     uuid.UUID
 	TLS      TLS
 }

@@ -1,6 +1,7 @@
 database = "postgres://postgres:postgres@localhost:5432/zxc?sslmode=disable"
 storage = "http://minioadmin:minioadmin@localhost:9000/tenants"
 webhook = "http://127.0.0.1:8080/webhooks"
+secret = "dev-secret"
 root = "00000000-0000-0000-0000-000000000001"
 
 [tls]
