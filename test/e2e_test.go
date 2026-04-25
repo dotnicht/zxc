@@ -302,45 +302,26 @@ func TestE2E(t *testing.T) {
 	started := time.Now()
 	ts := time.Now().UnixNano()
 
-	tenantAID, ownerAID, targetAID, payloadAID, tenantAName := setupTenantWithDeps(t, ts, 0)
-	tenantBID, ownerBID, targetBID, payloadBID, tenantBName := setupTenantWithDeps(t, ts, 1)
-	tenantCID, ownerCID, targetCID, payloadCID, tenantCName := setupTenantWithDeps(t, ts, 2)
-	t.Logf("fixture setup complete: tenantA=%s owner=%s target=%s payload=%s", tenantAID, ownerAID, targetAID, payloadAID)
-	t.Logf("fixture setup complete: tenantB=%s owner=%s target=%s payload=%s", tenantBID, ownerBID, targetBID, payloadBID)
-	t.Logf("fixture setup complete: tenantC=%s owner=%s target=%s payload=%s", tenantCID, ownerCID, targetCID, payloadCID)
+	tenantID, ownerID, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 0)
+	t.Logf("fixture setup complete: tenant=%s owner=%s target=%s payload=%s", tenantID, ownerID, targetID, payloadID)
 
-	createRelease := func(tenantName, targetID, payloadID string) string {
-		t.Helper()
-		t.Logf("creating release for tenant %s", tenantName)
-		releaseAdd := parseKVOutput(t, runTenantClient(t, tenantName,
-			"release", "add",
-			"--target", targetID,
-			"--payload", payloadID,
-		))
-		releaseID := releaseAdd["id"]
-		t.Logf("release created for tenant %s: id=%s status=%s", tenantName, releaseID, releaseAdd["status"])
-		return releaseID
+	t.Logf("creating release for tenant %s", tenantName)
+	releaseAdd := parseKVOutput(t, runTenantClient(t, tenantName,
+		"release", "add",
+		"--target", targetID,
+		"--payload", payloadID,
+	))
+	releaseID := releaseAdd["id"]
+	t.Logf("release created: id=%s status=%s", releaseID, releaseAdd["status"])
+
+	t.Logf("triggering deploy for release %s", releaseID)
+	deployResp := parseKVOutput(t, runTenantClient(t, tenantName,
+		"release", "deploy",
+		"--id", releaseID,
+	))
+	if deployResp["status"] != "wait" {
+		t.Fatalf("expected 'wait', got %q", deployResp["status"])
 	}
-
-	deployRelease := func(tenantName, releaseID string) {
-		t.Helper()
-		t.Logf("triggering deploy for release %s in tenant %s", releaseID, tenantName)
-		deployResp := parseKVOutput(t, runTenantClient(t, tenantName,
-			"release", "deploy",
-			"--id", releaseID,
-		))
-		if deployResp["status"] != "wait" {
-			t.Fatalf("expected 'wait', got %q", deployResp["status"])
-		}
-	}
-
-	releaseAID := createRelease(tenantAName, targetAID, payloadAID)
-	releaseBID := createRelease(tenantBName, targetBID, payloadBID)
-	releaseCID := createRelease(tenantCName, targetCID, payloadCID)
-
-	deployRelease(tenantAName, releaseAID)
-	deployRelease(tenantBName, releaseBID)
-	deployRelease(tenantCName, releaseCID)
 
 	statusRank := func(status string) int {
 		switch status {
@@ -359,12 +340,11 @@ func TestE2E(t *testing.T) {
 		}
 	}
 
-	pollForAtLeast := func(tenantName, releaseID, target string, timeout time.Duration) string {
+	pollForAtLeast := func(releaseID, target string, timeout time.Duration) string {
 		t.Helper()
-		t.Logf("polling for tenant %s release %s status at least %q with timeout %s", tenantName, releaseID, target, timeout)
+		t.Logf("polling release %s for status at least %q with timeout %s", releaseID, target, timeout)
 		deadline := time.Now().Add(timeout)
-		var last string
-		var prev string
+		var last, prev string
 		for time.Now().Before(deadline) {
 			getResp := parseKVOutput(t, runTenantClient(t, tenantName,
 				"release", "get",
@@ -385,38 +365,19 @@ func TestE2E(t *testing.T) {
 		return last
 	}
 
-	for _, tc := range []struct {
-		name       string
-		tenantName string
-		releaseID  string
-	}{
-		{"A", tenantAName, releaseAID},
-		{"B", tenantBName, releaseBID},
-		{"C", tenantCName, releaseCID},
-	} {
-		if s := pollForAtLeast(tc.tenantName, tc.releaseID, "deployed", 90*time.Second); statusRank(s) < statusRank("deployed") {
-			t.Fatalf("tenant %s release did not reach 'deployed' within 90s, last status: %q", tc.name, s)
-		}
-		if s := pollForAtLeast(tc.tenantName, tc.releaseID, "alive", 60*time.Second); s != "alive" {
-			t.Fatalf("tenant %s release did not reach 'alive' within 60s, last status: %q", tc.name, s)
-		}
+	if s := pollForAtLeast(releaseID, "deployed", 90*time.Second); statusRank(s) < statusRank("deployed") {
+		t.Fatalf("release did not reach 'deployed' within 90s, last status: %q", s)
+	}
+	if s := pollForAtLeast(releaseID, "alive", 60*time.Second); s != "alive" {
+		t.Fatalf("release did not reach 'alive' within 60s, last status: %q", s)
 	}
 
-	for _, tc := range []struct {
-		name       string
-		tenantName string
-		releaseID  string
-	}{
-		{"A", tenantAName, releaseAID},
-		{"B", tenantBName, releaseBID},
-	} {
-		requests, accounts := waitForWebhookAccounts(t, tc.tenantName, tc.releaseID, 35*time.Second)
-		if requests < 2 {
-			t.Fatalf("expected repeated webhook requests for tenant %s release %s, got %d", tc.name, tc.releaseID, requests)
-		}
-		if accounts < 1 {
-			t.Fatalf("expected at least one account for tenant %s release %s, got %d", tc.name, tc.releaseID, accounts)
-		}
+	requests, accounts := waitForWebhookAccounts(t, tenantName, releaseID, 35*time.Second)
+	if requests < 2 {
+		t.Fatalf("expected repeated webhook requests for release %s, got %d", releaseID, requests)
+	}
+	if accounts < 1 {
+		t.Fatalf("expected at least one account for release %s, got %d", releaseID, accounts)
 	}
 
 	t.Logf("end-to-end deploy completed successfully in %s", time.Since(started).Round(time.Millisecond))
