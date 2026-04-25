@@ -2,7 +2,7 @@
 	run run-worker run-webhook migrate migrate-dry-run \
 	test test-integration test-all clean \
 	docker-up docker-down docker-clean docker-build docker-logs docker-restart \
-	deps cloudbeaver-sync
+	deps
 
 GO ?= go
 PROTOC ?= protoc
@@ -82,9 +82,6 @@ docker-logs:
 	$(DOCKER_COMPOSE) logs -f
 
 docker-restart: docker-down docker-build docker-up
-
-cloudbeaver-sync:
-	sh scripts/sync-cloudbeaver-datasources.sh
 
 deps:
 	$(GO) mod download

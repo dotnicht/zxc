@@ -17,28 +17,6 @@ services:
     networks:
       - zxc-network
 
-  cloudbeaver:
-    image: dbeaver/cloudbeaver:latest
-    container_name: zxc-cloudbeaver
-    environment:
-      CB_SERVER_NAME: zxc
-      CB_SERVER_URL: http://localhost:8978/
-      CB_ADMIN_NAME: zxcadmin
-      CB_ADMIN_PASSWORD: zxcadmin
-      CLOUDBEAVER_APP_ANONYMOUS_ACCESS_ENABLED: 'true'
-      CLOUDBEAVER_APP_GRANT_CONNECTIONS_ACCESS_TO_ANONYMOUS_TEAM: 'true'
-    ports:
-      - "8978:8978"
-    volumes:
-      - cloudbeaver_data:/opt/cloudbeaver/workspace
-      - ./cloudbeaver/data-sources.json:/opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver/data-sources.json:ro
-      - ./cloudbeaver/data-sources-permissions.json:/opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver/data-sources-permissions.json:ro
-    depends_on:
-      - postgres
-    networks:
-      - zxc-network
-    restart: unless-stopped
-
   migrator:
     build:
       context: .
@@ -165,7 +143,6 @@ services:
 
 volumes:
   postgres_data:
-  cloudbeaver_data:
   storage_data:
 
 networks:
