@@ -47,6 +47,9 @@ func Load(path string) (*Config, error) {
 	if config.Database == "" {
 		return nil, fmt.Errorf("database connection string is required")
 	}
+	if config.Secret == "" {
+		return nil, fmt.Errorf("secret is required")
+	}
 	return &config, nil
 }
 

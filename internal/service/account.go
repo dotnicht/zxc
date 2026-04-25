@@ -11,7 +11,6 @@ import (
 	"zxc/internal/authz"
 	"zxc/internal/db"
 	"zxc/internal/models"
-	"zxc/internal/workflow"
 )
 
 type Account struct {
@@ -19,7 +18,7 @@ type Account struct {
 	cache *db.Cache
 }
 
-func NewAccount(_ *gorm.DB, cache *db.Cache, store *workflow.Store) *Account {
+func NewAccount(cache *db.Cache) *Account {
 	return &Account{cache: cache}
 }
 

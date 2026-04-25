@@ -12,7 +12,6 @@ import (
 	"zxc/internal/authz"
 	"zxc/internal/db"
 	"zxc/internal/models"
-	"zxc/internal/workflow"
 )
 
 var validSessionStatuses = map[string]bool{
@@ -26,7 +25,7 @@ type Session struct {
 	cache *db.Cache
 }
 
-func NewSession(_ *gorm.DB, cache *db.Cache, store *workflow.Store) *Session {
+func NewSession(cache *db.Cache) *Session {
 	return &Session{cache: cache}
 }
 

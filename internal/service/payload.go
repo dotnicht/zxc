@@ -124,6 +124,7 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 		Stop:    req.Stop,
 	}
 	if err := tenantDB.Create(p).Error; err != nil {
+		_ = mc.Delete(ctx, bucket, scriptPath)
 		return nil, status.Errorf(codes.Internal, "failed to create payload: %v", err)
 	}
 

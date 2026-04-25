@@ -188,6 +188,11 @@ func (c *Client) Download(ctx context.Context, bucket, objectPath string) (io.Re
 	return obj, nil
 }
 
+func (c *Client) Delete(ctx context.Context, bucket, objectPath string) error {
+	key := c.objectPrefix + objectPath
+	return c.mc.RemoveObject(ctx, bucket, key, minio.RemoveObjectOptions{})
+}
+
 func BucketName(tenantName string) string {
 	var result strings.Builder
 	for _, r := range strings.ToLower(tenantName) {

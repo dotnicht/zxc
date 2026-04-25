@@ -386,7 +386,7 @@ func TestE2E(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		name      string
+		name       string
 		tenantName string
 		releaseID  string
 	}{
