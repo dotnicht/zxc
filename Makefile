@@ -1,5 +1,5 @@
-.PHONY: proto build build-server build-worker build-webhook build-migrator build-storageui \
-	run run-worker run-webhook run-storageui migrate migrate-dry-run \
+.PHONY: proto build build-server build-worker build-webhook build-migrator \
+	run run-worker run-webhook migrate migrate-dry-run \
 	test test-integration test-all clean \
 	docker-up docker-down docker-clean docker-build docker-logs docker-restart \
 	deps cloudbeaver-sync
@@ -25,7 +25,7 @@ proto:
 	  --go-grpc_out=. --go-grpc_opt=module=zxc \
 	  $(file);)
 
-build: proto build-server build-worker build-webhook build-migrator build-storageui
+build: proto build-server build-worker build-webhook build-migrator
 
 build-server:
 	$(GO) build -o $(BIN_DIR)/server ./cmd/server
@@ -39,9 +39,6 @@ build-webhook:
 build-migrator:
 	$(GO) build -o $(BIN_DIR)/migrator ./cmd/migrator
 
-build-storageui:
-	$(GO) build -o $(BIN_DIR)/storageui ./cmd/storageui
-
 run: build-server
 	./$(BIN_DIR)/server -config $(CONFIG)
 
@@ -50,9 +47,6 @@ run-worker: build-worker
 
 run-webhook: build-webhook
 	./$(BIN_DIR)/webhook -config $(CONFIG)
-
-run-storageui: build-storageui
-	./$(BIN_DIR)/storageui -config $(CONFIG)
 
 migrate: build-migrator
 	./$(BIN_DIR)/migrator -config $(CONFIG)
