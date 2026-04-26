@@ -18,7 +18,7 @@ import (
 	"zxc/internal/config"
 	"zxc/internal/infra/db"
 	"zxc/internal/models"
-	"zxc/internal/infra/storage"
+	"zxc/internal/infra"
 )
 
 type Tenant struct {
@@ -74,7 +74,7 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 
 	storageStr := req.Storage
 	if storageStr == "" && s.cfg.Storage != "" {
-		client, bucket, err := storage.ClientFromConnectionString(s.cfg.Storage)
+		client, bucket, err := infra.StorageClientFromConnectionString(s.cfg.Storage)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to parse storage config: %v", err)
 		}

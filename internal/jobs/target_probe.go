@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"zxc/internal/infra/deployer"
+	"zxc/internal/infra"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
 )
@@ -47,7 +47,7 @@ func (w *TargetProbeWorker) Work(ctx context.Context, job *workflow.Job[TargetPr
 	}
 
 	newStatus := models.TargetOnline
-	if err := deployer.Ping(ctx, target.Address, target.User, []byte(target.Key)); err != nil {
+	if err := infra.Ping(ctx, target.Address, target.User, []byte(target.Key)); err != nil {
 		newStatus = models.TargetOffline
 	}
 

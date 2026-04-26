@@ -19,7 +19,7 @@ import (
 	"zxc/internal/consts"
 	"zxc/internal/infra/db"
 	"zxc/internal/models"
-	"zxc/internal/infra/storage"
+	"zxc/internal/infra"
 )
 
 type Payload struct {
@@ -101,7 +101,7 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 
 	payloadID := uuid.New()
 
-	mc, bucket, err := storage.ClientFromConnectionString(ten.Storage)
+	mc, bucket, err := infra.StorageClientFromConnectionString(ten.Storage)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to connect to storage: %v", err)
 	}

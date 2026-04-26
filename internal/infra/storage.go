@@ -1,4 +1,4 @@
-package storage
+package infra
 
 import (
 	"bytes"
@@ -13,16 +13,16 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-type Config struct {
+type StorageConfig struct {
 	Endpoint  string
 	AccessKey string
 	SecretKey string
 	UseSSL    bool
 }
 
-type Client struct {
+type StorageClient struct {
 	mc           *minio.Client
-	cfg          Config
+	cfg          StorageConfig
 	objectPrefix string
 }
 
@@ -38,7 +38,7 @@ type ObjectInfo struct {
 	IsDir        bool
 }
 
-func NewClient(cfg Config) (*Client, error) {
+func NewStorageClient(cfg StorageConfig) (*StorageClient, error) {
 	mc, err := minio.New(cfg.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
 		Secure: cfg.UseSSL,
@@ -46,10 +46,10 @@ func NewClient(cfg Config) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create storage client: %w", err)
 	}
-	return &Client{mc: mc, cfg: cfg}, nil
+	return &StorageClient{mc: mc, cfg: cfg}, nil
 }
 
-func (c *Client) CreateBucket(ctx context.Context, name string) error {
+func (c *StorageClient) CreateBucket(ctx context.Context, name string) error {
 	exists, err := c.mc.BucketExists(ctx, name)
 	if err != nil {
 		return fmt.Errorf("failed to check bucket existence: %w", err)
@@ -63,7 +63,7 @@ func (c *Client) CreateBucket(ctx context.Context, name string) error {
 	return nil
 }
 
-func (c *Client) CreateFolder(ctx context.Context, bucket, folder string) error {
+func (c *StorageClient) CreateFolder(ctx context.Context, bucket, folder string) error {
 	exists, err := c.mc.BucketExists(ctx, bucket)
 	if err != nil {
 		return fmt.Errorf("failed to check bucket existence: %w", err)
@@ -81,7 +81,7 @@ func (c *Client) CreateFolder(ctx context.Context, bucket, folder string) error 
 	return nil
 }
 
-func (c *Client) BucketConnectionString(bucketName string) string {
+func (c *StorageClient) BucketConnectionString(bucketName string) string {
 	scheme := "http"
 	if c.cfg.UseSSL {
 		scheme = "https"
@@ -89,10 +89,10 @@ func (c *Client) BucketConnectionString(bucketName string) string {
 	return fmt.Sprintf("%s://%s:%s@%s/%s", scheme, c.cfg.AccessKey, c.cfg.SecretKey, c.cfg.Endpoint, bucketName)
 }
 
-func ParseConnectionString(connStr string) (Config, string, string, error) {
+func ParseStorageConnectionString(connStr string) (StorageConfig, string, string, error) {
 	u, err := url.Parse(connStr)
 	if err != nil {
-		return Config{}, "", "", fmt.Errorf("invalid storage connection string: %w", err)
+		return StorageConfig{}, "", "", fmt.Errorf("invalid storage connection string: %w", err)
 	}
 	var accessKey, secretKey string
 	if u.User != nil {
@@ -106,7 +106,7 @@ func ParseConnectionString(connStr string) (Config, string, string, error) {
 	if len(parts) > 1 && parts[1] != "" {
 		objectPrefix = parts[1] + "/"
 	}
-	cfg := Config{
+	cfg := StorageConfig{
 		Endpoint:  u.Host,
 		AccessKey: accessKey,
 		SecretKey: secretKey,
@@ -115,12 +115,12 @@ func ParseConnectionString(connStr string) (Config, string, string, error) {
 	return cfg, bucketName, objectPrefix, nil
 }
 
-func ClientFromConnectionString(connStr string) (*Client, string, error) {
-	cfg, bucketName, objectPrefix, err := ParseConnectionString(connStr)
+func StorageClientFromConnectionString(connStr string) (*StorageClient, string, error) {
+	cfg, bucketName, objectPrefix, err := ParseStorageConnectionString(connStr)
 	if err != nil {
 		return nil, "", err
 	}
-	client, err := NewClient(cfg)
+	client, err := NewStorageClient(cfg)
 	if err != nil {
 		return nil, "", err
 	}
@@ -128,7 +128,7 @@ func ClientFromConnectionString(connStr string) (*Client, string, error) {
 	return client, bucketName, nil
 }
 
-func (c *Client) ListBuckets(ctx context.Context) ([]BucketInfo, error) {
+func (c *StorageClient) ListBuckets(ctx context.Context) ([]BucketInfo, error) {
 	buckets, err := c.mc.ListBuckets(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list buckets: %w", err)
@@ -144,7 +144,7 @@ func (c *Client) ListBuckets(ctx context.Context) ([]BucketInfo, error) {
 	return out, nil
 }
 
-func (c *Client) ListObjects(ctx context.Context, bucket, prefix string, recursive bool) ([]ObjectInfo, error) {
+func (c *StorageClient) ListObjects(ctx context.Context, bucket, prefix string, recursive bool) ([]ObjectInfo, error) {
 	opts := minio.ListObjectsOptions{
 		Prefix:    prefix,
 		Recursive: recursive,
@@ -165,7 +165,7 @@ func (c *Client) ListObjects(ctx context.Context, bucket, prefix string, recursi
 	return objects, nil
 }
 
-func (c *Client) Upload(ctx context.Context, bucket, objectPath string, r io.Reader, size int64, contentType string) error {
+func (c *StorageClient) Upload(ctx context.Context, bucket, objectPath string, r io.Reader, size int64, contentType string) error {
 	key := c.objectPrefix + objectPath
 	_, err := c.mc.PutObject(ctx, bucket, key, r, size, minio.PutObjectOptions{ContentType: contentType})
 	if err != nil {
@@ -174,7 +174,7 @@ func (c *Client) Upload(ctx context.Context, bucket, objectPath string, r io.Rea
 	return nil
 }
 
-func (c *Client) Download(ctx context.Context, bucket, objectPath string) (io.ReadCloser, error) {
+func (c *StorageClient) Download(ctx context.Context, bucket, objectPath string) (io.ReadCloser, error) {
 	key := c.objectPrefix + objectPath
 	obj, err := c.mc.GetObject(ctx, bucket, key, minio.GetObjectOptions{})
 	if err != nil {
@@ -188,12 +188,12 @@ func (c *Client) Download(ctx context.Context, bucket, objectPath string) (io.Re
 	return obj, nil
 }
 
-func (c *Client) Delete(ctx context.Context, bucket, objectPath string) error {
+func (c *StorageClient) Delete(ctx context.Context, bucket, objectPath string) error {
 	key := c.objectPrefix + objectPath
 	return c.mc.RemoveObject(ctx, bucket, key, minio.RemoveObjectOptions{})
 }
 
-func BucketName(tenantName string) string {
+func StorageBucketName(tenantName string) string {
 	var result strings.Builder
 	for _, r := range strings.ToLower(tenantName) {
 		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {

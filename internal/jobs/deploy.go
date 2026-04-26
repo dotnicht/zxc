@@ -16,9 +16,8 @@ import (
 	"gorm.io/gorm"
 	"zxc/internal/config"
 	"zxc/internal/consts"
-	"zxc/internal/infra/deployer"
+	"zxc/internal/infra"
 	"zxc/internal/models"
-	"zxc/internal/infra/storage"
 	"zxc/internal/workflow"
 )
 
@@ -88,7 +87,7 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 		}
 	}()
 
-	mc, bucket, err := storage.ClientFromConnectionString(tenant.Storage)
+	mc, bucket, err := infra.StorageClientFromConnectionString(tenant.Storage)
 	if err != nil {
 		return fmt.Errorf("storage client: %w", err)
 	}
@@ -114,7 +113,7 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 		return fmt.Errorf("upload release zip: %w", err)
 	}
 
-	if err := deployer.Deploy(ctx, deployer.Request{
+	if err := infra.Deploy(ctx, infra.SSHRequest{
 		Host:     release.Target.Address,
 		User:     release.Target.User,
 		Key:      []byte(release.Target.Key),

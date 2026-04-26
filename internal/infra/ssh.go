@@ -1,4 +1,4 @@
-package deployer
+package infra
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 )
 
-type Request struct {
+type SSHRequest struct {
 	Host     string
 	User     string
 	Key      []byte
@@ -21,7 +21,7 @@ type Request struct {
 	StartCmd string
 }
 
-func Deploy(ctx context.Context, req Request) error {
+func Deploy(ctx context.Context, req SSHRequest) error {
 	signer, err := gossh.ParsePrivateKey(req.Key)
 	if err != nil {
 		return fmt.Errorf("parse private key: %w", err)
@@ -49,24 +49,24 @@ func Deploy(ctx context.Context, req Request) error {
 	defer client.Close()
 
 	if req.StopCmd != "" {
-		if err := run(ctx, client, req.StopCmd); err != nil {
+		if err := sshRun(ctx, client, req.StopCmd); err != nil {
 			return fmt.Errorf("stop: %w", err)
 		}
 	}
 
 	remotePath := path.Join("/tmp", uuid.New().String()+".zip")
 
-	if err := upload(ctx, client, req.Payload, remotePath); err != nil {
+	if err := sshUpload(ctx, client, req.Payload, remotePath); err != nil {
 		return fmt.Errorf("upload: %w", err)
 	}
-	defer run(ctx, client, "rm -f "+remotePath)
+	defer sshRun(ctx, client, "rm -f "+remotePath)
 
-	if err := run(ctx, client, fmt.Sprintf("unzip -o %s -d ~", remotePath)); err != nil {
+	if err := sshRun(ctx, client, fmt.Sprintf("unzip -o %s -d ~", remotePath)); err != nil {
 		return fmt.Errorf("extract: %w", err)
 	}
 
 	if req.StartCmd != "" {
-		if err := run(ctx, client, req.StartCmd); err != nil {
+		if err := sshRun(ctx, client, req.StartCmd); err != nil {
 			return fmt.Errorf("start: %w", err)
 		}
 	}
@@ -102,7 +102,7 @@ func Ping(ctx context.Context, host, user string, key []byte) error {
 	return nil
 }
 
-func run(ctx context.Context, client *gossh.Client, cmd string) error {
+func sshRun(ctx context.Context, client *gossh.Client, cmd string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func run(ctx context.Context, client *gossh.Client, cmd string) error {
 	return nil
 }
 
-func upload(ctx context.Context, client *gossh.Client, r io.Reader, remotePath string) error {
+func sshUpload(ctx context.Context, client *gossh.Client, r io.Reader, remotePath string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
