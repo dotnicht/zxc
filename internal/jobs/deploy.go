@@ -124,7 +124,7 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 		StartCmd: release.Payload.Start,
 	}); err != nil {
 		if job.Attempt >= job.MaxAttempts {
-			if err := w.markReleaseDead(ctx, db, job.Args, release.Status); err != nil {
+			if err := w.markReleaseDead(ctx, db, job.Args); err != nil {
 				slog.Error("failed to mark release dead after deploy failure", "release_id", job.Args.ReleaseID, "error", err)
 			}
 		}
@@ -135,12 +135,6 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 		Where("id = ?", release.Target.ID).
 		Update("status", models.TargetOnline).Error; err != nil {
 		slog.Error("failed to update target status", "target_id", release.Target.ID, "error", err)
-	}
-
-	if release.Status == models.ReleaseWait {
-		if err := authorizeReleaseTransition(ctx, &tenant, models.ReleaseWait, models.ReleaseDeployed); err != nil {
-			return err
-		}
 	}
 
 	result := db.WithContext(ctx).Model(&models.Release{}).
@@ -181,14 +175,7 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 	return nil
 }
 
-func (w *DeployWorker) markReleaseDead(ctx context.Context, db *gorm.DB, args DeployReleaseArgs, previousStatus string) error {
-	var tenant models.Tenant
-	if err := w.rootDB.WithContext(ctx).First(&tenant, "id = ?", args.TenantID).Error; err != nil {
-		return err
-	}
-	if err := authorizeReleaseTransition(ctx, &tenant, previousStatus, models.ReleaseDead); err != nil {
-		return err
-	}
+func (w *DeployWorker) markReleaseDead(ctx context.Context, db *gorm.DB, args DeployReleaseArgs) error {
 	result := db.WithContext(ctx).Model(&models.Release{}).
 		Where("id = ? AND status <> ?", args.ReleaseID, models.ReleaseDead).
 		Updates(map[string]any{

@@ -48,10 +48,6 @@ func (w *ReleaseHealthWorker) Work(ctx context.Context, job *workflow.Job[Releas
 	case models.ReleaseAlive, models.ReleaseDead:
 		return nil
 	case models.ReleaseWait, models.ReleaseDeployed:
-		previousStatus := release.Status
-		if err := authorizeReleaseTransition(ctx, &tenant, previousStatus, models.ReleaseDead); err != nil {
-			return err
-		}
 		result := db.WithContext(ctx).Model(&models.Release{}).
 			Where("id = ? AND status IN ?", release.ID, []string{models.ReleaseWait, models.ReleaseDeployed}).
 			Update("status", models.ReleaseDead)

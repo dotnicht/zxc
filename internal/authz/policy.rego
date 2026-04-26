@@ -14,8 +14,6 @@ decision := {
 
 is_root if input.subject.is_root
 
-is_system if input.subject.system
-
 is_tenant_owner if {
 	input.tenant.owner_id != "00000000-0000-0000-0000-000000000000"
 	input.subject.id == input.tenant.owner_id
@@ -35,7 +33,6 @@ owns_release_dependencies if {
 
 is_authenticated_tenant_user if {
 	not is_root
-	not is_system
 	input.subject.id != "00000000-0000-0000-0000-000000000000"
 	input.tenant.id != "00000000-0000-0000-0000-000000000000"
 }
@@ -187,33 +184,3 @@ allow if {
 	input.resource.status == "unknown"
 }
 
-allow if {
-	input.action == "release.transition"
-	is_system
-	transition_allowed
-}
-
-transition_allowed if {
-	input.resource.status == "wait"
-	input.resource.next_status == "deployed"
-}
-
-transition_allowed if {
-	input.resource.status == "deployed"
-	input.resource.next_status == "alive"
-}
-
-transition_allowed if {
-	input.resource.status == "wait"
-	input.resource.next_status == "dead"
-}
-
-transition_allowed if {
-	input.resource.status == "deployed"
-	input.resource.next_status == "dead"
-}
-
-transition_allowed if {
-	input.resource.status == "alive"
-	input.resource.next_status == "dead"
-}

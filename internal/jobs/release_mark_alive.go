@@ -56,9 +56,6 @@ func (w *ReleaseMarkAliveWorker) Work(ctx context.Context, job *workflow.Job[Rel
 		if sinceDeploy := time.Since(release.UpdatedAt); sinceDeploy < 3*time.Second {
 			return workflow.Snooze(3*time.Second - sinceDeploy)
 		}
-		if err := authorizeReleaseTransition(ctx, &tenant, models.ReleaseDeployed, models.ReleaseAlive); err != nil {
-			return err
-		}
 		result := db.WithContext(ctx).Model(&models.Release{}).
 			Where("id = ? AND status = ?", release.ID, models.ReleaseDeployed).
 			Update("status", models.ReleaseAlive)

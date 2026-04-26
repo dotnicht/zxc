@@ -17,7 +17,6 @@ var policySource string
 type Subject struct {
 	ID     uuid.UUID `json:"id"`
 	IsRoot bool      `json:"is_root,omitempty"`
-	System bool      `json:"system,omitempty"`
 }
 
 type Tenant struct {
