@@ -2,11 +2,12 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.34.1
-// source: proto/tenant.proto
+// source: tenant.proto
 
 package tenant
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -36,7 +37,7 @@ type Tenant struct {
 
 func (x *Tenant) Reset() {
 	*x = Tenant{}
-	mi := &file_proto_tenant_proto_msgTypes[0]
+	mi := &file_tenant_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -48,7 +49,7 @@ func (x *Tenant) String() string {
 func (*Tenant) ProtoMessage() {}
 
 func (x *Tenant) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tenant_proto_msgTypes[0]
+	mi := &file_tenant_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -61,7 +62,7 @@ func (x *Tenant) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Tenant.ProtoReflect.Descriptor instead.
 func (*Tenant) Descriptor() ([]byte, []int) {
-	return file_proto_tenant_proto_rawDescGZIP(), []int{0}
+	return file_tenant_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Tenant) GetId() string {
@@ -124,7 +125,7 @@ type CreateRequest struct {
 
 func (x *CreateRequest) Reset() {
 	*x = CreateRequest{}
-	mi := &file_proto_tenant_proto_msgTypes[1]
+	mi := &file_tenant_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -136,7 +137,7 @@ func (x *CreateRequest) String() string {
 func (*CreateRequest) ProtoMessage() {}
 
 func (x *CreateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tenant_proto_msgTypes[1]
+	mi := &file_tenant_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -149,7 +150,7 @@ func (x *CreateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRequest.ProtoReflect.Descriptor instead.
 func (*CreateRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tenant_proto_rawDescGZIP(), []int{1}
+	return file_tenant_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *CreateRequest) GetName() string {
@@ -182,7 +183,7 @@ type CreateResponse struct {
 
 func (x *CreateResponse) Reset() {
 	*x = CreateResponse{}
-	mi := &file_proto_tenant_proto_msgTypes[2]
+	mi := &file_tenant_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -194,7 +195,7 @@ func (x *CreateResponse) String() string {
 func (*CreateResponse) ProtoMessage() {}
 
 func (x *CreateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tenant_proto_msgTypes[2]
+	mi := &file_tenant_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -207,7 +208,7 @@ func (x *CreateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateResponse.ProtoReflect.Descriptor instead.
 func (*CreateResponse) Descriptor() ([]byte, []int) {
-	return file_proto_tenant_proto_rawDescGZIP(), []int{2}
+	return file_tenant_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CreateResponse) GetTenant() *Tenant {
@@ -226,7 +227,7 @@ type GetRequest struct {
 
 func (x *GetRequest) Reset() {
 	*x = GetRequest{}
-	mi := &file_proto_tenant_proto_msgTypes[3]
+	mi := &file_tenant_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -238,7 +239,7 @@ func (x *GetRequest) String() string {
 func (*GetRequest) ProtoMessage() {}
 
 func (x *GetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tenant_proto_msgTypes[3]
+	mi := &file_tenant_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -251,7 +252,7 @@ func (x *GetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRequest.ProtoReflect.Descriptor instead.
 func (*GetRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tenant_proto_rawDescGZIP(), []int{3}
+	return file_tenant_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetRequest) GetId() string {
@@ -270,7 +271,7 @@ type GetResponse struct {
 
 func (x *GetResponse) Reset() {
 	*x = GetResponse{}
-	mi := &file_proto_tenant_proto_msgTypes[4]
+	mi := &file_tenant_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -282,7 +283,7 @@ func (x *GetResponse) String() string {
 func (*GetResponse) ProtoMessage() {}
 
 func (x *GetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tenant_proto_msgTypes[4]
+	mi := &file_tenant_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -295,7 +296,7 @@ func (x *GetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetResponse.ProtoReflect.Descriptor instead.
 func (*GetResponse) Descriptor() ([]byte, []int) {
-	return file_proto_tenant_proto_rawDescGZIP(), []int{4}
+	return file_tenant_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetResponse) GetTenant() *Tenant {
@@ -318,7 +319,7 @@ type UpdateRequest struct {
 
 func (x *UpdateRequest) Reset() {
 	*x = UpdateRequest{}
-	mi := &file_proto_tenant_proto_msgTypes[5]
+	mi := &file_tenant_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -330,7 +331,7 @@ func (x *UpdateRequest) String() string {
 func (*UpdateRequest) ProtoMessage() {}
 
 func (x *UpdateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tenant_proto_msgTypes[5]
+	mi := &file_tenant_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -343,7 +344,7 @@ func (x *UpdateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tenant_proto_rawDescGZIP(), []int{5}
+	return file_tenant_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *UpdateRequest) GetId() string {
@@ -390,7 +391,7 @@ type UpdateResponse struct {
 
 func (x *UpdateResponse) Reset() {
 	*x = UpdateResponse{}
-	mi := &file_proto_tenant_proto_msgTypes[6]
+	mi := &file_tenant_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -402,7 +403,7 @@ func (x *UpdateResponse) String() string {
 func (*UpdateResponse) ProtoMessage() {}
 
 func (x *UpdateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tenant_proto_msgTypes[6]
+	mi := &file_tenant_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -415,7 +416,7 @@ func (x *UpdateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateResponse.ProtoReflect.Descriptor instead.
 func (*UpdateResponse) Descriptor() ([]byte, []int) {
-	return file_proto_tenant_proto_rawDescGZIP(), []int{6}
+	return file_tenant_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UpdateResponse) GetTenant() *Tenant {
@@ -435,7 +436,7 @@ type ListRequest struct {
 
 func (x *ListRequest) Reset() {
 	*x = ListRequest{}
-	mi := &file_proto_tenant_proto_msgTypes[7]
+	mi := &file_tenant_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -447,7 +448,7 @@ func (x *ListRequest) String() string {
 func (*ListRequest) ProtoMessage() {}
 
 func (x *ListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tenant_proto_msgTypes[7]
+	mi := &file_tenant_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -460,7 +461,7 @@ func (x *ListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRequest.ProtoReflect.Descriptor instead.
 func (*ListRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tenant_proto_rawDescGZIP(), []int{7}
+	return file_tenant_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListRequest) GetPage() int32 {
@@ -487,7 +488,7 @@ type ListResponse struct {
 
 func (x *ListResponse) Reset() {
 	*x = ListResponse{}
-	mi := &file_proto_tenant_proto_msgTypes[8]
+	mi := &file_tenant_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -499,7 +500,7 @@ func (x *ListResponse) String() string {
 func (*ListResponse) ProtoMessage() {}
 
 func (x *ListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tenant_proto_msgTypes[8]
+	mi := &file_tenant_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -512,7 +513,7 @@ func (x *ListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListResponse.ProtoReflect.Descriptor instead.
 func (*ListResponse) Descriptor() ([]byte, []int) {
-	return file_proto_tenant_proto_rawDescGZIP(), []int{8}
+	return file_tenant_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListResponse) GetTenants() []*Tenant {
@@ -529,11 +530,11 @@ func (x *ListResponse) GetTotal() int32 {
 	return 0
 }
 
-var File_proto_tenant_proto protoreflect.FileDescriptor
+var File_tenant_proto protoreflect.FileDescriptor
 
-const file_proto_tenant_proto_rawDesc = "" +
+const file_tenant_proto_rawDesc = "" +
 	"\n" +
-	"\x12proto/tenant.proto\x12\x06tenant\"\xbb\x01\n" +
+	"\ftenant.proto\x12\x06tenant\x1a\x1bbuf/validate/validate.proto\"\xbb\x01\n" +
 	"\x06Tenant\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
@@ -549,18 +550,18 @@ const file_proto_tenant_proto_rawDesc = "" +
 	"\bdatabase\x18\x02 \x01(\tR\bdatabase\x12\x18\n" +
 	"\astorage\x18\x03 \x01(\tR\astorage\"8\n" +
 	"\x0eCreateResponse\x12&\n" +
-	"\x06tenant\x18\x01 \x01(\v2\x0e.tenant.TenantR\x06tenant\"\x1c\n" +
+	"\x06tenant\x18\x01 \x01(\v2\x0e.tenant.TenantR\x06tenant\"&\n" +
 	"\n" +
-	"GetRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"5\n" +
+	"GetRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"5\n" +
 	"\vGetResponse\x12&\n" +
-	"\x06tenant\x18\x01 \x01(\v2\x0e.tenant.TenantR\x06tenant\"\x84\x01\n" +
-	"\rUpdateRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x06tenant\x18\x01 \x01(\v2\x0e.tenant.TenantR\x06tenant\"\x9b\x01\n" +
+	"\rUpdateRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
 	"\bdatabase\x18\x03 \x01(\tR\bdatabase\x12\x18\n" +
-	"\astorage\x18\x04 \x01(\tR\astorage\x12\x19\n" +
-	"\bowner_id\x18\x05 \x01(\tR\aownerId\"8\n" +
+	"\astorage\x18\x04 \x01(\tR\astorage\x12&\n" +
+	"\bowner_id\x18\x05 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\aownerId\"8\n" +
 	"\x0eUpdateResponse\x12&\n" +
 	"\x06tenant\x18\x01 \x01(\v2\x0e.tenant.TenantR\x06tenant\">\n" +
 	"\vListRequest\x12\x12\n" +
@@ -576,19 +577,19 @@ const file_proto_tenant_proto_rawDesc = "" +
 	"\x04List\x12\x13.tenant.ListRequest\x1a\x14.tenant.ListResponseB\x17Z\x15zxc/api/tenant;tenantb\x06proto3"
 
 var (
-	file_proto_tenant_proto_rawDescOnce sync.Once
-	file_proto_tenant_proto_rawDescData []byte
+	file_tenant_proto_rawDescOnce sync.Once
+	file_tenant_proto_rawDescData []byte
 )
 
-func file_proto_tenant_proto_rawDescGZIP() []byte {
-	file_proto_tenant_proto_rawDescOnce.Do(func() {
-		file_proto_tenant_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_tenant_proto_rawDesc), len(file_proto_tenant_proto_rawDesc)))
+func file_tenant_proto_rawDescGZIP() []byte {
+	file_tenant_proto_rawDescOnce.Do(func() {
+		file_tenant_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_tenant_proto_rawDesc), len(file_tenant_proto_rawDesc)))
 	})
-	return file_proto_tenant_proto_rawDescData
+	return file_tenant_proto_rawDescData
 }
 
-var file_proto_tenant_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_proto_tenant_proto_goTypes = []any{
+var file_tenant_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_tenant_proto_goTypes = []any{
 	(*Tenant)(nil),         // 0: tenant.Tenant
 	(*CreateRequest)(nil),  // 1: tenant.CreateRequest
 	(*CreateResponse)(nil), // 2: tenant.CreateResponse
@@ -599,7 +600,7 @@ var file_proto_tenant_proto_goTypes = []any{
 	(*ListRequest)(nil),    // 7: tenant.ListRequest
 	(*ListResponse)(nil),   // 8: tenant.ListResponse
 }
-var file_proto_tenant_proto_depIdxs = []int32{
+var file_tenant_proto_depIdxs = []int32{
 	0, // 0: tenant.CreateResponse.tenant:type_name -> tenant.Tenant
 	0, // 1: tenant.GetResponse.tenant:type_name -> tenant.Tenant
 	0, // 2: tenant.UpdateResponse.tenant:type_name -> tenant.Tenant
@@ -619,26 +620,26 @@ var file_proto_tenant_proto_depIdxs = []int32{
 	0, // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_proto_tenant_proto_init() }
-func file_proto_tenant_proto_init() {
-	if File_proto_tenant_proto != nil {
+func init() { file_tenant_proto_init() }
+func file_tenant_proto_init() {
+	if File_tenant_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_tenant_proto_rawDesc), len(file_proto_tenant_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tenant_proto_rawDesc), len(file_tenant_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_tenant_proto_goTypes,
-		DependencyIndexes: file_proto_tenant_proto_depIdxs,
-		MessageInfos:      file_proto_tenant_proto_msgTypes,
+		GoTypes:           file_tenant_proto_goTypes,
+		DependencyIndexes: file_tenant_proto_depIdxs,
+		MessageInfos:      file_tenant_proto_msgTypes,
 	}.Build()
-	File_proto_tenant_proto = out.File
-	file_proto_tenant_proto_goTypes = nil
-	file_proto_tenant_proto_depIdxs = nil
+	File_tenant_proto = out.File
+	file_tenant_proto_goTypes = nil
+	file_tenant_proto_depIdxs = nil
 }

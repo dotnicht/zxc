@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package target;
 
+import "buf/validate/validate.proto";
+
 option go_package = "zxc/api/target;target";
 
 service TargetService {
@@ -24,8 +26,8 @@ message Target {
 }
 
 message CreateRequest {
-  string tenant_id = 1;
-  string owner_id = 2;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   string address = 3;
   string user = 4;
   string key = 5;
@@ -36,8 +38,8 @@ message CreateResponse {
 }
 
 message GetRequest {
-  string tenant_id = 1;
-  string id = 2;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  string id = 2 [(buf.validate.field).string.uuid = true];
 }
 
 message GetResponse {
@@ -45,8 +47,8 @@ message GetResponse {
 }
 
 message UpdateRequest {
-  string tenant_id = 1;
-  string id = 2;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  string id = 2 [(buf.validate.field).string.uuid = true];
   string address = 3;
   string user = 4;
   string key = 5;
@@ -57,8 +59,8 @@ message UpdateResponse {
 }
 
 message DeleteRequest {
-  string tenant_id = 1;
-  string id = 2;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  string id = 2 [(buf.validate.field).string.uuid = true];
 }
 
 message DeleteResponse {
@@ -66,7 +68,7 @@ message DeleteResponse {
 }
 
 message ListRequest {
-  string tenant_id = 1;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
   int32 page = 2;
   int32 page_size = 3;
 }
@@ -75,4 +77,3 @@ message ListResponse {
   repeated Target targets = 1;
   int32 total = 2;
 }
-

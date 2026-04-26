@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package user;
 
+import "buf/validate/validate.proto";
+
 option go_package = "zxc/api/user;user";
 
 service UserService {
@@ -20,7 +22,7 @@ message User {
 }
 
 message CreateRequest {
-  string tenant_id = 1;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
   string name = 2;
 }
 
@@ -29,8 +31,8 @@ message CreateResponse {
 }
 
 message GetRequest {
-  string tenant_id = 1;
-  string id = 2;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  string id = 2 [(buf.validate.field).string.uuid = true];
 }
 
 message GetResponse {
@@ -38,8 +40,8 @@ message GetResponse {
 }
 
 message UpdateRequest {
-  string tenant_id = 1;
-  string id = 2;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  string id = 2 [(buf.validate.field).string.uuid = true];
   string name = 3;
 }
 
@@ -48,8 +50,8 @@ message UpdateResponse {
 }
 
 message DeleteRequest {
-  string tenant_id = 1;
-  string id = 2;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  string id = 2 [(buf.validate.field).string.uuid = true];
 }
 
 message DeleteResponse {
@@ -57,7 +59,7 @@ message DeleteResponse {
 }
 
 message ListRequest {
-  string tenant_id = 1;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
   int32 page = 2;
   int32 page_size = 3;
 }
@@ -66,4 +68,3 @@ message ListResponse {
   repeated User users = 1;
   int32 total = 2;
 }
-

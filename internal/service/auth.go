@@ -5,32 +5,47 @@ import (
 	"errors"
 	"fmt"
 
+	"buf.build/go/protovalidate"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
 	"zxc/internal/authz"
 	"zxc/internal/infra"
 	"zxc/internal/models"
 )
 
-func parseID(raw string, field string) (uuid.UUID, error) {
-	id, err := uuid.Parse(raw)
+var validator protovalidate.Validator
+
+func init() {
+	var err error
+	validator, err = protovalidate.New()
 	if err != nil {
-		return uuid.Nil, status.Errorf(codes.InvalidArgument, "invalid %s: must be a valid UUID", field)
+		panic("failed to initialize protovalidate: " + err.Error())
 	}
-	return id, nil
+}
+
+func ValidateInterceptor() grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		if msg, ok := req.(proto.Message); ok {
+			if err := validator.Validate(msg); err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+			}
+		}
+		return handler(ctx, req)
+	}
 }
 
 func assertOwner(raw string, authUserID uuid.UUID, field string) error {
 	if raw == "" {
 		return nil
 	}
-	id, err := parseID(raw, field)
+	id, err := uuid.Parse(raw)
 	if err != nil {
-		return err
+		return status.Errorf(codes.InvalidArgument, "invalid %s: must be a valid UUID", field)
 	}
 	if id != authUserID {
 		return status.Errorf(codes.PermissionDenied, "%s must match authenticated user", field)

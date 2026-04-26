@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package payload;
 
+import "buf/validate/validate.proto";
+
 option go_package = "zxc/api/payload;payload";
 
 service PayloadService {
@@ -25,8 +27,8 @@ message Payload {
 }
 
 message CreateRequest {
-  string tenant_id = 1;
-  string owner_id = 2;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   bytes content = 3;
   string start = 4;
   string stop = 5;
@@ -39,8 +41,8 @@ message CreateResponse {
 }
 
 message GetRequest {
-  string tenant_id = 1;
-  string id = 2;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  string id = 2 [(buf.validate.field).string.uuid = true];
 }
 
 message GetResponse {
@@ -48,8 +50,8 @@ message GetResponse {
 }
 
 message UpdateRequest {
-  string tenant_id = 1;
-  string id = 2;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  string id = 2 [(buf.validate.field).string.uuid = true];
   string path = 3;
   string start = 4;
   string stop = 5;
@@ -61,8 +63,8 @@ message UpdateResponse {
 }
 
 message DeleteRequest {
-  string tenant_id = 1;
-  string id = 2;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  string id = 2 [(buf.validate.field).string.uuid = true];
 }
 
 message DeleteResponse {
@@ -70,7 +72,7 @@ message DeleteResponse {
 }
 
 message ListRequest {
-  string tenant_id = 1;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
   int32 page = 2;
   int32 page_size = 3;
 }

@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v7.34.1
-// source: proto/payload.proto
+// source: payload.proto
 
 package payload
 
@@ -269,5 +269,5 @@ var PayloadService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/payload.proto",
+	Metadata: "payload.proto",
 }

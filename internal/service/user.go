@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -29,10 +30,7 @@ func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.Creat
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -51,15 +49,8 @@ func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.Creat
 }
 
 func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse, error) {
-	uid, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	uid := uuid.MustParse(req.Id)
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -84,19 +75,13 @@ func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse
 }
 
 func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.UpdateResponse, error) {
-	uid, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
+	uid := uuid.MustParse(req.Id)
 
 	if req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -134,15 +119,8 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 }
 
 func (s *User) Delete(ctx context.Context, req *user.DeleteRequest) (*user.DeleteResponse, error) {
-	uid, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	uid := uuid.MustParse(req.Id)
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -175,10 +153,7 @@ func (s *User) List(ctx context.Context, req *user.ListRequest) (*user.ListRespo
 		pageSize = 10
 	}
 
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {

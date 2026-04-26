@@ -37,18 +37,12 @@ func validateSessionStatus(raw string) error {
 }
 
 func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*session.CreateResponse, error) {
-	accountID, err := parseID(req.AccountId, "account_id")
-	if err != nil {
-		return nil, err
-	}
+	accountID := uuid.MustParse(req.AccountId)
 	if err := validateSessionStatus(req.Status); err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -83,15 +77,8 @@ func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*sess
 }
 
 func (s *Session) Get(ctx context.Context, req *session.GetRequest) (*session.GetResponse, error) {
-	id, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	id := uuid.MustParse(req.Id)
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -113,22 +100,13 @@ func (s *Session) Get(ctx context.Context, req *session.GetRequest) (*session.Ge
 }
 
 func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*session.UpdateResponse, error) {
-	id, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
-	accountID, err := parseID(req.AccountId, "account_id")
-	if err != nil {
-		return nil, err
-	}
+	id := uuid.MustParse(req.Id)
+	accountID := uuid.MustParse(req.AccountId)
 	if err := validateSessionStatus(req.Status); err != nil {
 		return nil, err
 	}
 
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -170,15 +148,8 @@ func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*sess
 }
 
 func (s *Session) Delete(ctx context.Context, req *session.DeleteRequest) (*session.DeleteResponse, error) {
-	id, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	id := uuid.MustParse(req.Id)
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -216,10 +187,7 @@ func (s *Session) List(ctx context.Context, req *session.ListRequest) (*session.
 		pageSize = 10
 	}
 
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {

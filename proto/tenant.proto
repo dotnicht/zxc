@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package tenant;
 
+import "buf/validate/validate.proto";
+
 option go_package = "zxc/api/tenant;tenant";
 
 service TenantService {
@@ -32,7 +34,7 @@ message CreateResponse {
 }
 
 message GetRequest {
-  string id = 1;
+  string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message GetResponse {
@@ -40,11 +42,11 @@ message GetResponse {
 }
 
 message UpdateRequest {
-  string id = 1;
+  string id = 1 [(buf.validate.field).string.uuid = true];
   string name = 2;
   string database = 3;
   string storage = 4;
-  string owner_id = 5;
+  string owner_id = 5 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
 }
 
 message UpdateResponse {
@@ -60,4 +62,3 @@ message ListResponse {
   repeated Tenant tenants = 1;
   int32 total = 2;
 }
-

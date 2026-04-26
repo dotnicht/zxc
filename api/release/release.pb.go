@@ -2,11 +2,12 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.34.1
-// source: proto/release.proto
+// source: release.proto
 
 package release
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -37,7 +38,7 @@ type Release struct {
 
 func (x *Release) Reset() {
 	*x = Release{}
-	mi := &file_proto_release_proto_msgTypes[0]
+	mi := &file_release_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -49,7 +50,7 @@ func (x *Release) String() string {
 func (*Release) ProtoMessage() {}
 
 func (x *Release) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_release_proto_msgTypes[0]
+	mi := &file_release_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -62,7 +63,7 @@ func (x *Release) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Release.ProtoReflect.Descriptor instead.
 func (*Release) Descriptor() ([]byte, []int) {
-	return file_proto_release_proto_rawDescGZIP(), []int{0}
+	return file_release_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Release) GetId() string {
@@ -131,7 +132,7 @@ type GetRequest struct {
 
 func (x *GetRequest) Reset() {
 	*x = GetRequest{}
-	mi := &file_proto_release_proto_msgTypes[1]
+	mi := &file_release_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -143,7 +144,7 @@ func (x *GetRequest) String() string {
 func (*GetRequest) ProtoMessage() {}
 
 func (x *GetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_release_proto_msgTypes[1]
+	mi := &file_release_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -156,7 +157,7 @@ func (x *GetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRequest.ProtoReflect.Descriptor instead.
 func (*GetRequest) Descriptor() ([]byte, []int) {
-	return file_proto_release_proto_rawDescGZIP(), []int{1}
+	return file_release_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetRequest) GetTenantId() string {
@@ -182,7 +183,7 @@ type GetResponse struct {
 
 func (x *GetResponse) Reset() {
 	*x = GetResponse{}
-	mi := &file_proto_release_proto_msgTypes[2]
+	mi := &file_release_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -194,7 +195,7 @@ func (x *GetResponse) String() string {
 func (*GetResponse) ProtoMessage() {}
 
 func (x *GetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_release_proto_msgTypes[2]
+	mi := &file_release_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -207,7 +208,7 @@ func (x *GetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetResponse.ProtoReflect.Descriptor instead.
 func (*GetResponse) Descriptor() ([]byte, []int) {
-	return file_proto_release_proto_rawDescGZIP(), []int{2}
+	return file_release_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetResponse) GetRelease() *Release {
@@ -229,7 +230,7 @@ type CreateRequest struct {
 
 func (x *CreateRequest) Reset() {
 	*x = CreateRequest{}
-	mi := &file_proto_release_proto_msgTypes[3]
+	mi := &file_release_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -241,7 +242,7 @@ func (x *CreateRequest) String() string {
 func (*CreateRequest) ProtoMessage() {}
 
 func (x *CreateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_release_proto_msgTypes[3]
+	mi := &file_release_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -254,7 +255,7 @@ func (x *CreateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRequest.ProtoReflect.Descriptor instead.
 func (*CreateRequest) Descriptor() ([]byte, []int) {
-	return file_proto_release_proto_rawDescGZIP(), []int{3}
+	return file_release_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CreateRequest) GetTenantId() string {
@@ -294,7 +295,7 @@ type CreateResponse struct {
 
 func (x *CreateResponse) Reset() {
 	*x = CreateResponse{}
-	mi := &file_proto_release_proto_msgTypes[4]
+	mi := &file_release_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -306,7 +307,7 @@ func (x *CreateResponse) String() string {
 func (*CreateResponse) ProtoMessage() {}
 
 func (x *CreateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_release_proto_msgTypes[4]
+	mi := &file_release_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -319,7 +320,7 @@ func (x *CreateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateResponse.ProtoReflect.Descriptor instead.
 func (*CreateResponse) Descriptor() ([]byte, []int) {
-	return file_proto_release_proto_rawDescGZIP(), []int{4}
+	return file_release_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *CreateResponse) GetRelease() *Release {
@@ -340,7 +341,7 @@ type DeployRequest struct {
 
 func (x *DeployRequest) Reset() {
 	*x = DeployRequest{}
-	mi := &file_proto_release_proto_msgTypes[5]
+	mi := &file_release_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -352,7 +353,7 @@ func (x *DeployRequest) String() string {
 func (*DeployRequest) ProtoMessage() {}
 
 func (x *DeployRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_release_proto_msgTypes[5]
+	mi := &file_release_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -365,7 +366,7 @@ func (x *DeployRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeployRequest.ProtoReflect.Descriptor instead.
 func (*DeployRequest) Descriptor() ([]byte, []int) {
-	return file_proto_release_proto_rawDescGZIP(), []int{5}
+	return file_release_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *DeployRequest) GetTenantId() string {
@@ -398,7 +399,7 @@ type DeployResponse struct {
 
 func (x *DeployResponse) Reset() {
 	*x = DeployResponse{}
-	mi := &file_proto_release_proto_msgTypes[6]
+	mi := &file_release_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -410,7 +411,7 @@ func (x *DeployResponse) String() string {
 func (*DeployResponse) ProtoMessage() {}
 
 func (x *DeployResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_release_proto_msgTypes[6]
+	mi := &file_release_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -423,7 +424,7 @@ func (x *DeployResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeployResponse.ProtoReflect.Descriptor instead.
 func (*DeployResponse) Descriptor() ([]byte, []int) {
-	return file_proto_release_proto_rawDescGZIP(), []int{6}
+	return file_release_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DeployResponse) GetRelease() *Release {
@@ -444,7 +445,7 @@ type ListRequest struct {
 
 func (x *ListRequest) Reset() {
 	*x = ListRequest{}
-	mi := &file_proto_release_proto_msgTypes[7]
+	mi := &file_release_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -456,7 +457,7 @@ func (x *ListRequest) String() string {
 func (*ListRequest) ProtoMessage() {}
 
 func (x *ListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_release_proto_msgTypes[7]
+	mi := &file_release_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -469,7 +470,7 @@ func (x *ListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRequest.ProtoReflect.Descriptor instead.
 func (*ListRequest) Descriptor() ([]byte, []int) {
-	return file_proto_release_proto_rawDescGZIP(), []int{7}
+	return file_release_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListRequest) GetTenantId() string {
@@ -503,7 +504,7 @@ type ListResponse struct {
 
 func (x *ListResponse) Reset() {
 	*x = ListResponse{}
-	mi := &file_proto_release_proto_msgTypes[8]
+	mi := &file_release_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -515,7 +516,7 @@ func (x *ListResponse) String() string {
 func (*ListResponse) ProtoMessage() {}
 
 func (x *ListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_release_proto_msgTypes[8]
+	mi := &file_release_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -528,7 +529,7 @@ func (x *ListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListResponse.ProtoReflect.Descriptor instead.
 func (*ListResponse) Descriptor() ([]byte, []int) {
-	return file_proto_release_proto_rawDescGZIP(), []int{8}
+	return file_release_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListResponse) GetReleases() []*Release {
@@ -545,11 +546,11 @@ func (x *ListResponse) GetTotal() int32 {
 	return 0
 }
 
-var File_proto_release_proto protoreflect.FileDescriptor
+var File_release_proto protoreflect.FileDescriptor
 
-const file_proto_release_proto_rawDesc = "" +
+const file_release_proto_rawDesc = "" +
 	"\n" +
-	"\x13proto/release.proto\x12\arelease\"\xea\x01\n" +
+	"\rrelease.proto\x12\arelease\x1a\x1bbuf/validate/validate.proto\"\xea\x01\n" +
 	"\aRelease\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x19\n" +
@@ -561,29 +562,29 @@ const file_proto_release_proto_rawDesc = "" +
 	"\ttarget_id\x18\x06 \x01(\tR\btargetId\x12\x1d\n" +
 	"\n" +
 	"payload_id\x18\a \x01(\tR\tpayloadId\x12\"\n" +
-	"\rchanged_by_id\x18\b \x01(\tR\vchangedById\"9\n" +
+	"\rchanged_by_id\x18\b \x01(\tR\vchangedById\"M\n" +
 	"\n" +
-	"GetRequest\x12\x1b\n" +
-	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
-	"\x02id\x18\x02 \x01(\tR\x02id\"9\n" +
+	"GetRequest\x12%\n" +
+	"\ttenant_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btenantId\x12\x18\n" +
+	"\x02id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"9\n" +
 	"\vGetResponse\x12*\n" +
-	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\"\x83\x01\n" +
-	"\rCreateRequest\x12\x1b\n" +
-	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x19\n" +
-	"\bowner_id\x18\x02 \x01(\tR\aownerId\x12\x1b\n" +
-	"\ttarget_id\x18\x03 \x01(\tR\btargetId\x12\x1d\n" +
+	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\"\xae\x01\n" +
+	"\rCreateRequest\x12%\n" +
+	"\ttenant_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btenantId\x12&\n" +
+	"\bowner_id\x18\x02 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\aownerId\x12%\n" +
+	"\ttarget_id\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btargetId\x12'\n" +
 	"\n" +
-	"payload_id\x18\x04 \x01(\tR\tpayloadId\"<\n" +
+	"payload_id\x18\x04 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tpayloadId\"<\n" +
 	"\x0eCreateResponse\x12*\n" +
-	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\"U\n" +
-	"\rDeployRequest\x12\x1b\n" +
-	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
-	"\x02id\x18\x02 \x01(\tR\x02id\x12\x17\n" +
-	"\auser_id\x18\x03 \x01(\tR\x06userId\"<\n" +
+	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\"v\n" +
+	"\rDeployRequest\x12%\n" +
+	"\ttenant_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btenantId\x12\x18\n" +
+	"\x02id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12$\n" +
+	"\auser_id\x18\x03 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\x06userId\"<\n" +
 	"\x0eDeployResponse\x12*\n" +
-	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\"[\n" +
-	"\vListRequest\x12\x1b\n" +
-	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x12\n" +
+	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\"e\n" +
+	"\vListRequest\x12%\n" +
+	"\ttenant_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btenantId\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
 	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"R\n" +
 	"\fListResponse\x12,\n" +
@@ -596,19 +597,19 @@ const file_proto_release_proto_rawDesc = "" +
 	"\x04List\x12\x14.release.ListRequest\x1a\x15.release.ListResponseB\x19Z\x17zxc/api/release;releaseb\x06proto3"
 
 var (
-	file_proto_release_proto_rawDescOnce sync.Once
-	file_proto_release_proto_rawDescData []byte
+	file_release_proto_rawDescOnce sync.Once
+	file_release_proto_rawDescData []byte
 )
 
-func file_proto_release_proto_rawDescGZIP() []byte {
-	file_proto_release_proto_rawDescOnce.Do(func() {
-		file_proto_release_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_release_proto_rawDesc), len(file_proto_release_proto_rawDesc)))
+func file_release_proto_rawDescGZIP() []byte {
+	file_release_proto_rawDescOnce.Do(func() {
+		file_release_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_release_proto_rawDesc), len(file_release_proto_rawDesc)))
 	})
-	return file_proto_release_proto_rawDescData
+	return file_release_proto_rawDescData
 }
 
-var file_proto_release_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_proto_release_proto_goTypes = []any{
+var file_release_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_release_proto_goTypes = []any{
 	(*Release)(nil),        // 0: release.Release
 	(*GetRequest)(nil),     // 1: release.GetRequest
 	(*GetResponse)(nil),    // 2: release.GetResponse
@@ -619,7 +620,7 @@ var file_proto_release_proto_goTypes = []any{
 	(*ListRequest)(nil),    // 7: release.ListRequest
 	(*ListResponse)(nil),   // 8: release.ListResponse
 }
-var file_proto_release_proto_depIdxs = []int32{
+var file_release_proto_depIdxs = []int32{
 	0, // 0: release.GetResponse.release:type_name -> release.Release
 	0, // 1: release.CreateResponse.release:type_name -> release.Release
 	0, // 2: release.DeployResponse.release:type_name -> release.Release
@@ -639,26 +640,26 @@ var file_proto_release_proto_depIdxs = []int32{
 	0, // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_proto_release_proto_init() }
-func file_proto_release_proto_init() {
-	if File_proto_release_proto != nil {
+func init() { file_release_proto_init() }
+func file_release_proto_init() {
+	if File_release_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_release_proto_rawDesc), len(file_proto_release_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_release_proto_rawDesc), len(file_release_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_release_proto_goTypes,
-		DependencyIndexes: file_proto_release_proto_depIdxs,
-		MessageInfos:      file_proto_release_proto_msgTypes,
+		GoTypes:           file_release_proto_goTypes,
+		DependencyIndexes: file_release_proto_depIdxs,
+		MessageInfos:      file_release_proto_msgTypes,
 	}.Build()
-	File_proto_release_proto = out.File
-	file_proto_release_proto_goTypes = nil
-	file_proto_release_proto_depIdxs = nil
+	File_release_proto = out.File
+	file_release_proto_goTypes = nil
+	file_release_proto_depIdxs = nil
 }

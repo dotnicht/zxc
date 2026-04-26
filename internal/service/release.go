@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/cschleiden/go-workflows/client"
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -17,8 +18,8 @@ import (
 
 type Release struct {
 	release.UnimplementedReleaseServiceServer
-	db     *gorm.DB
-	cache  *infra.Cache
+	db       *gorm.DB
+	cache    *infra.Cache
 	wfclient *client.Client
 }
 
@@ -35,20 +36,9 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 		return nil, err
 	}
 
-	targetID, err := parseID(req.TargetId, "target_id")
-	if err != nil {
-		return nil, err
-	}
-
-	payloadID, err := parseID(req.PayloadId, "payload_id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	targetID := uuid.MustParse(req.TargetId)
+	payloadID := uuid.MustParse(req.PayloadId)
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -86,15 +76,8 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 }
 
 func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.GetResponse, error) {
-	releaseID, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	releaseID := uuid.MustParse(req.Id)
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -120,10 +103,7 @@ func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.Ge
 }
 
 func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*release.DeployResponse, error) {
-	releaseID, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
+	releaseID := uuid.MustParse(req.Id)
 
 	authUserID, err := ctxUserID(ctx)
 	if err != nil {
@@ -133,10 +113,7 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 		return nil, err
 	}
 
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -197,10 +174,7 @@ func (s *Release) List(ctx context.Context, req *release.ListRequest) (*release.
 		pageSize = 10
 	}
 
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {

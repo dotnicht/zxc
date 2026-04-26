@@ -85,10 +85,7 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 		return nil, err
 	}
 
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	tenantID := uuid.MustParse(req.TenantId)
 
 	ten, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -131,15 +128,8 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 }
 
 func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.GetResponse, error) {
-	id, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	id := uuid.MustParse(req.Id)
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -164,15 +154,8 @@ func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.Ge
 }
 
 func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payload.UpdateResponse, error) {
-	id, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	id := uuid.MustParse(req.Id)
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -210,15 +193,8 @@ func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payl
 }
 
 func (s *Payload) Delete(ctx context.Context, req *payload.DeleteRequest) (*payload.DeleteResponse, error) {
-	id, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	id := uuid.MustParse(req.Id)
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -259,10 +235,7 @@ func (s *Payload) List(ctx context.Context, req *payload.ListRequest) (*payload.
 		pageSize = 10
 	}
 
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {

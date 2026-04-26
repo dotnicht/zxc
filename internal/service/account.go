@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -23,15 +24,8 @@ func NewAccount(cache *infra.Cache) *Account {
 }
 
 func (s *Account) Get(ctx context.Context, req *account.GetRequest) (*account.GetResponse, error) {
-	id, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	id := uuid.MustParse(req.Id)
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -61,10 +55,7 @@ func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.
 		pageSize = 10
 	}
 
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {
@@ -94,15 +85,8 @@ func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.
 }
 
 func (s *Account) Disable(ctx context.Context, req *account.DisableRequest) (*account.DisableResponse, error) {
-	id, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
+	id := uuid.MustParse(req.Id)
+	tenantID := uuid.MustParse(req.TenantId)
 
 	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	_ "github.com/lib/pq"
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/driver/postgres"
@@ -120,10 +121,7 @@ func (s *Tenant) Get(ctx context.Context, req *tenant.GetRequest) (*tenant.GetRe
 		return nil, err
 	}
 
-	id, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
+	id := uuid.MustParse(req.Id)
 
 	var t models.Tenant
 	if err := s.db.WithContext(ctx).First(&t, "id = ?", id).Error; err != nil {
@@ -141,10 +139,7 @@ func (s *Tenant) Update(ctx context.Context, req *tenant.UpdateRequest) (*tenant
 		return nil, err
 	}
 
-	id, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
+	id := uuid.MustParse(req.Id)
 
 	var t models.Tenant
 	if err := s.db.WithContext(ctx).First(&t, "id = ?", id).Error; err != nil {
@@ -167,11 +162,7 @@ func (s *Tenant) Update(ctx context.Context, req *tenant.UpdateRequest) (*tenant
 		t.Storage = req.Storage
 	}
 	if req.OwnerId != "" {
-		ownerID, err := parseID(req.OwnerId, "owner_id")
-		if err != nil {
-			return nil, err
-		}
-		t.OwnerID = ownerID
+		t.OwnerID = uuid.MustParse(req.OwnerId)
 	}
 
 	if err := s.db.WithContext(ctx).Save(&t).Error; err != nil {

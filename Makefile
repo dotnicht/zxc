@@ -22,6 +22,7 @@ PROTO_FILES := \
 proto:
 	$(foreach file,$(PROTO_FILES),$(PROTOC) --go_out=. --go_opt=module=zxc \
 	  --go-grpc_out=. --go-grpc_opt=module=zxc \
+	  -I proto -I proto/vendor \
 	  $(file);)
 
 build: proto build-server build-worker build-webhook build-migrator

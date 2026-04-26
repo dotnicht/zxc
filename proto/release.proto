@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package release;
 
+import "buf/validate/validate.proto";
+
 option go_package = "zxc/api/release;release";
 
 service ReleaseService {
@@ -23,8 +25,8 @@ message Release {
 }
 
 message GetRequest {
-  string tenant_id = 1;
-  string id = 2;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  string id = 2 [(buf.validate.field).string.uuid = true];
 }
 
 message GetResponse {
@@ -32,10 +34,10 @@ message GetResponse {
 }
 
 message CreateRequest {
-  string tenant_id = 1;
-  string owner_id = 2;
-  string target_id = 3;
-  string payload_id = 4;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string target_id = 3 [(buf.validate.field).string.uuid = true];
+  string payload_id = 4 [(buf.validate.field).string.uuid = true];
 }
 
 message CreateResponse {
@@ -43,9 +45,9 @@ message CreateResponse {
 }
 
 message DeployRequest {
-  string tenant_id = 1;
-  string id = 2;
-  string user_id = 3;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  string id = 2 [(buf.validate.field).string.uuid = true];
+  string user_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
 }
 
 message DeployResponse {
@@ -53,7 +55,7 @@ message DeployResponse {
 }
 
 message ListRequest {
-  string tenant_id = 1;
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
   int32 page = 2;
   int32 page_size = 3;
 }
@@ -62,4 +64,3 @@ message ListResponse {
   repeated Release releases = 1;
   int32 total = 2;
 }
-
