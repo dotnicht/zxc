@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
-	"zxc/internal/infra/db"
+	"zxc/internal/infra"
 	"zxc/internal/models"
 )
 
@@ -34,7 +34,7 @@ func assertOwner(raw string, authUserID uuid.UUID, field string) error {
 	return nil
 }
 
-func resolve(ctx context.Context, cache *db.Cache, tenantID uuid.UUID) (*models.Tenant, *gorm.DB, error) {
+func resolve(ctx context.Context, cache *infra.Cache, tenantID uuid.UUID) (*models.Tenant, *gorm.DB, error) {
 	tenant, _, err := ctxTenant(ctx, tenantID)
 	if err != nil {
 		return nil, nil, err

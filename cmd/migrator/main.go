@@ -16,7 +16,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"zxc/internal/config"
-	"zxc/internal/infra/db"
+	"zxc/internal/infra"
 	"zxc/internal/models"
 )
 
@@ -45,7 +45,7 @@ func main() {
 	}
 
 	slog.Info("Connecting to root database...")
-	rootDB, err := db.NewConnection(cfg.Database)
+	rootDB, err := infra.NewConnection(cfg.Database)
 	if err != nil {
 		slog.Error("Failed to connect to root database", "error", err)
 		os.Exit(1)
@@ -59,7 +59,7 @@ func main() {
 	defer sqlDB.Close()
 
 	slog.Info("Running root migrations...")
-	if err := db.RunRootMigrations(rootDB); err != nil {
+	if err := infra.RunRootMigrations(rootDB); err != nil {
 		slog.Error("Failed to run root migrations", "error", err)
 		os.Exit(1)
 	}
@@ -160,7 +160,7 @@ func migrateTenantDatabase(connStr string) error {
 		return fmt.Errorf("failed to connect to tenant database: %w", err)
 	}
 
-	if err := db.RunTenantMigrations(tenantDB); err != nil {
+	if err := infra.RunTenantMigrations(tenantDB); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 

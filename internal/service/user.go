@@ -10,17 +10,17 @@ import (
 	"gorm.io/gorm"
 	"zxc/api/user"
 	"zxc/internal/authz"
-	"zxc/internal/infra/db"
+	"zxc/internal/infra"
 	"zxc/internal/models"
 )
 
 type User struct {
 	user.UnimplementedUserServiceServer
 	db    *gorm.DB
-	cache *db.Cache
+	cache *infra.Cache
 }
 
-func NewUser(db *gorm.DB, cache *db.Cache) *User {
+func NewUser(db *gorm.DB, cache *infra.Cache) *User {
 	return &User{db: db, cache: cache}
 }
 

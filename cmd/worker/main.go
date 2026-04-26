@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"zxc/internal/config"
-	"zxc/internal/infra/db"
+	"zxc/internal/infra"
 	"zxc/internal/jobs"
 	"zxc/internal/workflow"
 )
@@ -29,13 +29,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	root, err := db.NewConnection(cfg.Database)
+	root, err := infra.NewConnection(cfg.Database)
 	if err != nil {
 		slog.Error("failed to connect to root database", "error", err)
 		os.Exit(1)
 	}
 
-	cache := db.NewCache()
+	cache := infra.NewCache()
 	store := workflow.NewStore()
 
 	deploy := jobs.NewDeployWorker(store, cache.Get, root, cfg)

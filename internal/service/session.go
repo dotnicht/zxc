@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 	"zxc/api/session"
 	"zxc/internal/authz"
-	"zxc/internal/infra/db"
+	"zxc/internal/infra"
 	"zxc/internal/models"
 )
 
@@ -22,10 +22,10 @@ var validSessionStatuses = map[string]bool{
 
 type Session struct {
 	session.UnimplementedSessionServiceServer
-	cache *db.Cache
+	cache *infra.Cache
 }
 
-func NewSession(cache *db.Cache) *Session {
+func NewSession(cache *infra.Cache) *Session {
 	return &Session{cache: cache}
 }
 

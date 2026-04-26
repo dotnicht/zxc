@@ -16,9 +16,8 @@ import (
 	"zxc/api/tenant"
 	"zxc/internal/authz"
 	"zxc/internal/config"
-	"zxc/internal/infra/db"
-	"zxc/internal/models"
 	"zxc/internal/infra"
+	"zxc/internal/models"
 )
 
 type Tenant struct {
@@ -279,7 +278,7 @@ func (s *Tenant) runTenantMigrations(connStr string) error {
 		return fmt.Errorf("failed to connect to tenant database: %w", err)
 	}
 
-	if err := db.RunTenantMigrations(tenantDB); err != nil {
+	if err := infra.RunTenantMigrations(tenantDB); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 

@@ -12,14 +12,14 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"zxc/internal/authz"
-	"zxc/internal/infra/db"
+	"zxc/internal/infra"
 	"zxc/internal/models"
 )
 
 type userKey struct{}
 type tenantKey struct{}
 
-func UserInterceptor(cache *db.Cache, rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServerInterceptor {
+func UserInterceptor(cache *infra.Cache, rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {

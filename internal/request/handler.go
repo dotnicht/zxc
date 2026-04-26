@@ -11,7 +11,7 @@ import (
 	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/lestrrat-go/jwx/v3/jwt"
 	"gorm.io/gorm"
-	"zxc/internal/infra/db"
+	"zxc/internal/infra"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
@@ -20,11 +20,11 @@ import (
 type Handler struct {
 	secret []byte
 	rootDB *gorm.DB
-	cache  *db.Cache
+	cache  *infra.Cache
 	store  *workflow.Store
 }
 
-func NewHandler(secret []byte, rootDB *gorm.DB, cache *db.Cache, store *workflow.Store) *Handler {
+func NewHandler(secret []byte, rootDB *gorm.DB, cache *infra.Cache, store *workflow.Store) *Handler {
 	return &Handler{secret: secret, rootDB: rootDB, cache: cache, store: store}
 }
 

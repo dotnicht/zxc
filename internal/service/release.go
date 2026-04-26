@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 	"zxc/api/release"
 	"zxc/internal/authz"
-	"zxc/internal/infra/db"
+	"zxc/internal/infra"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
@@ -19,11 +19,11 @@ import (
 type Release struct {
 	release.UnimplementedReleaseServiceServer
 	db    *gorm.DB
-	cache *db.Cache
+	cache *infra.Cache
 	store *workflow.Store
 }
 
-func NewRelease(db *gorm.DB, cache *db.Cache, store *workflow.Store) *Release {
+func NewRelease(db *gorm.DB, cache *infra.Cache, store *workflow.Store) *Release {
 	return &Release{db: db, cache: cache, store: store}
 }
 

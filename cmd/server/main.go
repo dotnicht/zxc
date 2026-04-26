@@ -21,7 +21,7 @@ import (
 	tenantapi "zxc/api/tenant"
 	userapi "zxc/api/user"
 	"zxc/internal/config"
-	"zxc/internal/infra/db"
+	"zxc/internal/infra"
 	"zxc/internal/models"
 	"zxc/internal/service"
 	"zxc/internal/workflow"
@@ -49,13 +49,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	database, err := db.NewConnection(cfg.Database)
+	database, err := infra.NewConnection(cfg.Database)
 	if err != nil {
 		slog.Error("Failed to connect to database", "error", err)
 		os.Exit(1)
 	}
 
-	if err := db.RunRootMigrations(database); err != nil {
+	if err := infra.RunRootMigrations(database); err != nil {
 		slog.Error("Failed to run migrations", "error", err)
 		os.Exit(1)
 	}
@@ -70,7 +70,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	cache := db.NewCache()
+	cache := infra.NewCache()
 	store := workflow.NewStore()
 	user := service.NewUser(database, cache)
 	account := service.NewAccount(cache)

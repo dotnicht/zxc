@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 	"zxc/api/target"
 	"zxc/internal/authz"
-	"zxc/internal/infra/db"
+	"zxc/internal/infra"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
@@ -19,11 +19,11 @@ import (
 type Target struct {
 	target.UnimplementedTargetServiceServer
 	db    *gorm.DB
-	cache *db.Cache
+	cache *infra.Cache
 	store *workflow.Store
 }
 
-func NewTarget(db *gorm.DB, cache *db.Cache, store *workflow.Store) *Target {
+func NewTarget(db *gorm.DB, cache *infra.Cache, store *workflow.Store) *Target {
 	return &Target{db: db, cache: cache, store: store}
 }
 

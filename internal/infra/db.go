@@ -1,8 +1,9 @@
-package db
+package infra
 
 import (
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -10,6 +11,26 @@ import (
 	"gorm.io/gorm/logger"
 	"zxc/internal/models"
 )
+
+type Cache struct {
+	conns sync.Map
+}
+
+func NewCache() *Cache {
+	return &Cache{}
+}
+
+func (c *Cache) Get(dsn string) (*gorm.DB, error) {
+	if conn, ok := c.conns.Load(dsn); ok {
+		return conn.(*gorm.DB), nil
+	}
+	conn, err := NewConnection(dsn)
+	if err != nil {
+		return nil, err
+	}
+	actual, _ := c.conns.LoadOrStore(dsn, conn)
+	return actual.(*gorm.DB), nil
+}
 
 func NewConnection(dsn string) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{

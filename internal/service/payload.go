@@ -17,18 +17,17 @@ import (
 	"zxc/api/payload"
 	"zxc/internal/authz"
 	"zxc/internal/consts"
-	"zxc/internal/infra/db"
-	"zxc/internal/models"
 	"zxc/internal/infra"
+	"zxc/internal/models"
 )
 
 type Payload struct {
 	payload.UnimplementedPayloadServiceServer
 	db    *gorm.DB
-	cache *db.Cache
+	cache *infra.Cache
 }
 
-func NewPayload(db *gorm.DB, cache *db.Cache) *Payload {
+func NewPayload(db *gorm.DB, cache *infra.Cache) *Payload {
 	return &Payload{db: db, cache: cache}
 }
 

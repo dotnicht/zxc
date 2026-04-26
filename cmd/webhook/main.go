@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"zxc/internal/config"
-	"zxc/internal/infra/db"
+	"zxc/internal/infra"
 	"zxc/internal/request"
 	"zxc/internal/workflow"
 )
@@ -32,13 +32,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	database, err := db.NewConnection(cfg.Database)
+	database, err := infra.NewConnection(cfg.Database)
 	if err != nil {
 		slog.Error("Failed to connect to database", "error", err)
 		os.Exit(1)
 	}
 
-	handler := request.NewHandler([]byte(cfg.Secret), database, db.NewCache(), workflow.NewStore())
+	handler := request.NewHandler([]byte(cfg.Secret), database, infra.NewCache(), workflow.NewStore())
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/webhooks", handler.Create)
