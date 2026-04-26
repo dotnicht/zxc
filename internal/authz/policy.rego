@@ -45,7 +45,6 @@ allow if {
 		"tenant.create",
 		"tenant.get",
 		"tenant.update",
-		"tenant.delete",
 		"tenant.list",
 		"tenant.search",
 	}

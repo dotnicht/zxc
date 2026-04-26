@@ -17,7 +17,6 @@ func tenantCmd() *cobra.Command {
 	cmd.AddCommand(tenantListCmd())
 	cmd.AddCommand(tenantSearchCmd())
 	cmd.AddCommand(tenantUpdateCmd())
-	cmd.AddCommand(tenantDeleteCmd())
 	return cmd
 }
 
@@ -188,27 +187,3 @@ func tenantUpdateCmd() *cobra.Command {
 	return cmd
 }
 
-func tenantDeleteCmd() *cobra.Command {
-	var id string
-	cmd := &cobra.Command{
-		Use:   "delete",
-		Short: "Delete a tenant",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := newCtx()
-			defer cancel()
-			authContext, err := rootAuthCtx(ctx)
-			if err != nil {
-				return err
-			}
-			_, err = st.tenant.Delete(authContext, &tenant.DeleteRequest{Id: id})
-			if err != nil {
-				return err
-			}
-			fmt.Println("deleted")
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&id, "id", "", "tenant ID")
-	_ = cmd.MarkFlagRequired("id")
-	return cmd
-}

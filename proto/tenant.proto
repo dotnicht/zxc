@@ -8,7 +8,6 @@ service TenantService {
   rpc Create(CreateRequest) returns (CreateResponse);
   rpc Get(GetRequest) returns (GetResponse);
   rpc Update(UpdateRequest) returns (UpdateResponse);
-  rpc Delete(DeleteRequest) returns (DeleteResponse);
   rpc List(ListRequest) returns (ListResponse);
   rpc Search(SearchRequest) returns (SearchResponse);
 }
@@ -51,14 +50,6 @@ message UpdateRequest {
 
 message UpdateResponse {
   Tenant tenant = 1;
-}
-
-message DeleteRequest {
-  string id = 1;
-}
-
-message DeleteResponse {
-  bool success = 1;
 }
 
 message ListRequest {

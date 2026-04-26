@@ -185,27 +185,6 @@ func (s *Tenant) Update(ctx context.Context, req *tenant.UpdateRequest) (*tenant
 	return &tenant.UpdateResponse{Tenant: s.modelToProto(&t)}, nil
 }
 
-func (s *Tenant) Delete(ctx context.Context, req *tenant.DeleteRequest) (*tenant.DeleteResponse, error) {
-	if _, err := authorize(ctx, "tenant.delete", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
-		return nil, err
-	}
-
-	id, err := parseID(req.Id, "id")
-	if err != nil {
-		return nil, err
-	}
-
-	result := s.db.WithContext(ctx).Delete(&models.Tenant{}, "id = ?", id)
-	if result.Error != nil {
-		return nil, status.Errorf(codes.Internal, "failed to delete tenant: %v", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return nil, status.Error(codes.NotFound, "tenant not found")
-	}
-
-	return &tenant.DeleteResponse{Success: true}, nil
-}
-
 func (s *Tenant) List(ctx context.Context, req *tenant.ListRequest) (*tenant.ListResponse, error) {
 	if _, err := authorize(ctx, "tenant.list", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
 		return nil, err
