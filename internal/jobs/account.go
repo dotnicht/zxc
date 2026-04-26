@@ -7,41 +7,47 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/cschleiden/go-workflows/workflow"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"zxc/internal/models"
-	"zxc/internal/workflow"
 )
 
-type AccountFromRequestArgs struct {
-	TenantID  uuid.UUID `json:"tenant_id"`
-	RequestID uuid.UUID `json:"request_id"`
-	ReleaseID uuid.UUID `json:"release_id"`
+type AccountArgs struct {
+	TenantID  uuid.UUID
+	RequestID uuid.UUID
+	ReleaseID uuid.UUID
 }
 
-type AccountFromRequestWorker struct {
-	store     *workflow.Store
+func Account(ctx workflow.Context, args AccountArgs) error {
+	_, err := workflow.ExecuteActivity[any](ctx, workflow.DefaultActivityOptions, AccountActivity, args).Get(ctx)
+	return err
+}
+
+type accountDeps struct {
 	rootDB    *gorm.DB
 	newTenant func(string) (*gorm.DB, error)
 }
 
-func NewAccountFromRequestWorker(store *workflow.Store, rootDB *gorm.DB, newTenant func(string) (*gorm.DB, error)) *AccountFromRequestWorker {
-	return &AccountFromRequestWorker{store: store, rootDB: rootDB, newTenant: newTenant}
+var accountDep *accountDeps
+
+func RegisterAccountDeps(rootDB *gorm.DB, newTenant func(string) (*gorm.DB, error)) {
+	accountDep = &accountDeps{rootDB: rootDB, newTenant: newTenant}
 }
 
-func (w *AccountFromRequestWorker) Work(ctx context.Context, job *workflow.Job[AccountFromRequestArgs]) error {
+func AccountActivity(ctx context.Context, args AccountArgs) error {
 	var tenant models.Tenant
-	if err := w.rootDB.WithContext(ctx).First(&tenant, "id = ?", job.Args.TenantID).Error; err != nil {
+	if err := accountDep.rootDB.WithContext(ctx).First(&tenant, "id = ?", args.TenantID).Error; err != nil {
 		return err
 	}
 
-	db, err := w.newTenant(tenant.Database)
+	db, err := accountDep.newTenant(tenant.Database)
 	if err != nil {
 		return err
 	}
 
 	var request models.Request
-	if err := db.WithContext(ctx).First(&request, "id = ?", job.Args.RequestID).Error; err != nil {
+	if err := db.WithContext(ctx).First(&request, "id = ?", args.RequestID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
 		}
@@ -56,10 +62,9 @@ func (w *AccountFromRequestWorker) Work(ctx context.Context, job *workflow.Job[A
 	account := models.Account{Name: nodeName, Status: models.AccountUnknown}
 	if err := db.WithContext(ctx).Create(&account).Error; err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
-			slog.Info("account already exists, skipping", "name", nodeName, "request_id", job.Args.RequestID)
+			slog.Info("account already exists, skipping", "name", nodeName, "request_id", args.RequestID)
 			return nil
 		}
-		slog.Error("failed to create account", "name", nodeName, "request_id", job.Args.RequestID, "error", err)
 		return err
 	}
 

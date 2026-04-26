@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/cschleiden/go-workflows/client"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -12,19 +13,17 @@ import (
 	"zxc/internal/infra"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
-	"zxc/internal/workflow"
 )
-
 
 type Release struct {
 	release.UnimplementedReleaseServiceServer
-	db    *gorm.DB
-	cache *infra.Cache
-	store *workflow.Store
+	db     *gorm.DB
+	cache  *infra.Cache
+	wfclient *client.Client
 }
 
-func NewRelease(db *gorm.DB, cache *infra.Cache, store *workflow.Store) *Release {
-	return &Release{db: db, cache: cache, store: store}
+func NewRelease(db *gorm.DB, cache *infra.Cache, wfclient *client.Client) *Release {
+	return &Release{db: db, cache: cache, wfclient: wfclient}
 }
 
 func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*release.CreateResponse, error) {
@@ -168,23 +167,17 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 	if result.RowsAffected == 0 {
 		return nil, status.Error(codes.NotFound, "release not found")
 	}
-	if err := tenantDB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return s.store.EnqueueCommand(ctx, tx, workflow.CommandInput{
-			Kind:          "deploy_release",
-			AggregateType: "release",
-			AggregateID:   releaseID,
-			Payload: jobs.DeployReleaseArgs{
-				TenantID:    tenant.ID,
-				ReleaseID:   releaseID,
-				ChangedByID: authUserID,
-			},
-			DedupeKey: "release-deploy:" + releaseID.String(),
-		})
+	if _, err := s.wfclient.CreateWorkflowInstance(ctx, client.WorkflowInstanceOptions{
+		InstanceID: "deploy:" + releaseID.String(),
+	}, jobs.Deploy, jobs.DeployArgs{
+		TenantID:    tenant.ID,
+		ReleaseID:   releaseID,
+		ChangedByID: authUserID,
 	}); err != nil {
 		revertErr := tenantDB.Model(&models.Release{}).
 			Where("id = ? AND status = ?", releaseID, models.ReleaseWait).
 			Updates(map[string]any{"status": models.ReleaseUnknown, "changed_by_id": authUserID}).Error
-		return nil, status.Errorf(codes.Internal, "failed to persist deploy request: %v", errors.Join(err, revertErr))
+		return nil, status.Errorf(codes.Internal, "failed to start deploy workflow: %v", errors.Join(err, revertErr))
 	}
 
 	var rel models.Release

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/cschleiden/go-workflows/client"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -13,18 +14,17 @@ import (
 	"zxc/internal/infra"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
-	"zxc/internal/workflow"
 )
 
 type Target struct {
 	target.UnimplementedTargetServiceServer
-	db    *gorm.DB
-	cache *infra.Cache
-	store *workflow.Store
+	db       *gorm.DB
+	cache    *infra.Cache
+	wfclient *client.Client
 }
 
-func NewTarget(db *gorm.DB, cache *infra.Cache, store *workflow.Store) *Target {
-	return &Target{db: db, cache: cache, store: store}
+func NewTarget(db *gorm.DB, cache *infra.Cache, wfclient *client.Client) *Target {
+	return &Target{db: db, cache: cache, wfclient: wfclient}
 }
 
 func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target.CreateResponse, error) {
@@ -57,9 +57,7 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 	if err := tenantDB.Create(t).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create target: %v", err)
 	}
-	if err := tenantDB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return s.enqueueProbe(ctx, tx, tenantID, t.ID)
-	}); err != nil {
+	if err := s.enqueueProbe(ctx, tenantID, t.ID); err != nil {
 		cleanupErr := tenantDB.Unscoped().Delete(&models.Target{}, "id = ?", t.ID).Error
 		return nil, status.Errorf(codes.Internal, "failed to persist target creation: %v", errors.Join(err, cleanupErr))
 	}
@@ -153,9 +151,7 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 	if err := tenantDB.First(&updated, "id = ?", id).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated target: %v", err)
 	}
-	if err := tenantDB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return s.enqueueProbe(ctx, tx, tenantID, updated.ID)
-	}); err != nil {
+	if err := s.enqueueProbe(ctx, tenantID, updated.ID); err != nil {
 		revertErr := tenantDB.Model(&models.Target{}).Where("id = ?", id).Updates(map[string]any{
 			"address":      previous.Address,
 			"user":         previous.User,
@@ -288,15 +284,9 @@ func (s *Target) targetToProto(t *models.Target, reveal bool) *target.Target {
 	return p
 }
 
-func (s *Target) enqueueProbe(ctx context.Context, tx *gorm.DB, tenantID uuid.UUID, targetID uuid.UUID) error {
-	return s.store.EnqueueCommand(ctx, tx, workflow.CommandInput{
-		Kind:          "probe_target",
-		AggregateType: "target",
-		AggregateID:   targetID,
-		Payload: jobs.TargetProbeArgs{
-			TenantID: tenantID,
-			TargetID: targetID,
-		},
-		DedupeKey: "target-probe:" + targetID.String(),
-	})
+func (s *Target) enqueueProbe(ctx context.Context, tenantID uuid.UUID, targetID uuid.UUID) error {
+	_, err := s.wfclient.CreateWorkflowInstance(ctx, client.WorkflowInstanceOptions{
+		InstanceID: "probe:" + targetID.String(),
+	}, jobs.Probe, jobs.ProbeArgs{TenantID: tenantID, TargetID: targetID})
+	return err
 }

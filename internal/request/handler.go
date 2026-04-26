@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/cschleiden/go-workflows/client"
 	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/lestrrat-go/jwx/v3/jwt"
@@ -14,18 +15,17 @@ import (
 	"zxc/internal/infra"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
-	"zxc/internal/workflow"
 )
 
 type Handler struct {
-	secret []byte
-	rootDB *gorm.DB
-	cache  *infra.Cache
-	store  *workflow.Store
+	secret   []byte
+	rootDB   *gorm.DB
+	cache    *infra.Cache
+	wfclient *client.Client
 }
 
-func NewHandler(secret []byte, rootDB *gorm.DB, cache *infra.Cache, store *workflow.Store) *Handler {
-	return &Handler{secret: secret, rootDB: rootDB, cache: cache, store: store}
+func NewHandler(secret []byte, rootDB *gorm.DB, cache *infra.Cache, wfclient *client.Client) *Handler {
+	return &Handler{secret: secret, rootDB: rootDB, cache: cache, wfclient: wfclient}
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -100,19 +100,13 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to save request", http.StatusInternalServerError)
 		return
 	}
-	requestKey := record.ID.String()
-	if err := tenantDB.WithContext(r.Context()).Transaction(func(tx *gorm.DB) error {
-		return h.store.EnqueueCommand(r.Context(), tx, workflow.CommandInput{
-			Kind:          "account_from_request",
-			AggregateType: "request",
-			AggregateID:   record.ID,
-			Payload: jobs.AccountFromRequestArgs{
-				TenantID:  tenantID,
-				RequestID: record.ID,
-				ReleaseID: releaseID,
-			},
-			DedupeKey: "request-account:" + requestKey,
-		})
+
+	if _, err := h.wfclient.CreateWorkflowInstance(r.Context(), client.WorkflowInstanceOptions{
+		InstanceID: "account:" + record.ID.String(),
+	}, jobs.Account, jobs.AccountArgs{
+		TenantID:  tenantID,
+		RequestID: record.ID,
+		ReleaseID: releaseID,
 	}); err != nil {
 		cleanupErr := tenantDB.Unscoped().Delete(&models.Request{}, "id = ?", record.ID).Error
 		http.Error(w, errors.Join(err, cleanupErr).Error(), http.StatusInternalServerError)

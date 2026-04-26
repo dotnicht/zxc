@@ -367,13 +367,17 @@ func TestE2E(t *testing.T) {
 		t.Fatalf("release did not reach 'deployed' within 90s, last status: %q", s)
 	}
 
+	t.Logf("waiting for webhook requests and accounts to appear in tenant DB")
 	requests, accounts := waitForWebhookAccounts(t, tenantName, releaseID, 60*time.Second)
+	t.Logf("webhook result: requests=%d accounts=%d", requests, accounts)
 	if requests < 2 {
 		t.Fatalf("expected repeated webhook requests for release %s, got %d", releaseID, requests)
 	}
 	if accounts < 1 {
 		t.Fatalf("expected at least one account for release %s, got %d", releaseID, accounts)
 	}
+	t.Logf("webhook pipeline verified: %d requests received, %d accounts created", requests, accounts)
+	verifyAccountFromRequest(t, tenantName, releaseID)
 
 	t.Logf("end-to-end deploy completed successfully in %s", time.Since(started).Round(time.Millisecond))
 }
@@ -387,6 +391,7 @@ func waitForWebhookAccounts(t *testing.T, tenantName, releaseID string, timeout 
 	}
 	defer db.Close()
 
+	var prev string
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
 		if err := db.QueryRow(`
@@ -398,6 +403,11 @@ func waitForWebhookAccounts(t *testing.T, tenantName, releaseID string, timeout 
 		if err := db.QueryRow(`SELECT COUNT(*)::int FROM accounts`).Scan(&accounts); err != nil {
 			t.Fatalf("count accounts: %v", err)
 		}
+		cur := fmt.Sprintf("requests=%d accounts=%d", requests, accounts)
+		if cur != prev {
+			t.Logf("webhook poll: %s", cur)
+			prev = cur
+		}
 		if requests >= 2 && accounts >= 1 {
 			return requests, accounts
 		}
@@ -405,6 +415,38 @@ func waitForWebhookAccounts(t *testing.T, tenantName, releaseID string, timeout 
 	}
 
 	return requests, accounts
+}
+
+func verifyAccountFromRequest(t *testing.T, tenantName, releaseID string) {
+	t.Helper()
+
+	db, err := sql.Open("postgres", tenantDSN(tenantName))
+	if err != nil {
+		t.Fatalf("open tenant database: %v", err)
+	}
+	defer db.Close()
+
+	var nodeName string
+	if err := db.QueryRow(`
+		SELECT data->>'node_name'
+		FROM requests
+		WHERE release_id = $1 AND deleted_at IS NULL AND data->>'node_name' IS NOT NULL
+		LIMIT 1
+	`, releaseID).Scan(&nodeName); err != nil {
+		t.Fatalf("read node_name from request: %v", err)
+	}
+	if nodeName == "" {
+		t.Fatal("node_name in request data is empty")
+	}
+
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*)::int FROM accounts WHERE name = $1`, nodeName).Scan(&count); err != nil {
+		t.Fatalf("check account by name: %v", err)
+	}
+	if count == 0 {
+		t.Fatalf("no account found with name %q derived from webhook request", nodeName)
+	}
+	t.Logf("account name %q matches node_name from webhook request data", nodeName)
 }
 
 func tenantDSN(tenantName string) string {

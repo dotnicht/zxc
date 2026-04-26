@@ -7,12 +7,11 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
+	"github.com/cschleiden/go-workflows/worker"
 	"zxc/internal/config"
 	"zxc/internal/infra"
 	"zxc/internal/jobs"
-	"zxc/internal/workflow"
 )
 
 func main() {
@@ -36,11 +35,37 @@ func main() {
 	}
 
 	cache := infra.NewCache()
-	store := workflow.NewStore()
+	backend := infra.NewWorkflowBackend(cfg.Database, true)
 
-	deploy := jobs.NewDeployWorker(store, cache.Get, root, cfg)
-	account := jobs.NewAccountFromRequestWorker(store, root, cache.Get)
-	probe := jobs.NewTargetProbeWorker(store, root, cache.Get)
+	jobs.RegisterDeployDeps(root, cache.Get, cfg)
+	jobs.RegisterAccountDeps(root, cache.Get)
+	jobs.RegisterProbeDeps(root, cache.Get)
+
+	w := worker.New(backend, nil)
+	if err := w.RegisterWorkflow(jobs.Deploy); err != nil {
+		slog.Error("failed to register deploy workflow", "error", err)
+		os.Exit(1)
+	}
+	if err := w.RegisterWorkflow(jobs.Account); err != nil {
+		slog.Error("failed to register account workflow", "error", err)
+		os.Exit(1)
+	}
+	if err := w.RegisterWorkflow(jobs.Probe); err != nil {
+		slog.Error("failed to register probe workflow", "error", err)
+		os.Exit(1)
+	}
+	if err := w.RegisterActivity(jobs.DeployActivity); err != nil {
+		slog.Error("failed to register deploy activity", "error", err)
+		os.Exit(1)
+	}
+	if err := w.RegisterActivity(jobs.AccountActivity); err != nil {
+		slog.Error("failed to register account activity", "error", err)
+		os.Exit(1)
+	}
+	if err := w.RegisterActivity(jobs.ProbeActivity); err != nil {
+		slog.Error("failed to register probe activity", "error", err)
+		os.Exit(1)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -52,14 +77,10 @@ func main() {
 		cancel()
 	}()
 
-	multiRunner := workflow.NewMultiRunner(root, cache.Get, workflow.MultiRunnerOptions{
-		Lease:         10 * time.Minute,
-		MaxConcurrent: 8,
-		SyncInterval:  5 * time.Second,
-	}, func(runner *workflow.Runner) {
-		workflow.Register(runner, "deploy_release", deploy.Work)
-		workflow.Register(runner, "account_from_request", account.Work)
-		workflow.Register(runner, "probe_target", probe.Work)
-	})
-	multiRunner.Run(ctx)
+	if err := w.Start(ctx); err != nil {
+		slog.Error("failed to start worker", "error", err)
+		os.Exit(1)
+	}
+
+	w.WaitForCompletion()
 }

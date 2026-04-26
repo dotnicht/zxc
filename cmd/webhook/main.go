@@ -11,10 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cschleiden/go-workflows/client"
 	"zxc/internal/config"
 	"zxc/internal/infra"
 	"zxc/internal/request"
-	"zxc/internal/workflow"
 )
 
 func main() {
@@ -38,7 +38,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	handler := request.NewHandler([]byte(cfg.Secret), database, infra.NewCache(), workflow.NewStore())
+	wfbackend := infra.NewWorkflowBackend(cfg.Database, false)
+	wfclient := client.New(wfbackend)
+	handler := request.NewHandler([]byte(cfg.Secret), database, infra.NewCache(), wfclient)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/webhooks", handler.Create)

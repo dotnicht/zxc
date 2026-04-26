@@ -20,11 +20,11 @@ import (
 	targetapi "zxc/api/target"
 	tenantapi "zxc/api/tenant"
 	userapi "zxc/api/user"
+	"github.com/cschleiden/go-workflows/client"
 	"zxc/internal/config"
 	"zxc/internal/infra"
 	"zxc/internal/models"
 	"zxc/internal/service"
-	"zxc/internal/workflow"
 )
 
 func main() {
@@ -71,13 +71,14 @@ func main() {
 	}
 
 	cache := infra.NewCache()
-	store := workflow.NewStore()
+	wfbackend := infra.NewWorkflowBackend(cfg.Database, false)
+	wfclient := client.New(wfbackend)
 	user := service.NewUser(database, cache)
 	account := service.NewAccount(cache)
 	session := service.NewSession(cache)
 	tenant := service.NewTenant(database, cfg, &root)
-	release := service.NewRelease(database, cache, store)
-	target := service.NewTarget(database, cache, store)
+	release := service.NewRelease(database, cache, wfclient)
+	target := service.NewTarget(database, cache, wfclient)
 	payload := service.NewPayload(database, cache)
 
 	grpcServer := grpc.NewServer(
