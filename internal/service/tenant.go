@@ -104,12 +104,12 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 	}
 
 	if err := s.runTenantMigrations(connStr); err != nil {
-		cleanupErr := errors.Join(s.dropTenantDatabase(req.Name), s.db.WithContext(ctx).Delete(&models.Tenant{}, "id = ?", t.ID).Error)
+		cleanupErr := s.db.WithContext(ctx).Delete(&models.Tenant{}, "id = ?", t.ID).Error
 		return nil, status.Errorf(codes.Internal, "failed to run tenant migrations: %v", errors.Join(err, cleanupErr))
 	}
 
 	if err := s.seedTenantOwner(connStr, s.root); err != nil {
-		cleanupErr := errors.Join(s.dropTenantDatabase(req.Name), s.db.WithContext(ctx).Delete(&models.Tenant{}, "id = ?", t.ID).Error)
+		cleanupErr := s.db.WithContext(ctx).Delete(&models.Tenant{}, "id = ?", t.ID).Error
 		return nil, status.Errorf(codes.Internal, "failed to seed tenant owner: %v", errors.Join(err, cleanupErr))
 	}
 
@@ -254,20 +254,6 @@ func (s *Tenant) createTenantDatabase(dbName string) error {
 	return nil
 }
 
-func (s *Tenant) dropTenantDatabase(dbName string) error {
-	sqlDB, err := sql.Open("postgres", s.adminDSN())
-	if err != nil {
-		return fmt.Errorf("failed to connect to postgres: %w", err)
-	}
-	defer sqlDB.Close()
-
-	safeName := sanitizeDatabaseName(dbName)
-	_, err = sqlDB.Exec(fmt.Sprintf(`DROP DATABASE IF EXISTS "%s"`, safeName))
-	if err != nil {
-		return fmt.Errorf("failed to drop database: %w", err)
-	}
-	return nil
-}
 
 func (s *Tenant) seedTenantOwner(connStr string, owner *models.User) error {
 	tenantDB, err := gorm.Open(postgres.Open(connStr), &gorm.Config{})
