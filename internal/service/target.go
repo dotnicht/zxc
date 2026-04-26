@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 	"zxc/api/target"
 	"zxc/internal/authz"
-	"zxc/internal/db"
+	"zxc/internal/infra/db"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
 	"zxc/internal/workflow"

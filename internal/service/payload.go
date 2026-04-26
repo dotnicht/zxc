@@ -17,9 +17,9 @@ import (
 	"zxc/api/payload"
 	"zxc/internal/authz"
 	"zxc/internal/consts"
-	"zxc/internal/db"
+	"zxc/internal/infra/db"
 	"zxc/internal/models"
-	"zxc/internal/storage"
+	"zxc/internal/infra/storage"
 )
 
 type Payload struct {

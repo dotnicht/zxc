@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"zxc/internal/config"
-	"zxc/internal/db"
+	"zxc/internal/infra/db"
 	"zxc/internal/jobs"
 	"zxc/internal/workflow"
 )

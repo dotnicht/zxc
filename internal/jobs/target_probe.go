@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"zxc/internal/deployer"
+	"zxc/internal/infra/deployer"
 	"zxc/internal/models"
 	"zxc/internal/workflow"
 )

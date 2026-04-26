@@ -16,7 +16,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"zxc/internal/config"
-	"zxc/internal/db"
+	"zxc/internal/infra/db"
 	"zxc/internal/models"
 )
 

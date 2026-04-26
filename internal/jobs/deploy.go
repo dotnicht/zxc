@@ -16,9 +16,9 @@ import (
 	"gorm.io/gorm"
 	"zxc/internal/config"
 	"zxc/internal/consts"
-	"zxc/internal/deployer"
+	"zxc/internal/infra/deployer"
 	"zxc/internal/models"
-	"zxc/internal/storage"
+	"zxc/internal/infra/storage"
 	"zxc/internal/workflow"
 )
 

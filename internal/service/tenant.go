@@ -16,9 +16,9 @@ import (
 	"zxc/api/tenant"
 	"zxc/internal/authz"
 	"zxc/internal/config"
-	"zxc/internal/db"
+	"zxc/internal/infra/db"
 	"zxc/internal/models"
-	"zxc/internal/storage"
+	"zxc/internal/infra/storage"
 )
 
 type Tenant struct {

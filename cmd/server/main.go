@@ -21,7 +21,7 @@ import (
 	tenantapi "zxc/api/tenant"
 	userapi "zxc/api/user"
 	"zxc/internal/config"
-	"zxc/internal/db"
+	"zxc/internal/infra/db"
 	"zxc/internal/models"
 	"zxc/internal/service"
 	"zxc/internal/workflow"

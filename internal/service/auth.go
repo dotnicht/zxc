@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"zxc/internal/authz"
-	"zxc/internal/db"
+	"zxc/internal/infra/db"
 	"zxc/internal/models"
 )
 
