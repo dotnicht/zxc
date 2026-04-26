@@ -12,7 +12,6 @@ const (
 	ReleaseWait     = "wait"
 	ReleaseDeployed = "deployed"
 	ReleaseDead     = "dead"
-	ReleaseAlive    = "alive"
 )
 
 type Release struct {

@@ -331,8 +331,6 @@ func TestE2E(t *testing.T) {
 			return 1
 		case "deployed":
 			return 2
-		case "alive":
-			return 3
 		case "dead":
 			return -1
 		default:
@@ -368,11 +366,8 @@ func TestE2E(t *testing.T) {
 	if s := pollForAtLeast(releaseID, "deployed", 90*time.Second); statusRank(s) < statusRank("deployed") {
 		t.Fatalf("release did not reach 'deployed' within 90s, last status: %q", s)
 	}
-	if s := pollForAtLeast(releaseID, "alive", 60*time.Second); s != "alive" {
-		t.Fatalf("release did not reach 'alive' within 60s, last status: %q", s)
-	}
 
-	requests, accounts := waitForWebhookAccounts(t, tenantName, releaseID, 35*time.Second)
+	requests, accounts := waitForWebhookAccounts(t, tenantName, releaseID, 60*time.Second)
 	if requests < 2 {
 		t.Fatalf("expected repeated webhook requests for release %s, got %d", releaseID, requests)
 	}

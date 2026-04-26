@@ -39,7 +39,6 @@ func main() {
 	store := workflow.NewStore()
 
 	deploy := jobs.NewDeployWorker(store, cache.Get, root, cfg)
-	alive := jobs.NewReleaseMarkAliveWorker(store, root, cache.Get)
 	account := jobs.NewAccountFromRequestWorker(store, root, cache.Get)
 	probe := jobs.NewTargetProbeWorker(store, root, cache.Get)
 
@@ -59,7 +58,6 @@ func main() {
 		SyncInterval:  5 * time.Second,
 	}, func(runner *workflow.Runner) {
 		workflow.Register(runner, "deploy_release", deploy.Work)
-workflow.Register(runner, "release_mark_alive", alive.Work)
 		workflow.Register(runner, "account_from_request", account.Work)
 		workflow.Register(runner, "probe_target", probe.Work)
 	})

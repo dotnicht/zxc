@@ -100,22 +100,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to save request", http.StatusInternalServerError)
 		return
 	}
-	releaseKey := releaseID.String()
 	requestKey := record.ID.String()
 	if err := tenantDB.WithContext(r.Context()).Transaction(func(tx *gorm.DB) error {
-		if err := h.store.EnqueueCommand(r.Context(), tx, workflow.CommandInput{
-			Kind:          "release_mark_alive",
-			AggregateType: "release",
-			AggregateID:   releaseID,
-			Payload: jobs.ReleaseMarkAliveArgs{
-				TenantID:  tenantID,
-				ReleaseID: releaseID,
-				Body:      json.RawMessage(body),
-			},
-			DedupeKey: "release-mark-alive:" + releaseKey,
-		}); err != nil {
-			return err
-		}
 		return h.store.EnqueueCommand(r.Context(), tx, workflow.CommandInput{
 			Kind:          "account_from_request",
 			AggregateType: "request",

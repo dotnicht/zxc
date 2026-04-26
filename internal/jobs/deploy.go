@@ -60,7 +60,7 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 		return fmt.Errorf("load release %s: %w", job.Args.ReleaseID, err)
 	}
 
-	if release.Status != models.ReleaseWait && release.Status != models.ReleaseAlive {
+	if release.Status != models.ReleaseWait {
 		return nil
 	}
 	if release.Target == nil {
