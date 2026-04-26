@@ -36,7 +36,7 @@ var (
 )
 
 func logStep(format string, args ...any) {
-	fmt.Printf("[%s] %s\n", time.Now().Format(time.RFC3339), fmt.Sprintf(format, args...))
+	fmt.Fprintf(os.Stderr, "[%s] %s\n", time.Now().Format(time.RFC3339), fmt.Sprintf(format, args...))
 }
 
 func TestMain(m *testing.M) {
@@ -157,7 +157,7 @@ func printComposeDiagnostics() {
 
 func buildFixtureZip(t *testing.T) []byte {
 	t.Helper()
-	t.Log("building payload fixture zip")
+	logStep("building payload fixture zip")
 	scriptContent, _ := os.ReadFile(projectRoot + "/test/fixtures/script.sh")
 	var buf bytes.Buffer
 	w := zip.NewWriter(&buf)
@@ -257,17 +257,17 @@ func firstDataID(t *testing.T, out string) string {
 func setupTenantWithDeps(t *testing.T, ts int64, idx int) (tenantID, ownerID, targetID, payloadID, tenantName string) {
 	t.Helper()
 	tenantName = fmt.Sprintf("inttenant%d_%d", ts, idx)
-	t.Logf("creating tenant %q", tenantName)
+	logStep("creating tenant %q", tenantName)
 	tenantAdd := parseKVOutput(t, runClient(t, "tenant", "add", "--name", tenantName))
 	tenantID = tenantAdd["id"]
-	t.Logf("tenant created: id=%s", tenantID)
+	logStep("tenant created: id=%s", tenantID)
 
-	t.Logf("listing users for tenant %s", tenantID)
+	logStep("listing users for tenant %s", tenantID)
 	ownerID = firstDataID(t, runTenantClient(t, tenantName, "user", "list", "--size", "10"))
-	t.Logf("tenant owner resolved: userid=%s", ownerID)
+	logStep("tenant owner resolved: userid=%s", ownerID)
 
-	t.Log("loading SSH key fixture")
-	t.Log("creating deploy target")
+	logStep("loading SSH key fixture")
+	logStep("creating deploy target")
 	targetAdd := parseKVOutput(t, runClient(t,
 		"--tenant", tenantName,
 		"target", "add",
@@ -276,14 +276,14 @@ func setupTenantWithDeps(t *testing.T, ts int64, idx int) (tenantID, ownerID, ta
 		"--key", filepath.Join(absProjectRoot, "test/fixtures/id_ed25519"),
 	))
 	targetID = targetAdd["id"]
-	t.Logf("target created: id=%s address=%s", targetID, targetAdd["address"])
+	logStep("target created: id=%s address=%s", targetID, targetAdd["address"])
 
 	zipContent := buildFixtureZip(t)
 	tmpZip := filepath.Join(t.TempDir(), "payload.zip")
 	if err := os.WriteFile(tmpZip, zipContent, 0o644); err != nil {
 		t.Fatalf("write payload fixture zip: %v", err)
 	}
-	t.Logf("creating payload (%d bytes)", len(zipContent))
+	logStep("creating payload (%d bytes)", len(zipContent))
 	payloadAdd := parseKVOutput(t, runClient(t,
 		"--tenant", tenantName,
 		"payload", "add",
@@ -293,7 +293,7 @@ func setupTenantWithDeps(t *testing.T, ts int64, idx int) (tenantID, ownerID, ta
 		"--stop", "true",
 	))
 	payloadID = payloadAdd["id"]
-	t.Logf("payload created: id=%s", payloadID)
+	logStep("payload created: id=%s", payloadID)
 
 	return
 }
@@ -303,18 +303,18 @@ func TestE2E(t *testing.T) {
 	ts := time.Now().UnixNano()
 
 	tenantID, ownerID, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 0)
-	t.Logf("fixture setup complete: tenant=%s owner=%s target=%s payload=%s", tenantID, ownerID, targetID, payloadID)
+	logStep("fixture setup complete: tenant=%s owner=%s target=%s payload=%s", tenantID, ownerID, targetID, payloadID)
 
-	t.Logf("creating release for tenant %s", tenantName)
+	logStep("creating release for tenant %s", tenantName)
 	releaseAdd := parseKVOutput(t, runTenantClient(t, tenantName,
 		"release", "add",
 		"--target", targetID,
 		"--payload", payloadID,
 	))
 	releaseID := releaseAdd["id"]
-	t.Logf("release created: id=%s status=%s", releaseID, releaseAdd["status"])
+	logStep("release created: id=%s status=%s", releaseID, releaseAdd["status"])
 
-	t.Logf("triggering deploy for release %s", releaseID)
+	logStep("triggering deploy for release %s", releaseID)
 	deployResp := parseKVOutput(t, runTenantClient(t, tenantName,
 		"release", "deploy",
 		"--id", releaseID,
@@ -340,7 +340,7 @@ func TestE2E(t *testing.T) {
 
 	pollForAtLeast := func(releaseID, target string, timeout time.Duration) string {
 		t.Helper()
-		t.Logf("polling release %s for status at least %q with timeout %s", releaseID, target, timeout)
+		logStep("polling release %s for status at least %q with timeout %s", releaseID, target, timeout)
 		deadline := time.Now().Add(timeout)
 		var last, prev string
 		for time.Now().Before(deadline) {
@@ -350,16 +350,16 @@ func TestE2E(t *testing.T) {
 			))
 			last = getResp["status"]
 			if last != prev {
-				t.Logf("release %s status changed: %q", releaseID, last)
+				logStep("release %s status changed: %q", releaseID, last)
 				prev = last
 			}
 			if statusRank(last) >= statusRank(target) {
-				t.Logf("release %s reached %q or later state %q", releaseID, target, last)
+				logStep("release %s reached %q or later state %q", releaseID, target, last)
 				return last
 			}
 			time.Sleep(2 * time.Second)
 		}
-		t.Logf("timeout waiting for %q, last status=%q", target, last)
+		logStep("timeout waiting for %q, last status=%q", target, last)
 		return last
 	}
 
@@ -367,19 +367,19 @@ func TestE2E(t *testing.T) {
 		t.Fatalf("release did not reach 'deployed' within 90s, last status: %q", s)
 	}
 
-	t.Logf("waiting for webhook requests and accounts to appear in tenant DB")
+	logStep("waiting for webhook requests and accounts to appear in tenant DB")
 	requests, accounts := waitForWebhookAccounts(t, tenantName, releaseID, 60*time.Second)
-	t.Logf("webhook result: requests=%d accounts=%d", requests, accounts)
+	logStep("webhook result: requests=%d accounts=%d", requests, accounts)
 	if requests < 2 {
 		t.Fatalf("expected repeated webhook requests for release %s, got %d", releaseID, requests)
 	}
 	if accounts < 1 {
 		t.Fatalf("expected at least one account for release %s, got %d", releaseID, accounts)
 	}
-	t.Logf("webhook pipeline verified: %d requests received, %d accounts created", requests, accounts)
+	logStep("webhook pipeline verified: %d requests received, %d accounts created", requests, accounts)
 	verifyAccountFromRequest(t, tenantName, releaseID)
 
-	t.Logf("end-to-end deploy completed successfully in %s", time.Since(started).Round(time.Millisecond))
+	logStep("end-to-end deploy completed successfully in %s", time.Since(started).Round(time.Millisecond))
 }
 
 func waitForWebhookAccounts(t *testing.T, tenantName, releaseID string, timeout time.Duration) (requests, accounts int) {
@@ -405,7 +405,7 @@ func waitForWebhookAccounts(t *testing.T, tenantName, releaseID string, timeout 
 		}
 		cur := fmt.Sprintf("requests=%d accounts=%d", requests, accounts)
 		if cur != prev {
-			t.Logf("webhook poll: %s", cur)
+			logStep("webhook poll: %s", cur)
 			prev = cur
 		}
 		if requests >= 2 && accounts >= 1 {
@@ -446,7 +446,7 @@ func verifyAccountFromRequest(t *testing.T, tenantName, releaseID string) {
 	if count == 0 {
 		t.Fatalf("no account found with name %q derived from webhook request", nodeName)
 	}
-	t.Logf("account name %q matches node_name from webhook request data", nodeName)
+	logStep("account name %q matches node_name from webhook request data", nodeName)
 }
 
 func tenantDSN(tenantName string) string {
