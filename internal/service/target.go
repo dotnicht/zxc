@@ -263,8 +263,8 @@ func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.Lis
 	return &target.ListResponse{Targets: out, Total: int32(total)}, nil
 }
 
-func targetToProto(t *models.Target) *target.Target {
-	return &target.Target{
+func (s *Target) targetToProto(t *models.Target, reveal bool) *target.Target {
+	p := &target.Target{
 		Id:        t.ID.String(),
 		Address:   t.Address,
 		User:      t.User,
@@ -274,10 +274,6 @@ func targetToProto(t *models.Target) *target.Target {
 		CreatedAt: t.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: t.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
-}
-
-func (s *Target) targetToProto(t *models.Target, reveal bool) *target.Target {
-	p := targetToProto(t)
 	if !reveal {
 		p.Key = ""
 	}
