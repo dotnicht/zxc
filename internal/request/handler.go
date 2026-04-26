@@ -20,12 +20,11 @@ import (
 type Handler struct {
 	secret   []byte
 	rootDB   *gorm.DB
-	cache    *infra.Cache
 	wfclient *client.Client
 }
 
-func NewHandler(secret []byte, rootDB *gorm.DB, cache *infra.Cache, wfclient *client.Client) *Handler {
-	return &Handler{secret: secret, rootDB: rootDB, cache: cache, wfclient: wfclient}
+func NewHandler(secret []byte, rootDB *gorm.DB, wfclient *client.Client) *Handler {
+	return &Handler{secret: secret, rootDB: rootDB, wfclient: wfclient}
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +73,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tenantDB, err := h.cache.Get(tenant.Database)
+	tenantDB, err := infra.NewConnection(tenant.Database)
 	if err != nil {
 		http.Error(w, "failed to connect to tenant database", http.StatusInternalServerError)
 		return

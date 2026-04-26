@@ -34,12 +34,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	cache := infra.NewCache()
 	backend := infra.NewWorkflowBackend(cfg.Database, true)
 
-	jobs.RegisterDeployDeps(root, cache.Get, cfg)
-	jobs.RegisterAccountDeps(root, cache.Get)
-	jobs.RegisterProbeDeps(root, cache.Get)
+	jobs.RegisterDeployDeps(root, infra.NewConnection, cfg)
+	jobs.RegisterAccountDeps(root, infra.NewConnection)
+	jobs.RegisterProbeDeps(root, infra.NewConnection)
 
 	w := worker.New(backend, nil)
 	if err := w.RegisterWorkflow(jobs.Deploy); err != nil {

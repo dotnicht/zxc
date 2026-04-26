@@ -40,7 +40,7 @@ func main() {
 
 	wfbackend := infra.NewWorkflowBackend(cfg.Database, false)
 	wfclient := client.New(wfbackend)
-	handler := request.NewHandler([]byte(cfg.Secret), database, infra.NewCache(), wfclient)
+	handler := request.NewHandler([]byte(cfg.Secret), database, wfclient)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/webhooks", handler.Create)

@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/url"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/cschleiden/go-workflows/backend"
@@ -15,26 +14,6 @@ import (
 	"gorm.io/gorm/logger"
 	"zxc/internal/models"
 )
-
-type Cache struct {
-	conns sync.Map
-}
-
-func NewCache() *Cache {
-	return &Cache{}
-}
-
-func (c *Cache) Get(dsn string) (*gorm.DB, error) {
-	if conn, ok := c.conns.Load(dsn); ok {
-		return conn.(*gorm.DB), nil
-	}
-	conn, err := NewConnection(dsn)
-	if err != nil {
-		return nil, err
-	}
-	actual, _ := c.conns.LoadOrStore(dsn, conn)
-	return actual.(*gorm.DB), nil
-}
 
 func NewWorkflowBackend(dsn string, migrate bool) backend.Backend {
 	u, err := url.Parse(dsn)

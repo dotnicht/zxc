@@ -70,22 +70,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	cache := infra.NewCache()
 	wfbackend := infra.NewWorkflowBackend(cfg.Database, false)
 	wfclient := client.New(wfbackend)
-	user := service.NewUser(database, cache)
-	account := service.NewAccount(cache)
-	session := service.NewSession(cache)
+	user := service.NewUser()
+	account := service.NewAccount()
+	session := service.NewSession()
 	tenant := service.NewTenant(database, cfg, &root)
-	release := service.NewRelease(database, cache, wfclient)
-	target := service.NewTarget(database, cache, wfclient)
-	payload := service.NewPayload(database, cache)
+	release := service.NewRelease(wfclient)
+	target := service.NewTarget(wfclient)
+	payload := service.NewPayload()
 
 	grpcServer := grpc.NewServer(
 		grpc.Creds(creds),
 		grpc.ChainUnaryInterceptor(
 			service.ValidateInterceptor(),
-			service.UserInterceptor(cache, database, root.ID),
+			service.UserInterceptor(database, root.ID),
+			service.OwnerInterceptor(),
 		),
 	)
 	userapi.RegisterUserServiceServer(grpcServer, user)
