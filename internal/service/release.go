@@ -28,7 +28,7 @@ func NewRelease(db *gorm.DB, cache *db.Cache, store *workflow.Store) *Release {
 }
 
 func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*release.CreateResponse, error) {
-	authUserID, err := userID(ctx)
+	authUserID, err := ctxUserID(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 		return nil, err
 	}
 
-	authUserID, err := userID(ctx)
+	authUserID, err := ctxUserID(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -22,7 +22,6 @@ import (
 	userapi "zxc/api/user"
 	"zxc/internal/config"
 	"zxc/internal/db"
-	"zxc/internal/middleware"
 	"zxc/internal/models"
 	"zxc/internal/service"
 	"zxc/internal/workflow"
@@ -84,7 +83,7 @@ func main() {
 	grpcServer := grpc.NewServer(
 		grpc.Creds(creds),
 		grpc.ChainUnaryInterceptor(
-			middleware.User(cache, database, root.ID),
+			service.UserInterceptor(cache, database, root.ID),
 		),
 	)
 	userapi.RegisterUserServiceServer(grpcServer, user)

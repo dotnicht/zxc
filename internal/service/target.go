@@ -32,7 +32,7 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 		return nil, status.Error(codes.InvalidArgument, "address is required")
 	}
 
-	authUserID, err := userID(ctx)
+	authUserID, err := ctxUserID(ctx)
 	if err != nil {
 		return nil, err
 	}

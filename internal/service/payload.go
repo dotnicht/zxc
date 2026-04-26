@@ -78,7 +78,7 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 		return nil, status.Errorf(codes.InvalidArgument, "invalid payload zip: %v", err)
 	}
 
-	authUserID, err := userID(ctx)
+	authUserID, err := ctxUserID(ctx)
 	if err != nil {
 		return nil, err
 	}
