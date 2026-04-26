@@ -244,7 +244,7 @@ func (s *Tenant) createTenantDatabase(dbName string) error {
 	defer sqlDB.Close()
 
 	safeName := sanitizeDatabaseName(dbName)
-	_, err = sqlDB.Exec(fmt.Sprintf("CREATE DATABASE %s", safeName))
+	_, err = sqlDB.Exec(fmt.Sprintf(`CREATE DATABASE "%s"`, safeName))
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			return fmt.Errorf("database %s already exists", safeName)
@@ -262,7 +262,7 @@ func (s *Tenant) dropTenantDatabase(dbName string) error {
 	defer sqlDB.Close()
 
 	safeName := sanitizeDatabaseName(dbName)
-	_, err = sqlDB.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", safeName))
+	_, err = sqlDB.Exec(fmt.Sprintf(`DROP DATABASE IF EXISTS "%s"`, safeName))
 	if err != nil {
 		return fmt.Errorf("failed to drop database: %w", err)
 	}
