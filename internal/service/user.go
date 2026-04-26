@@ -11,18 +11,15 @@ import (
 	"gorm.io/gorm"
 	"zxc/api/user"
 	"zxc/internal/authz"
-	"zxc/internal/infra"
 	"zxc/internal/models"
 )
 
 type User struct {
 	user.UnimplementedUserServiceServer
-	db    *gorm.DB
-	cache *infra.Cache
 }
 
-func NewUser(db *gorm.DB, cache *infra.Cache) *User {
-	return &User{db: db, cache: cache}
+func NewUser() *User {
+	return &User{}
 }
 
 func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.CreateResponse, error) {
@@ -30,9 +27,7 @@ func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.Creat
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	tenantID := uuid.MustParse(req.TenantId)
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -50,9 +45,8 @@ func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.Creat
 
 func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse, error) {
 	uid := uuid.MustParse(req.Id)
-	tenantID := uuid.MustParse(req.TenantId)
 
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -81,9 +75,7 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	tenantID := uuid.MustParse(req.TenantId)
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -120,9 +112,8 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 
 func (s *User) Delete(ctx context.Context, req *user.DeleteRequest) (*user.DeleteResponse, error) {
 	uid := uuid.MustParse(req.Id)
-	tenantID := uuid.MustParse(req.TenantId)
 
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -153,9 +144,7 @@ func (s *User) List(ctx context.Context, req *user.ListRequest) (*user.ListRespo
 		pageSize = 10
 	}
 
-	tenantID := uuid.MustParse(req.TenantId)
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}

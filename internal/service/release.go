@@ -11,20 +11,17 @@ import (
 	"gorm.io/gorm"
 	"zxc/api/release"
 	"zxc/internal/authz"
-	"zxc/internal/infra"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
 )
 
 type Release struct {
 	release.UnimplementedReleaseServiceServer
-	db       *gorm.DB
-	cache    *infra.Cache
 	wfclient *client.Client
 }
 
-func NewRelease(db *gorm.DB, cache *infra.Cache, wfclient *client.Client) *Release {
-	return &Release{db: db, cache: cache, wfclient: wfclient}
+func NewRelease(wfclient *client.Client) *Release {
+	return &Release{wfclient: wfclient}
 }
 
 func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*release.CreateResponse, error) {
@@ -32,15 +29,11 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 	if err != nil {
 		return nil, err
 	}
-	if err := assertOwner(req.OwnerId, authUserID, "owner_id"); err != nil {
-		return nil, err
-	}
 
 	targetID := uuid.MustParse(req.TargetId)
 	payloadID := uuid.MustParse(req.PayloadId)
-	tenantID := uuid.MustParse(req.TenantId)
 
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -77,9 +70,8 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 
 func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.GetResponse, error) {
 	releaseID := uuid.MustParse(req.Id)
-	tenantID := uuid.MustParse(req.TenantId)
 
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -109,13 +101,8 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 	if err != nil {
 		return nil, err
 	}
-	if err := assertOwner(req.UserId, authUserID, "user_id"); err != nil {
-		return nil, err
-	}
 
-	tenantID := uuid.MustParse(req.TenantId)
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -174,9 +161,7 @@ func (s *Release) List(ctx context.Context, req *release.ListRequest) (*release.
 		pageSize = 10
 	}
 
-	tenantID := uuid.MustParse(req.TenantId)
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}

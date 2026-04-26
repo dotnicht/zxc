@@ -11,20 +11,17 @@ import (
 	"gorm.io/gorm"
 	"zxc/api/target"
 	"zxc/internal/authz"
-	"zxc/internal/infra"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
 )
 
 type Target struct {
 	target.UnimplementedTargetServiceServer
-	db       *gorm.DB
-	cache    *infra.Cache
 	wfclient *client.Client
 }
 
-func NewTarget(db *gorm.DB, cache *infra.Cache, wfclient *client.Client) *Target {
-	return &Target{db: db, cache: cache, wfclient: wfclient}
+func NewTarget(wfclient *client.Client) *Target {
+	return &Target{wfclient: wfclient}
 }
 
 func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target.CreateResponse, error) {
@@ -36,13 +33,8 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 	if err != nil {
 		return nil, err
 	}
-	if err := assertOwner(req.OwnerId, authUserID, "owner_id"); err != nil {
-		return nil, err
-	}
 
-	tenantID := uuid.MustParse(req.TenantId)
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +46,7 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 	if err := tenantDB.Create(t).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create target: %v", err)
 	}
-	if err := s.enqueueProbe(ctx, tenantID, t.ID); err != nil {
+	if err := s.enqueueProbe(ctx, tenant.ID, t.ID); err != nil {
 		cleanupErr := tenantDB.Unscoped().Delete(&models.Target{}, "id = ?", t.ID).Error
 		return nil, status.Errorf(codes.Internal, "failed to persist target creation: %v", errors.Join(err, cleanupErr))
 	}
@@ -71,9 +63,8 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 
 func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetResponse, error) {
 	id := uuid.MustParse(req.Id)
-	tenantID := uuid.MustParse(req.TenantId)
 
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -102,9 +93,7 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		return nil, status.Error(codes.InvalidArgument, "address is required")
 	}
 
-	tenantID := uuid.MustParse(req.TenantId)
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +124,7 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 	if err := tenantDB.First(&updated, "id = ?", id).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated target: %v", err)
 	}
-	if err := s.enqueueProbe(ctx, tenantID, updated.ID); err != nil {
+	if err := s.enqueueProbe(ctx, tenant.ID, updated.ID); err != nil {
 		revertErr := tenantDB.Model(&models.Target{}).Where("id = ?", id).Updates(map[string]any{
 			"address":      previous.Address,
 			"user":         previous.User,
@@ -160,9 +149,8 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 
 func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target.DeleteResponse, error) {
 	id := uuid.MustParse(req.Id)
-	tenantID := uuid.MustParse(req.TenantId)
 
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -201,9 +189,7 @@ func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.Lis
 		pageSize = 10
 	}
 
-	tenantID := uuid.MustParse(req.TenantId)
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}

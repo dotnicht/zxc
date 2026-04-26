@@ -23,12 +23,10 @@ import (
 
 type Payload struct {
 	payload.UnimplementedPayloadServiceServer
-	db    *gorm.DB
-	cache *infra.Cache
 }
 
-func NewPayload(db *gorm.DB, cache *infra.Cache) *Payload {
-	return &Payload{db: db, cache: cache}
+func NewPayload() *Payload {
+	return &Payload{}
 }
 
 const maxPayloadSize = 50 * 1024 * 1024
@@ -81,23 +79,18 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 	if err != nil {
 		return nil, err
 	}
-	if err := assertOwner(req.OwnerId, authUserID, "owner_id"); err != nil {
-		return nil, err
-	}
 
-	tenantID := uuid.MustParse(req.TenantId)
-
-	ten, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorize(ctx, "payload.create", ten, authz.Resource{Type: "payload"}, authz.Related{}); err != nil {
+	if _, err := authorize(ctx, "payload.create", tenant, authz.Resource{Type: "payload"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
 	payloadID := uuid.New()
 
-	mc, bucket, err := infra.StorageClientFromConnectionString(ten.Storage)
+	mc, bucket, err := infra.StorageClientFromConnectionString(tenant.Storage)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to connect to storage: %v", err)
 	}
@@ -129,9 +122,8 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 
 func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.GetResponse, error) {
 	id := uuid.MustParse(req.Id)
-	tenantID := uuid.MustParse(req.TenantId)
 
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -155,9 +147,8 @@ func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.Ge
 
 func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payload.UpdateResponse, error) {
 	id := uuid.MustParse(req.Id)
-	tenantID := uuid.MustParse(req.TenantId)
 
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -194,9 +185,8 @@ func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payl
 
 func (s *Payload) Delete(ctx context.Context, req *payload.DeleteRequest) (*payload.DeleteResponse, error) {
 	id := uuid.MustParse(req.Id)
-	tenantID := uuid.MustParse(req.TenantId)
 
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -235,9 +225,7 @@ func (s *Payload) List(ctx context.Context, req *payload.ListRequest) (*payload.
 		pageSize = 10
 	}
 
-	tenantID := uuid.MustParse(req.TenantId)
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}

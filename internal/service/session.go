@@ -10,7 +10,6 @@ import (
 	"gorm.io/gorm"
 	"zxc/api/session"
 	"zxc/internal/authz"
-	"zxc/internal/infra"
 	"zxc/internal/models"
 )
 
@@ -22,11 +21,10 @@ var validSessionStatuses = map[string]bool{
 
 type Session struct {
 	session.UnimplementedSessionServiceServer
-	cache *infra.Cache
 }
 
-func NewSession(cache *infra.Cache) *Session {
-	return &Session{cache: cache}
+func NewSession() *Session {
+	return &Session{}
 }
 
 func validateSessionStatus(raw string) error {
@@ -42,9 +40,7 @@ func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*sess
 		return nil, err
 	}
 
-	tenantID := uuid.MustParse(req.TenantId)
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -78,9 +74,8 @@ func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*sess
 
 func (s *Session) Get(ctx context.Context, req *session.GetRequest) (*session.GetResponse, error) {
 	id := uuid.MustParse(req.Id)
-	tenantID := uuid.MustParse(req.TenantId)
 
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -106,9 +101,7 @@ func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*sess
 		return nil, err
 	}
 
-	tenantID := uuid.MustParse(req.TenantId)
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -149,9 +142,8 @@ func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*sess
 
 func (s *Session) Delete(ctx context.Context, req *session.DeleteRequest) (*session.DeleteResponse, error) {
 	id := uuid.MustParse(req.Id)
-	tenantID := uuid.MustParse(req.TenantId)
 
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -187,9 +179,7 @@ func (s *Session) List(ctx context.Context, req *session.ListRequest) (*session.
 		pageSize = 10
 	}
 
-	tenantID := uuid.MustParse(req.TenantId)
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}

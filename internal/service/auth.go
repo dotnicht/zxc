@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"gorm.io/gorm"
 	"zxc/internal/authz"
 	"zxc/internal/infra"
@@ -39,36 +40,11 @@ func ValidateInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
-func assertOwner(raw string, authUserID uuid.UUID, field string) error {
-	if raw == "" {
-		return nil
-	}
-	id, err := uuid.Parse(raw)
-	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "invalid %s: must be a valid UUID", field)
-	}
-	if id != authUserID {
-		return status.Errorf(codes.PermissionDenied, "%s must match authenticated user", field)
-	}
-	return nil
-}
-
-func resolve(ctx context.Context, cache *infra.Cache, tenantID uuid.UUID) (*models.Tenant, *gorm.DB, error) {
-	tenant, _, err := ctxTenant(ctx, tenantID)
-	if err != nil {
-		return nil, nil, err
-	}
-	tenantDB, err := cache.Get(tenant.Database)
-	if err != nil {
-		return nil, nil, status.Errorf(codes.Internal, "failed to connect to tenant database: %v", err)
-	}
-	return tenant, tenantDB, nil
-}
-
 type userKey struct{}
 type tenantKey struct{}
+type tenantDBKey struct{}
 
-func UserInterceptor(cache *infra.Cache, rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServerInterceptor {
+func UserInterceptor(rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {
@@ -108,7 +84,7 @@ func UserInterceptor(cache *infra.Cache, rootDB *gorm.DB, rootUserID uuid.UUID) 
 			return nil, status.Errorf(codes.Internal, "failed to get tenant: %v", err)
 		}
 
-		tenantDB, err := cache.Get(tenant.Database)
+		tenantDB, err := infra.NewConnection(tenant.Database)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to connect to tenant database: %v", err)
 		}
@@ -123,8 +99,60 @@ func UserInterceptor(cache *infra.Cache, rootDB *gorm.DB, rootUserID uuid.UUID) 
 
 		ctx = context.WithValue(ctx, tenantKey{}, &tenant)
 		ctx = context.WithValue(ctx, userKey{}, &user)
+		ctx = context.WithValue(ctx, tenantDBKey{}, tenantDB)
 		return handler(ctx, req)
 	}
+}
+
+func OwnerInterceptor() grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		if _, ok := ctx.Value(tenantKey{}).(*models.Tenant); !ok {
+			return handler(ctx, req)
+		}
+		user, ok := ctx.Value(userKey{}).(*models.User)
+		if !ok || user == nil {
+			return handler(ctx, req)
+		}
+		if msg, ok := req.(interface{ ProtoReflect() protoreflect.Message }); ok {
+			m := msg.ProtoReflect()
+			var fieldErr error
+			m.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+				if fd.Kind() != protoreflect.StringKind {
+					return true
+				}
+				name := string(fd.Name())
+				if name != "owner_id" && name != "user_id" {
+					return true
+				}
+				s := v.String()
+				if s == "" {
+					return true
+				}
+				id, err := uuid.Parse(s)
+				if err != nil || id != user.ID {
+					fieldErr = status.Errorf(codes.PermissionDenied, "%s must match authenticated user", name)
+					return false
+				}
+				return true
+			})
+			if fieldErr != nil {
+				return nil, fieldErr
+			}
+		}
+		return handler(ctx, req)
+	}
+}
+
+func ctxTenantAndDB(ctx context.Context) (*models.Tenant, *gorm.DB, error) {
+	tenant, ok := ctx.Value(tenantKey{}).(*models.Tenant)
+	if !ok || tenant == nil {
+		return nil, nil, status.Error(codes.Unauthenticated, "authenticated tenant user is required")
+	}
+	db, ok := ctx.Value(tenantDBKey{}).(*gorm.DB)
+	if !ok || db == nil {
+		return nil, nil, status.Error(codes.Internal, "tenant database connection unavailable")
+	}
+	return tenant, db, nil
 }
 
 func metaUUID(md metadata.MD, key string) (uuid.UUID, error) {
@@ -137,18 +165,6 @@ func metaUUID(md metadata.MD, key string) (uuid.UUID, error) {
 		return uuid.Nil, status.Error(codes.InvalidArgument, fmt.Sprintf("%s must be a valid UUID", key))
 	}
 	return id, nil
-}
-
-func ctxTenant(ctx context.Context, tenantID uuid.UUID) (*models.Tenant, *models.User, error) {
-	user, ok := ctx.Value(userKey{}).(*models.User)
-	if !ok || user == nil {
-		return nil, nil, status.Error(codes.Unauthenticated, "authenticated tenant user is required")
-	}
-	tenant, ok := ctx.Value(tenantKey{}).(*models.Tenant)
-	if !ok || tenant == nil || tenant.ID != tenantID {
-		return nil, nil, status.Error(codes.PermissionDenied, "requested tenant does not match authenticated tenant")
-	}
-	return tenant, user, nil
 }
 
 func ctxUserID(ctx context.Context) (uuid.UUID, error) {
@@ -192,3 +208,4 @@ func authorize(ctx context.Context, action string, tenant *models.Tenant, resour
 	}
 	return decision, nil
 }
+

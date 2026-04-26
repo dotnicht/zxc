@@ -10,24 +10,21 @@ import (
 	"gorm.io/gorm"
 	"zxc/api/account"
 	"zxc/internal/authz"
-	"zxc/internal/infra"
 	"zxc/internal/models"
 )
 
 type Account struct {
 	account.UnimplementedAccountServiceServer
-	cache *infra.Cache
 }
 
-func NewAccount(cache *infra.Cache) *Account {
-	return &Account{cache: cache}
+func NewAccount() *Account {
+	return &Account{}
 }
 
 func (s *Account) Get(ctx context.Context, req *account.GetRequest) (*account.GetResponse, error) {
 	id := uuid.MustParse(req.Id)
-	tenantID := uuid.MustParse(req.TenantId)
 
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -55,9 +52,7 @@ func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.
 		pageSize = 10
 	}
 
-	tenantID := uuid.MustParse(req.TenantId)
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -86,9 +81,8 @@ func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.
 
 func (s *Account) Disable(ctx context.Context, req *account.DisableRequest) (*account.DisableResponse, error) {
 	id := uuid.MustParse(req.Id)
-	tenantID := uuid.MustParse(req.TenantId)
 
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
+	tenant, tenantDB, err := ctxTenantAndDB(ctx)
 	if err != nil {
 		return nil, err
 	}
