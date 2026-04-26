@@ -617,126 +617,6 @@ func (x *ListResponse) GetTotal() int32 {
 	return 0
 }
 
-type SearchRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Query         string                 `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
-	Page          int32                  `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SearchRequest) Reset() {
-	*x = SearchRequest{}
-	mi := &file_proto_session_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SearchRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SearchRequest) ProtoMessage() {}
-
-func (x *SearchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_session_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SearchRequest.ProtoReflect.Descriptor instead.
-func (*SearchRequest) Descriptor() ([]byte, []int) {
-	return file_proto_session_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *SearchRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
-}
-
-func (x *SearchRequest) GetQuery() string {
-	if x != nil {
-		return x.Query
-	}
-	return ""
-}
-
-func (x *SearchRequest) GetPage() int32 {
-	if x != nil {
-		return x.Page
-	}
-	return 0
-}
-
-func (x *SearchRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
-type SearchResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Sessions      []*Session             `protobuf:"bytes,1,rep,name=sessions,proto3" json:"sessions,omitempty"`
-	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SearchResponse) Reset() {
-	*x = SearchResponse{}
-	mi := &file_proto_session_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SearchResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SearchResponse) ProtoMessage() {}
-
-func (x *SearchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_session_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SearchResponse.ProtoReflect.Descriptor instead.
-func (*SearchResponse) Descriptor() ([]byte, []int) {
-	return file_proto_session_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *SearchResponse) GetSessions() []*Session {
-	if x != nil {
-		return x.Sessions
-	}
-	return nil
-}
-
-func (x *SearchResponse) GetTotal() int32 {
-	if x != nil {
-		return x.Total
-	}
-	return 0
-}
-
 var File_proto_session_proto protoreflect.FileDescriptor
 
 const file_proto_session_proto_rawDesc = "" +
@@ -783,22 +663,13 @@ const file_proto_session_proto_rawDesc = "" +
 	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"R\n" +
 	"\fListResponse\x12,\n" +
 	"\bsessions\x18\x01 \x03(\v2\x10.session.SessionR\bsessions\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"s\n" +
-	"\rSearchRequest\x12\x1b\n" +
-	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x14\n" +
-	"\x05query\x18\x02 \x01(\tR\x05query\x12\x12\n" +
-	"\x04page\x18\x03 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"T\n" +
-	"\x0eSearchResponse\x12,\n" +
-	"\bsessions\x18\x01 \x03(\v2\x10.session.SessionR\bsessions\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total2\xe3\x02\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total2\xa8\x02\n" +
 	"\x0eSessionService\x129\n" +
 	"\x06Create\x12\x16.session.CreateRequest\x1a\x17.session.CreateResponse\x120\n" +
 	"\x03Get\x12\x13.session.GetRequest\x1a\x14.session.GetResponse\x129\n" +
 	"\x06Update\x12\x16.session.UpdateRequest\x1a\x17.session.UpdateResponse\x129\n" +
 	"\x06Delete\x12\x16.session.DeleteRequest\x1a\x17.session.DeleteResponse\x123\n" +
-	"\x04List\x12\x14.session.ListRequest\x1a\x15.session.ListResponse\x129\n" +
-	"\x06Search\x12\x16.session.SearchRequest\x1a\x17.session.SearchResponseB\x19Z\x17zxc/api/session;sessionb\x06proto3"
+	"\x04List\x12\x14.session.ListRequest\x1a\x15.session.ListResponseB\x19Z\x17zxc/api/session;sessionb\x06proto3"
 
 var (
 	file_proto_session_proto_rawDescOnce sync.Once
@@ -812,7 +683,7 @@ func file_proto_session_proto_rawDescGZIP() []byte {
 	return file_proto_session_proto_rawDescData
 }
 
-var file_proto_session_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_proto_session_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_proto_session_proto_goTypes = []any{
 	(*Session)(nil),        // 0: session.Session
 	(*CreateRequest)(nil),  // 1: session.CreateRequest
@@ -825,32 +696,27 @@ var file_proto_session_proto_goTypes = []any{
 	(*DeleteResponse)(nil), // 8: session.DeleteResponse
 	(*ListRequest)(nil),    // 9: session.ListRequest
 	(*ListResponse)(nil),   // 10: session.ListResponse
-	(*SearchRequest)(nil),  // 11: session.SearchRequest
-	(*SearchResponse)(nil), // 12: session.SearchResponse
 }
 var file_proto_session_proto_depIdxs = []int32{
 	0,  // 0: session.CreateResponse.session:type_name -> session.Session
 	0,  // 1: session.GetResponse.session:type_name -> session.Session
 	0,  // 2: session.UpdateResponse.session:type_name -> session.Session
 	0,  // 3: session.ListResponse.sessions:type_name -> session.Session
-	0,  // 4: session.SearchResponse.sessions:type_name -> session.Session
-	1,  // 5: session.SessionService.Create:input_type -> session.CreateRequest
-	3,  // 6: session.SessionService.Get:input_type -> session.GetRequest
-	5,  // 7: session.SessionService.Update:input_type -> session.UpdateRequest
-	7,  // 8: session.SessionService.Delete:input_type -> session.DeleteRequest
-	9,  // 9: session.SessionService.List:input_type -> session.ListRequest
-	11, // 10: session.SessionService.Search:input_type -> session.SearchRequest
-	2,  // 11: session.SessionService.Create:output_type -> session.CreateResponse
-	4,  // 12: session.SessionService.Get:output_type -> session.GetResponse
-	6,  // 13: session.SessionService.Update:output_type -> session.UpdateResponse
-	8,  // 14: session.SessionService.Delete:output_type -> session.DeleteResponse
-	10, // 15: session.SessionService.List:output_type -> session.ListResponse
-	12, // 16: session.SessionService.Search:output_type -> session.SearchResponse
-	11, // [11:17] is the sub-list for method output_type
-	5,  // [5:11] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	1,  // 4: session.SessionService.Create:input_type -> session.CreateRequest
+	3,  // 5: session.SessionService.Get:input_type -> session.GetRequest
+	5,  // 6: session.SessionService.Update:input_type -> session.UpdateRequest
+	7,  // 7: session.SessionService.Delete:input_type -> session.DeleteRequest
+	9,  // 8: session.SessionService.List:input_type -> session.ListRequest
+	2,  // 9: session.SessionService.Create:output_type -> session.CreateResponse
+	4,  // 10: session.SessionService.Get:output_type -> session.GetResponse
+	6,  // 11: session.SessionService.Update:output_type -> session.UpdateResponse
+	8,  // 12: session.SessionService.Delete:output_type -> session.DeleteResponse
+	10, // 13: session.SessionService.List:output_type -> session.ListResponse
+	9,  // [9:14] is the sub-list for method output_type
+	4,  // [4:9] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_proto_session_proto_init() }
@@ -864,7 +730,7 @@ func file_proto_session_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_session_proto_rawDesc), len(file_proto_session_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -14,7 +14,6 @@ func accountCmd() *cobra.Command {
 	}
 	cmd.AddCommand(accountGetCmd())
 	cmd.AddCommand(accountListCmd())
-	cmd.AddCommand(accountSearchCmd())
 	cmd.AddCommand(accountDisableCmd())
 	return cmd
 }
@@ -69,39 +68,6 @@ func accountListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().Int32Var(&page, "page", 1, "page number")
-	cmd.Flags().Int32Var(&size, "size", 20, "page size")
-	return cmd
-}
-
-func accountSearchCmd() *cobra.Command {
-	var query string
-	var page, size int32
-	cmd := &cobra.Command{
-		Use:   "search",
-		Short: "Search accounts",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := newCtx()
-			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
-			if err != nil {
-				return err
-			}
-			resp, err := st.account.Search(authContext, &account.SearchRequest{TenantId: tenantID, Query: query, Page: page, PageSize: size})
-			if err != nil {
-				return err
-			}
-			w := newTabWriter()
-			fmt.Fprintf(w, "ID\tNAME\tSTATUS\tCREATED\n")
-			for _, a := range resp.Accounts {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", a.Id, a.Name, a.Status, a.CreatedAt)
-			}
-			w.Flush()
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&query, "query", "", "search query")
-	_ = cmd.MarkFlagRequired("query")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")
 	cmd.Flags().Int32Var(&size, "size", 20, "page size")
 	return cmd

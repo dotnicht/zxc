@@ -48,8 +48,14 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var releaseIDVal, tenantIDVal string
-	token.Get("release_id", &releaseIDVal)
-	token.Get("tenant_id", &tenantIDVal)
+	if err := token.Get("release_id", &releaseIDVal); err != nil {
+		http.Error(w, "missing release_id in token", http.StatusBadRequest)
+		return
+	}
+	if err := token.Get("tenant_id", &tenantIDVal); err != nil {
+		http.Error(w, "missing tenant_id in token", http.StatusBadRequest)
+		return
+	}
 
 	releaseID, err := uuid.Parse(releaseIDVal)
 	if err != nil {

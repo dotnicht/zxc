@@ -23,7 +23,6 @@ const (
 	ReleaseService_Get_FullMethodName    = "/release.ReleaseService/Get"
 	ReleaseService_Deploy_FullMethodName = "/release.ReleaseService/Deploy"
 	ReleaseService_List_FullMethodName   = "/release.ReleaseService/List"
-	ReleaseService_Search_FullMethodName = "/release.ReleaseService/Search"
 )
 
 // ReleaseServiceClient is the client API for ReleaseService service.
@@ -34,7 +33,6 @@ type ReleaseServiceClient interface {
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
 	Deploy(ctx context.Context, in *DeployRequest, opts ...grpc.CallOption) (*DeployResponse, error)
 	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
-	Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error)
 }
 
 type releaseServiceClient struct {
@@ -85,16 +83,6 @@ func (c *releaseServiceClient) List(ctx context.Context, in *ListRequest, opts .
 	return out, nil
 }
 
-func (c *releaseServiceClient) Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SearchResponse)
-	err := c.cc.Invoke(ctx, ReleaseService_Search_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // ReleaseServiceServer is the server API for ReleaseService service.
 // All implementations must embed UnimplementedReleaseServiceServer
 // for forward compatibility.
@@ -103,7 +91,6 @@ type ReleaseServiceServer interface {
 	Get(context.Context, *GetRequest) (*GetResponse, error)
 	Deploy(context.Context, *DeployRequest) (*DeployResponse, error)
 	List(context.Context, *ListRequest) (*ListResponse, error)
-	Search(context.Context, *SearchRequest) (*SearchResponse, error)
 	mustEmbedUnimplementedReleaseServiceServer()
 }
 
@@ -125,9 +112,6 @@ func (UnimplementedReleaseServiceServer) Deploy(context.Context, *DeployRequest)
 }
 func (UnimplementedReleaseServiceServer) List(context.Context, *ListRequest) (*ListResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method List not implemented")
-}
-func (UnimplementedReleaseServiceServer) Search(context.Context, *SearchRequest) (*SearchResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Search not implemented")
 }
 func (UnimplementedReleaseServiceServer) mustEmbedUnimplementedReleaseServiceServer() {}
 func (UnimplementedReleaseServiceServer) testEmbeddedByValue()                        {}
@@ -222,24 +206,6 @@ func _ReleaseService_List_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ReleaseService_Search_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SearchRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ReleaseServiceServer).Search(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ReleaseService_Search_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReleaseServiceServer).Search(ctx, req.(*SearchRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // ReleaseService_ServiceDesc is the grpc.ServiceDesc for ReleaseService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -262,10 +228,6 @@ var ReleaseService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "List",
 			Handler:    _ReleaseService_List_Handler,
-		},
-		{
-			MethodName: "Search",
-			Handler:    _ReleaseService_Search_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

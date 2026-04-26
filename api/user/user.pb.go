@@ -593,126 +593,6 @@ func (x *ListResponse) GetTotal() int32 {
 	return 0
 }
 
-type SearchRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Query         string                 `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
-	Page          int32                  `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SearchRequest) Reset() {
-	*x = SearchRequest{}
-	mi := &file_proto_user_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SearchRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SearchRequest) ProtoMessage() {}
-
-func (x *SearchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_user_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SearchRequest.ProtoReflect.Descriptor instead.
-func (*SearchRequest) Descriptor() ([]byte, []int) {
-	return file_proto_user_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *SearchRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
-}
-
-func (x *SearchRequest) GetQuery() string {
-	if x != nil {
-		return x.Query
-	}
-	return ""
-}
-
-func (x *SearchRequest) GetPage() int32 {
-	if x != nil {
-		return x.Page
-	}
-	return 0
-}
-
-func (x *SearchRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
-type SearchResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Users         []*User                `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
-	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SearchResponse) Reset() {
-	*x = SearchResponse{}
-	mi := &file_proto_user_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SearchResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SearchResponse) ProtoMessage() {}
-
-func (x *SearchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_user_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SearchResponse.ProtoReflect.Descriptor instead.
-func (*SearchResponse) Descriptor() ([]byte, []int) {
-	return file_proto_user_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *SearchResponse) GetUsers() []*User {
-	if x != nil {
-		return x.Users
-	}
-	return nil
-}
-
-func (x *SearchResponse) GetTotal() int32 {
-	if x != nil {
-		return x.Total
-	}
-	return 0
-}
-
 var File_proto_user_proto protoreflect.FileDescriptor
 
 const file_proto_user_proto_rawDesc = "" +
@@ -757,23 +637,13 @@ const file_proto_user_proto_rawDesc = "" +
 	"\fListResponse\x12 \n" +
 	"\x05users\x18\x01 \x03(\v2\n" +
 	".user.UserR\x05users\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"s\n" +
-	"\rSearchRequest\x12\x1b\n" +
-	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x14\n" +
-	"\x05query\x18\x02 \x01(\tR\x05query\x12\x12\n" +
-	"\x04page\x18\x03 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"H\n" +
-	"\x0eSearchResponse\x12 \n" +
-	"\x05users\x18\x01 \x03(\v2\n" +
-	".user.UserR\x05users\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total2\xbc\x02\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total2\x87\x02\n" +
 	"\vUserService\x123\n" +
 	"\x06Create\x12\x13.user.CreateRequest\x1a\x14.user.CreateResponse\x12*\n" +
 	"\x03Get\x12\x10.user.GetRequest\x1a\x11.user.GetResponse\x123\n" +
 	"\x06Update\x12\x13.user.UpdateRequest\x1a\x14.user.UpdateResponse\x123\n" +
 	"\x06Delete\x12\x13.user.DeleteRequest\x1a\x14.user.DeleteResponse\x12-\n" +
-	"\x04List\x12\x11.user.ListRequest\x1a\x12.user.ListResponse\x123\n" +
-	"\x06Search\x12\x13.user.SearchRequest\x1a\x14.user.SearchResponseB\x13Z\x11zxc/api/user;userb\x06proto3"
+	"\x04List\x12\x11.user.ListRequest\x1a\x12.user.ListResponseB\x13Z\x11zxc/api/user;userb\x06proto3"
 
 var (
 	file_proto_user_proto_rawDescOnce sync.Once
@@ -787,7 +657,7 @@ func file_proto_user_proto_rawDescGZIP() []byte {
 	return file_proto_user_proto_rawDescData
 }
 
-var file_proto_user_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_proto_user_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_proto_user_proto_goTypes = []any{
 	(*User)(nil),           // 0: user.User
 	(*CreateRequest)(nil),  // 1: user.CreateRequest
@@ -800,32 +670,27 @@ var file_proto_user_proto_goTypes = []any{
 	(*DeleteResponse)(nil), // 8: user.DeleteResponse
 	(*ListRequest)(nil),    // 9: user.ListRequest
 	(*ListResponse)(nil),   // 10: user.ListResponse
-	(*SearchRequest)(nil),  // 11: user.SearchRequest
-	(*SearchResponse)(nil), // 12: user.SearchResponse
 }
 var file_proto_user_proto_depIdxs = []int32{
 	0,  // 0: user.CreateResponse.user:type_name -> user.User
 	0,  // 1: user.GetResponse.user:type_name -> user.User
 	0,  // 2: user.UpdateResponse.user:type_name -> user.User
 	0,  // 3: user.ListResponse.users:type_name -> user.User
-	0,  // 4: user.SearchResponse.users:type_name -> user.User
-	1,  // 5: user.UserService.Create:input_type -> user.CreateRequest
-	3,  // 6: user.UserService.Get:input_type -> user.GetRequest
-	5,  // 7: user.UserService.Update:input_type -> user.UpdateRequest
-	7,  // 8: user.UserService.Delete:input_type -> user.DeleteRequest
-	9,  // 9: user.UserService.List:input_type -> user.ListRequest
-	11, // 10: user.UserService.Search:input_type -> user.SearchRequest
-	2,  // 11: user.UserService.Create:output_type -> user.CreateResponse
-	4,  // 12: user.UserService.Get:output_type -> user.GetResponse
-	6,  // 13: user.UserService.Update:output_type -> user.UpdateResponse
-	8,  // 14: user.UserService.Delete:output_type -> user.DeleteResponse
-	10, // 15: user.UserService.List:output_type -> user.ListResponse
-	12, // 16: user.UserService.Search:output_type -> user.SearchResponse
-	11, // [11:17] is the sub-list for method output_type
-	5,  // [5:11] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	1,  // 4: user.UserService.Create:input_type -> user.CreateRequest
+	3,  // 5: user.UserService.Get:input_type -> user.GetRequest
+	5,  // 6: user.UserService.Update:input_type -> user.UpdateRequest
+	7,  // 7: user.UserService.Delete:input_type -> user.DeleteRequest
+	9,  // 8: user.UserService.List:input_type -> user.ListRequest
+	2,  // 9: user.UserService.Create:output_type -> user.CreateResponse
+	4,  // 10: user.UserService.Get:output_type -> user.GetResponse
+	6,  // 11: user.UserService.Update:output_type -> user.UpdateResponse
+	8,  // 12: user.UserService.Delete:output_type -> user.DeleteResponse
+	10, // 13: user.UserService.List:output_type -> user.ListResponse
+	9,  // [9:14] is the sub-list for method output_type
+	4,  // [4:9] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_proto_user_proto_init() }
@@ -839,7 +704,7 @@ func file_proto_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_user_proto_rawDesc), len(file_proto_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

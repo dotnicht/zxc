@@ -16,7 +16,6 @@ func targetCmd() *cobra.Command {
 	cmd.AddCommand(targetAddCmd())
 	cmd.AddCommand(targetGetCmd())
 	cmd.AddCommand(targetListCmd())
-	cmd.AddCommand(targetSearchCmd())
 	cmd.AddCommand(targetUpdateCmd())
 	cmd.AddCommand(targetDeleteCmd())
 	return cmd
@@ -111,39 +110,6 @@ func targetListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().Int32Var(&page, "page", 1, "page number")
-	cmd.Flags().Int32Var(&size, "size", 20, "page size")
-	return cmd
-}
-
-func targetSearchCmd() *cobra.Command {
-	var query string
-	var page, size int32
-	cmd := &cobra.Command{
-		Use:   "search",
-		Short: "Search targets",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := newCtx()
-			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
-			if err != nil {
-				return err
-			}
-			resp, err := st.target.Search(authContext, &target.SearchRequest{TenantId: tenantID, Query: query, Page: page, PageSize: size})
-			if err != nil {
-				return err
-			}
-			w := newTabWriter()
-			fmt.Fprintf(w, "ID\tADDRESS\tSTATUS\tCREATED\n")
-			for _, t := range resp.Targets {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", t.Id, t.Address, t.Status, t.CreatedAt)
-			}
-			w.Flush()
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&query, "query", "", "search query")
-	_ = cmd.MarkFlagRequired("query")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")
 	cmd.Flags().Int32Var(&size, "size", 20, "page size")
 	return cmd

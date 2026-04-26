@@ -52,9 +52,9 @@ func resolveTenant(ctx context.Context, name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	resp, err := st.tenant.Search(authContext, &tenant.SearchRequest{Query: name, Page: 1, PageSize: 10})
+	resp, err := st.tenant.List(authContext, &tenant.ListRequest{Page: 1, PageSize: 100})
 	if err != nil {
-		return "", fmt.Errorf("searching tenants: %w", err)
+		return "", fmt.Errorf("listing tenants: %w", err)
 	}
 	for _, t := range resp.Tenants {
 		if t.Name == name {

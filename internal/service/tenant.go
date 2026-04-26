@@ -218,44 +218,6 @@ func (s *Tenant) List(ctx context.Context, req *tenant.ListRequest) (*tenant.Lis
 	return &tenant.ListResponse{Tenants: out, Total: int32(total)}, nil
 }
 
-func (s *Tenant) Search(ctx context.Context, req *tenant.SearchRequest) (*tenant.SearchResponse, error) {
-	if _, err := authorize(ctx, "tenant.search", nil, authz.Resource{Type: "tenant"}, authz.Related{}); err != nil {
-		return nil, err
-	}
-
-	if req.Query == "" {
-		return nil, status.Error(codes.InvalidArgument, "search query is required")
-	}
-
-	page := int(req.Page)
-	pageSize := int(req.PageSize)
-	if page <= 0 {
-		page = 1
-	}
-	if pageSize <= 0 {
-		pageSize = 10
-	}
-
-	pattern := "%" + req.Query + "%"
-	var total int64
-	if err := s.db.WithContext(ctx).Model(&models.Tenant{}).Where("name ILIKE ?", pattern).Count(&total).Error; err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to search tenants: %v", err)
-	}
-
-	var tenants []*models.Tenant
-	offset := (page - 1) * pageSize
-	if err := s.db.WithContext(ctx).Where("name ILIKE ?", pattern).Order("created_at DESC").Limit(pageSize).Offset(offset).Find(&tenants).Error; err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to search tenants: %v", err)
-	}
-
-	out := make([]*tenant.Tenant, len(tenants))
-	for i, t := range tenants {
-		out[i] = s.modelToProto(t)
-	}
-
-	return &tenant.SearchResponse{Tenants: out, Total: int32(total)}, nil
-}
-
 func (s *Tenant) generateConnectionString(tenantName string) string {
 	u, err := url.Parse(s.cfg.Database)
 	if err != nil {

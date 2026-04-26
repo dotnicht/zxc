@@ -15,7 +15,6 @@ func releaseCmd() *cobra.Command {
 	cmd.AddCommand(releaseAddCmd())
 	cmd.AddCommand(releaseGetCmd())
 	cmd.AddCommand(releaseListCmd())
-	cmd.AddCommand(releaseSearchCmd())
 	cmd.AddCommand(releaseDeployCmd())
 	return cmd
 }
@@ -103,39 +102,6 @@ func releaseListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().Int32Var(&page, "page", 1, "page number")
-	cmd.Flags().Int32Var(&size, "size", 20, "page size")
-	return cmd
-}
-
-func releaseSearchCmd() *cobra.Command {
-	var query string
-	var page, size int32
-	cmd := &cobra.Command{
-		Use:   "search",
-		Short: "Search releases by status",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := newCtx()
-			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
-			if err != nil {
-				return err
-			}
-			resp, err := st.release.Search(authContext, &release.SearchRequest{TenantId: tenantID, Query: query, Page: page, PageSize: size})
-			if err != nil {
-				return err
-			}
-			w := newTabWriter()
-			fmt.Fprintf(w, "ID\tSTATUS\tTARGET_ID\tPAYLOAD_ID\tCREATED\n")
-			for _, r := range resp.Releases {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", r.Id, r.Status, r.TargetId, r.PayloadId, r.CreatedAt)
-			}
-			w.Flush()
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&query, "query", "", "status filter query")
-	_ = cmd.MarkFlagRequired("query")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")
 	cmd.Flags().Int32Var(&size, "size", 20, "page size")
 	return cmd

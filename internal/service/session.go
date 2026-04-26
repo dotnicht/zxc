@@ -248,56 +248,6 @@ func (s *Session) List(ctx context.Context, req *session.ListRequest) (*session.
 	return &session.ListResponse{Sessions: out, Total: int32(total)}, nil
 }
 
-func (s *Session) Search(ctx context.Context, req *session.SearchRequest) (*session.SearchResponse, error) {
-	if req.Query == "" {
-		return nil, status.Error(codes.InvalidArgument, "search query is required")
-	}
-
-	page, pageSize := req.Page, req.PageSize
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
-	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "session.search", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
-		return nil, err
-	}
-
-	pattern := "%" + req.Query + "%"
-	query := tenantDB.WithContext(ctx).Model(&models.Session{}).
-		Joins("LEFT JOIN accounts ON accounts.id = sessions.account_id AND accounts.deleted_at IS NULL").
-		Where("sessions.status ILIKE ? OR accounts.name ILIKE ?", pattern, pattern)
-
-	var total int64
-	if err := query.Count(&total).Error; err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to count sessions: %v", err)
-	}
-
-	var records []*models.Session
-	offset := (int(page) - 1) * int(pageSize)
-	if err := query.Order("sessions.created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&records).Error; err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to search sessions: %v", err)
-	}
-
-	out := make([]*session.Session, len(records))
-	for i, record := range records {
-		out[i] = sessionToProto(record)
-	}
-
-	return &session.SearchResponse{Sessions: out, Total: int32(total)}, nil
-}
-
 func loadAccount(ctx context.Context, tenantDB *gorm.DB, accountID uuid.UUID) (*models.Account, error) {
 	var account models.Account
 	if err := tenantDB.WithContext(ctx).First(&account, "id = ?", accountID).Error; err != nil {

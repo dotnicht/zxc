@@ -15,7 +15,6 @@ func sessionCmd() *cobra.Command {
 	cmd.AddCommand(sessionAddCmd())
 	cmd.AddCommand(sessionGetCmd())
 	cmd.AddCommand(sessionListCmd())
-	cmd.AddCommand(sessionSearchCmd())
 	cmd.AddCommand(sessionUpdateCmd())
 	cmd.AddCommand(sessionDeleteCmd())
 	return cmd
@@ -102,39 +101,6 @@ func sessionListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().Int32Var(&page, "page", 1, "page number")
-	cmd.Flags().Int32Var(&size, "size", 20, "page size")
-	return cmd
-}
-
-func sessionSearchCmd() *cobra.Command {
-	var query string
-	var page, size int32
-	cmd := &cobra.Command{
-		Use:   "search",
-		Short: "Search sessions",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := newCtx()
-			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
-			if err != nil {
-				return err
-			}
-			resp, err := st.session.Search(authContext, &session.SearchRequest{TenantId: tenantID, Query: query, Page: page, PageSize: size})
-			if err != nil {
-				return err
-			}
-			w := newTabWriter()
-			fmt.Fprintf(w, "ID\tACCOUNT_ID\tSTATUS\tCREATED\n")
-			for _, record := range resp.Sessions {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", record.Id, record.AccountId, record.Status, record.CreatedAt)
-			}
-			w.Flush()
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&query, "query", "", "search query")
-	_ = cmd.MarkFlagRequired("query")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")
 	cmd.Flags().Int32Var(&size, "size", 20, "page size")
 	return cmd

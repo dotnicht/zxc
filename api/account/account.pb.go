@@ -305,126 +305,6 @@ func (x *ListResponse) GetTotal() int32 {
 	return 0
 }
 
-type SearchRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Query         string                 `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
-	Page          int32                  `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SearchRequest) Reset() {
-	*x = SearchRequest{}
-	mi := &file_proto_account_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SearchRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SearchRequest) ProtoMessage() {}
-
-func (x *SearchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_account_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SearchRequest.ProtoReflect.Descriptor instead.
-func (*SearchRequest) Descriptor() ([]byte, []int) {
-	return file_proto_account_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *SearchRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
-}
-
-func (x *SearchRequest) GetQuery() string {
-	if x != nil {
-		return x.Query
-	}
-	return ""
-}
-
-func (x *SearchRequest) GetPage() int32 {
-	if x != nil {
-		return x.Page
-	}
-	return 0
-}
-
-func (x *SearchRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
-type SearchResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Accounts      []*Account             `protobuf:"bytes,1,rep,name=accounts,proto3" json:"accounts,omitempty"`
-	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SearchResponse) Reset() {
-	*x = SearchResponse{}
-	mi := &file_proto_account_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SearchResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SearchResponse) ProtoMessage() {}
-
-func (x *SearchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_account_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SearchResponse.ProtoReflect.Descriptor instead.
-func (*SearchResponse) Descriptor() ([]byte, []int) {
-	return file_proto_account_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *SearchResponse) GetAccounts() []*Account {
-	if x != nil {
-		return x.Accounts
-	}
-	return nil
-}
-
-func (x *SearchResponse) GetTotal() int32 {
-	if x != nil {
-		return x.Total
-	}
-	return 0
-}
-
 type DisableRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
@@ -435,7 +315,7 @@ type DisableRequest struct {
 
 func (x *DisableRequest) Reset() {
 	*x = DisableRequest{}
-	mi := &file_proto_account_proto_msgTypes[7]
+	mi := &file_proto_account_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -447,7 +327,7 @@ func (x *DisableRequest) String() string {
 func (*DisableRequest) ProtoMessage() {}
 
 func (x *DisableRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_account_proto_msgTypes[7]
+	mi := &file_proto_account_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -460,7 +340,7 @@ func (x *DisableRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableRequest.ProtoReflect.Descriptor instead.
 func (*DisableRequest) Descriptor() ([]byte, []int) {
-	return file_proto_account_proto_rawDescGZIP(), []int{7}
+	return file_proto_account_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *DisableRequest) GetTenantId() string {
@@ -486,7 +366,7 @@ type DisableResponse struct {
 
 func (x *DisableResponse) Reset() {
 	*x = DisableResponse{}
-	mi := &file_proto_account_proto_msgTypes[8]
+	mi := &file_proto_account_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -498,7 +378,7 @@ func (x *DisableResponse) String() string {
 func (*DisableResponse) ProtoMessage() {}
 
 func (x *DisableResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_account_proto_msgTypes[8]
+	mi := &file_proto_account_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -511,7 +391,7 @@ func (x *DisableResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableResponse.ProtoReflect.Descriptor instead.
 func (*DisableResponse) Descriptor() ([]byte, []int) {
-	return file_proto_account_proto_rawDescGZIP(), []int{8}
+	return file_proto_account_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DisableResponse) GetAccount() *Account {
@@ -546,24 +426,15 @@ const file_proto_account_proto_rawDesc = "" +
 	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"R\n" +
 	"\fListResponse\x12,\n" +
 	"\baccounts\x18\x01 \x03(\v2\x10.account.AccountR\baccounts\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"s\n" +
-	"\rSearchRequest\x12\x1b\n" +
-	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x14\n" +
-	"\x05query\x18\x02 \x01(\tR\x05query\x12\x12\n" +
-	"\x04page\x18\x03 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"T\n" +
-	"\x0eSearchResponse\x12,\n" +
-	"\baccounts\x18\x01 \x03(\v2\x10.account.AccountR\baccounts\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total\"=\n" +
 	"\x0eDisableRequest\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\"=\n" +
 	"\x0fDisableResponse\x12*\n" +
-	"\aaccount\x18\x01 \x01(\v2\x10.account.AccountR\aaccount2\xf0\x01\n" +
+	"\aaccount\x18\x01 \x01(\v2\x10.account.AccountR\aaccount2\xb5\x01\n" +
 	"\x0eAccountService\x120\n" +
 	"\x03Get\x12\x13.account.GetRequest\x1a\x14.account.GetResponse\x123\n" +
-	"\x04List\x12\x14.account.ListRequest\x1a\x15.account.ListResponse\x129\n" +
-	"\x06Search\x12\x16.account.SearchRequest\x1a\x17.account.SearchResponse\x12<\n" +
+	"\x04List\x12\x14.account.ListRequest\x1a\x15.account.ListResponse\x12<\n" +
 	"\aDisable\x12\x17.account.DisableRequest\x1a\x18.account.DisableResponseB\x19Z\x17zxc/api/account;accountb\x06proto3"
 
 var (
@@ -578,36 +449,31 @@ func file_proto_account_proto_rawDescGZIP() []byte {
 	return file_proto_account_proto_rawDescData
 }
 
-var file_proto_account_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_proto_account_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_proto_account_proto_goTypes = []any{
 	(*Account)(nil),         // 0: account.Account
 	(*GetRequest)(nil),      // 1: account.GetRequest
 	(*GetResponse)(nil),     // 2: account.GetResponse
 	(*ListRequest)(nil),     // 3: account.ListRequest
 	(*ListResponse)(nil),    // 4: account.ListResponse
-	(*SearchRequest)(nil),   // 5: account.SearchRequest
-	(*SearchResponse)(nil),  // 6: account.SearchResponse
-	(*DisableRequest)(nil),  // 7: account.DisableRequest
-	(*DisableResponse)(nil), // 8: account.DisableResponse
+	(*DisableRequest)(nil),  // 5: account.DisableRequest
+	(*DisableResponse)(nil), // 6: account.DisableResponse
 }
 var file_proto_account_proto_depIdxs = []int32{
 	0, // 0: account.GetResponse.account:type_name -> account.Account
 	0, // 1: account.ListResponse.accounts:type_name -> account.Account
-	0, // 2: account.SearchResponse.accounts:type_name -> account.Account
-	0, // 3: account.DisableResponse.account:type_name -> account.Account
-	1, // 4: account.AccountService.Get:input_type -> account.GetRequest
-	3, // 5: account.AccountService.List:input_type -> account.ListRequest
-	5, // 6: account.AccountService.Search:input_type -> account.SearchRequest
-	7, // 7: account.AccountService.Disable:input_type -> account.DisableRequest
-	2, // 8: account.AccountService.Get:output_type -> account.GetResponse
-	4, // 9: account.AccountService.List:output_type -> account.ListResponse
-	6, // 10: account.AccountService.Search:output_type -> account.SearchResponse
-	8, // 11: account.AccountService.Disable:output_type -> account.DisableResponse
-	8, // [8:12] is the sub-list for method output_type
-	4, // [4:8] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0, // 2: account.DisableResponse.account:type_name -> account.Account
+	1, // 3: account.AccountService.Get:input_type -> account.GetRequest
+	3, // 4: account.AccountService.List:input_type -> account.ListRequest
+	5, // 5: account.AccountService.Disable:input_type -> account.DisableRequest
+	2, // 6: account.AccountService.Get:output_type -> account.GetResponse
+	4, // 7: account.AccountService.List:output_type -> account.ListResponse
+	6, // 8: account.AccountService.Disable:output_type -> account.DisableResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_proto_account_proto_init() }
@@ -621,7 +487,7 @@ func file_proto_account_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_account_proto_rawDesc), len(file_proto_account_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

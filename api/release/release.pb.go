@@ -545,126 +545,6 @@ func (x *ListResponse) GetTotal() int32 {
 	return 0
 }
 
-type SearchRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Query         string                 `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
-	Page          int32                  `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SearchRequest) Reset() {
-	*x = SearchRequest{}
-	mi := &file_proto_release_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SearchRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SearchRequest) ProtoMessage() {}
-
-func (x *SearchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_release_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SearchRequest.ProtoReflect.Descriptor instead.
-func (*SearchRequest) Descriptor() ([]byte, []int) {
-	return file_proto_release_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *SearchRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
-}
-
-func (x *SearchRequest) GetQuery() string {
-	if x != nil {
-		return x.Query
-	}
-	return ""
-}
-
-func (x *SearchRequest) GetPage() int32 {
-	if x != nil {
-		return x.Page
-	}
-	return 0
-}
-
-func (x *SearchRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
-type SearchResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Releases      []*Release             `protobuf:"bytes,1,rep,name=releases,proto3" json:"releases,omitempty"`
-	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SearchResponse) Reset() {
-	*x = SearchResponse{}
-	mi := &file_proto_release_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SearchResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SearchResponse) ProtoMessage() {}
-
-func (x *SearchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_release_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SearchResponse.ProtoReflect.Descriptor instead.
-func (*SearchResponse) Descriptor() ([]byte, []int) {
-	return file_proto_release_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *SearchResponse) GetReleases() []*Release {
-	if x != nil {
-		return x.Releases
-	}
-	return nil
-}
-
-func (x *SearchResponse) GetTotal() int32 {
-	if x != nil {
-		return x.Total
-	}
-	return 0
-}
-
 var File_proto_release_proto protoreflect.FileDescriptor
 
 const file_proto_release_proto_rawDesc = "" +
@@ -708,21 +588,12 @@ const file_proto_release_proto_rawDesc = "" +
 	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"R\n" +
 	"\fListResponse\x12,\n" +
 	"\breleases\x18\x01 \x03(\v2\x10.release.ReleaseR\breleases\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"s\n" +
-	"\rSearchRequest\x12\x1b\n" +
-	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x14\n" +
-	"\x05query\x18\x02 \x01(\tR\x05query\x12\x12\n" +
-	"\x04page\x18\x03 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"T\n" +
-	"\x0eSearchResponse\x12,\n" +
-	"\breleases\x18\x01 \x03(\v2\x10.release.ReleaseR\breleases\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total2\xa8\x02\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total2\xed\x01\n" +
 	"\x0eReleaseService\x129\n" +
 	"\x06Create\x12\x16.release.CreateRequest\x1a\x17.release.CreateResponse\x120\n" +
 	"\x03Get\x12\x13.release.GetRequest\x1a\x14.release.GetResponse\x129\n" +
 	"\x06Deploy\x12\x16.release.DeployRequest\x1a\x17.release.DeployResponse\x123\n" +
-	"\x04List\x12\x14.release.ListRequest\x1a\x15.release.ListResponse\x129\n" +
-	"\x06Search\x12\x16.release.SearchRequest\x1a\x17.release.SearchResponseB\x19Z\x17zxc/api/release;releaseb\x06proto3"
+	"\x04List\x12\x14.release.ListRequest\x1a\x15.release.ListResponseB\x19Z\x17zxc/api/release;releaseb\x06proto3"
 
 var (
 	file_proto_release_proto_rawDescOnce sync.Once
@@ -736,7 +607,7 @@ func file_proto_release_proto_rawDescGZIP() []byte {
 	return file_proto_release_proto_rawDescData
 }
 
-var file_proto_release_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_proto_release_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_proto_release_proto_goTypes = []any{
 	(*Release)(nil),        // 0: release.Release
 	(*GetRequest)(nil),     // 1: release.GetRequest
@@ -747,30 +618,25 @@ var file_proto_release_proto_goTypes = []any{
 	(*DeployResponse)(nil), // 6: release.DeployResponse
 	(*ListRequest)(nil),    // 7: release.ListRequest
 	(*ListResponse)(nil),   // 8: release.ListResponse
-	(*SearchRequest)(nil),  // 9: release.SearchRequest
-	(*SearchResponse)(nil), // 10: release.SearchResponse
 }
 var file_proto_release_proto_depIdxs = []int32{
-	0,  // 0: release.GetResponse.release:type_name -> release.Release
-	0,  // 1: release.CreateResponse.release:type_name -> release.Release
-	0,  // 2: release.DeployResponse.release:type_name -> release.Release
-	0,  // 3: release.ListResponse.releases:type_name -> release.Release
-	0,  // 4: release.SearchResponse.releases:type_name -> release.Release
-	3,  // 5: release.ReleaseService.Create:input_type -> release.CreateRequest
-	1,  // 6: release.ReleaseService.Get:input_type -> release.GetRequest
-	5,  // 7: release.ReleaseService.Deploy:input_type -> release.DeployRequest
-	7,  // 8: release.ReleaseService.List:input_type -> release.ListRequest
-	9,  // 9: release.ReleaseService.Search:input_type -> release.SearchRequest
-	4,  // 10: release.ReleaseService.Create:output_type -> release.CreateResponse
-	2,  // 11: release.ReleaseService.Get:output_type -> release.GetResponse
-	6,  // 12: release.ReleaseService.Deploy:output_type -> release.DeployResponse
-	8,  // 13: release.ReleaseService.List:output_type -> release.ListResponse
-	10, // 14: release.ReleaseService.Search:output_type -> release.SearchResponse
-	10, // [10:15] is the sub-list for method output_type
-	5,  // [5:10] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	0, // 0: release.GetResponse.release:type_name -> release.Release
+	0, // 1: release.CreateResponse.release:type_name -> release.Release
+	0, // 2: release.DeployResponse.release:type_name -> release.Release
+	0, // 3: release.ListResponse.releases:type_name -> release.Release
+	3, // 4: release.ReleaseService.Create:input_type -> release.CreateRequest
+	1, // 5: release.ReleaseService.Get:input_type -> release.GetRequest
+	5, // 6: release.ReleaseService.Deploy:input_type -> release.DeployRequest
+	7, // 7: release.ReleaseService.List:input_type -> release.ListRequest
+	4, // 8: release.ReleaseService.Create:output_type -> release.CreateResponse
+	2, // 9: release.ReleaseService.Get:output_type -> release.GetResponse
+	6, // 10: release.ReleaseService.Deploy:output_type -> release.DeployResponse
+	8, // 11: release.ReleaseService.List:output_type -> release.ListResponse
+	8, // [8:12] is the sub-list for method output_type
+	4, // [4:8] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_proto_release_proto_init() }
@@ -784,7 +650,7 @@ func file_proto_release_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_release_proto_rawDesc), len(file_proto_release_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

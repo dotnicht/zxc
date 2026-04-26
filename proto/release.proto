@@ -9,7 +9,6 @@ service ReleaseService {
   rpc Get(GetRequest) returns (GetResponse);
   rpc Deploy(DeployRequest) returns (DeployResponse);
   rpc List(ListRequest) returns (ListResponse);
-  rpc Search(SearchRequest) returns (SearchResponse);
 }
 
 message Release {
@@ -64,14 +63,3 @@ message ListResponse {
   int32 total = 2;
 }
 
-message SearchRequest {
-  string tenant_id = 1;
-  string query = 2;
-  int32 page = 3;
-  int32 page_size = 4;
-}
-
-message SearchResponse {
-  repeated Release releases = 1;
-  int32 total = 2;
-}

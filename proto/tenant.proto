@@ -9,7 +9,6 @@ service TenantService {
   rpc Get(GetRequest) returns (GetResponse);
   rpc Update(UpdateRequest) returns (UpdateResponse);
   rpc List(ListRequest) returns (ListResponse);
-  rpc Search(SearchRequest) returns (SearchResponse);
 }
 
 message Tenant {
@@ -62,13 +61,3 @@ message ListResponse {
   int32 total = 2;
 }
 
-message SearchRequest {
-  string query = 1;
-  int32 page = 2;
-  int32 page_size = 3;
-}
-
-message SearchResponse {
-  repeated Tenant tenants = 1;
-  int32 total = 2;
-}

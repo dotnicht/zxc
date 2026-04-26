@@ -46,7 +46,6 @@ allow if {
 		"tenant.get",
 		"tenant.update",
 		"tenant.list",
-		"tenant.search",
 	}
 	is_root
 }
@@ -82,12 +81,12 @@ allow if {
 }
 
 allow if {
-	input.action in {"user.list", "user.search"}
+	input.action == "user.list"
 	is_tenant_owner
 }
 
 allow if {
-	input.action in {"account.get", "account.list", "account.search"}
+	input.action in {"account.get", "account.list"}
 	is_authenticated_tenant_user
 }
 
@@ -102,7 +101,7 @@ allow if {
 }
 
 allow if {
-	input.action in {"session.get", "session.list", "session.search"}
+	input.action in {"session.get", "session.list"}
 	is_authenticated_tenant_user
 }
 
@@ -117,7 +116,7 @@ allow if {
 }
 
 allow if {
-	input.action in {"target.get", "target.list", "target.search"}
+	input.action in {"target.get", "target.list"}
 	is_authenticated_tenant_user
 }
 
@@ -132,12 +131,12 @@ allow if {
 }
 
 reveal_secret if {
-	input.action in {"target.get", "target.list", "target.search"}
+	input.action in {"target.get", "target.list"}
 	is_tenant_owner
 }
 
 reveal_secret if {
-	input.action in {"target.get", "target.list", "target.search"}
+	input.action in {"target.get", "target.list"}
 	is_resource_owner
 }
 
@@ -147,7 +146,7 @@ allow if {
 }
 
 allow if {
-	input.action in {"payload.get", "payload.list", "payload.search"}
+	input.action in {"payload.get", "payload.list"}
 	is_authenticated_tenant_user
 }
 
@@ -172,7 +171,7 @@ allow if {
 }
 
 allow if {
-	input.action in {"release.get", "release.list", "release.search"}
+	input.action in {"release.get", "release.list"}
 	is_authenticated_tenant_user
 }
 

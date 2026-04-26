@@ -21,7 +21,6 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	AccountService_Get_FullMethodName     = "/account.AccountService/Get"
 	AccountService_List_FullMethodName    = "/account.AccountService/List"
-	AccountService_Search_FullMethodName  = "/account.AccountService/Search"
 	AccountService_Disable_FullMethodName = "/account.AccountService/Disable"
 )
 
@@ -31,7 +30,6 @@ const (
 type AccountServiceClient interface {
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
 	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
-	Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error)
 	Disable(ctx context.Context, in *DisableRequest, opts ...grpc.CallOption) (*DisableResponse, error)
 }
 
@@ -63,16 +61,6 @@ func (c *accountServiceClient) List(ctx context.Context, in *ListRequest, opts .
 	return out, nil
 }
 
-func (c *accountServiceClient) Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SearchResponse)
-	err := c.cc.Invoke(ctx, AccountService_Search_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *accountServiceClient) Disable(ctx context.Context, in *DisableRequest, opts ...grpc.CallOption) (*DisableResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DisableResponse)
@@ -89,7 +77,6 @@ func (c *accountServiceClient) Disable(ctx context.Context, in *DisableRequest, 
 type AccountServiceServer interface {
 	Get(context.Context, *GetRequest) (*GetResponse, error)
 	List(context.Context, *ListRequest) (*ListResponse, error)
-	Search(context.Context, *SearchRequest) (*SearchResponse, error)
 	Disable(context.Context, *DisableRequest) (*DisableResponse, error)
 	mustEmbedUnimplementedAccountServiceServer()
 }
@@ -106,9 +93,6 @@ func (UnimplementedAccountServiceServer) Get(context.Context, *GetRequest) (*Get
 }
 func (UnimplementedAccountServiceServer) List(context.Context, *ListRequest) (*ListResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method List not implemented")
-}
-func (UnimplementedAccountServiceServer) Search(context.Context, *SearchRequest) (*SearchResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Search not implemented")
 }
 func (UnimplementedAccountServiceServer) Disable(context.Context, *DisableRequest) (*DisableResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Disable not implemented")
@@ -170,24 +154,6 @@ func _AccountService_List_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AccountService_Search_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SearchRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AccountServiceServer).Search(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AccountService_Search_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AccountServiceServer).Search(ctx, req.(*SearchRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _AccountService_Disable_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DisableRequest)
 	if err := dec(in); err != nil {
@@ -220,10 +186,6 @@ var AccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "List",
 			Handler:    _AccountService_List_Handler,
-		},
-		{
-			MethodName: "Search",
-			Handler:    _AccountService_Search_Handler,
 		},
 		{
 			MethodName: "Disable",

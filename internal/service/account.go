@@ -93,52 +93,6 @@ func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.
 	return &account.ListResponse{Accounts: out, Total: int32(total)}, nil
 }
 
-func (s *Account) Search(ctx context.Context, req *account.SearchRequest) (*account.SearchResponse, error) {
-	if req.Query == "" {
-		return nil, status.Error(codes.InvalidArgument, "search query is required")
-	}
-
-	page, pageSize := req.Page, req.PageSize
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
-	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "account.search", tenant, authz.Resource{Type: "account"}, authz.Related{}); err != nil {
-		return nil, err
-	}
-
-	pattern := "%" + req.Query + "%"
-	var total int64
-	if err := tenantDB.WithContext(ctx).Model(&models.Account{}).Where("name ILIKE ?", pattern).Count(&total).Error; err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to count accounts: %v", err)
-	}
-
-	var accounts []*models.Account
-	offset := (int(page) - 1) * int(pageSize)
-	if err := tenantDB.WithContext(ctx).Where("name ILIKE ?", pattern).Order("created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&accounts).Error; err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to search accounts: %v", err)
-	}
-
-	out := make([]*account.Account, len(accounts))
-	for i, a := range accounts {
-		out[i] = accountToProto(a)
-	}
-
-	return &account.SearchResponse{Accounts: out, Total: int32(total)}, nil
-}
-
 func (s *Account) Disable(ctx context.Context, req *account.DisableRequest) (*account.DisableResponse, error) {
 	id, err := parseID(req.Id, "id")
 	if err != nil {

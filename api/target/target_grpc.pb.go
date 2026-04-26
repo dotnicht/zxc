@@ -24,7 +24,6 @@ const (
 	TargetService_Update_FullMethodName = "/target.TargetService/Update"
 	TargetService_Delete_FullMethodName = "/target.TargetService/Delete"
 	TargetService_List_FullMethodName   = "/target.TargetService/List"
-	TargetService_Search_FullMethodName = "/target.TargetService/Search"
 )
 
 // TargetServiceClient is the client API for TargetService service.
@@ -36,7 +35,6 @@ type TargetServiceClient interface {
 	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateResponse, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
 	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
-	Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error)
 }
 
 type targetServiceClient struct {
@@ -97,16 +95,6 @@ func (c *targetServiceClient) List(ctx context.Context, in *ListRequest, opts ..
 	return out, nil
 }
 
-func (c *targetServiceClient) Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SearchResponse)
-	err := c.cc.Invoke(ctx, TargetService_Search_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // TargetServiceServer is the server API for TargetService service.
 // All implementations must embed UnimplementedTargetServiceServer
 // for forward compatibility.
@@ -116,7 +104,6 @@ type TargetServiceServer interface {
 	Update(context.Context, *UpdateRequest) (*UpdateResponse, error)
 	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
 	List(context.Context, *ListRequest) (*ListResponse, error)
-	Search(context.Context, *SearchRequest) (*SearchResponse, error)
 	mustEmbedUnimplementedTargetServiceServer()
 }
 
@@ -141,9 +128,6 @@ func (UnimplementedTargetServiceServer) Delete(context.Context, *DeleteRequest) 
 }
 func (UnimplementedTargetServiceServer) List(context.Context, *ListRequest) (*ListResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method List not implemented")
-}
-func (UnimplementedTargetServiceServer) Search(context.Context, *SearchRequest) (*SearchResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Search not implemented")
 }
 func (UnimplementedTargetServiceServer) mustEmbedUnimplementedTargetServiceServer() {}
 func (UnimplementedTargetServiceServer) testEmbeddedByValue()                       {}
@@ -256,24 +240,6 @@ func _TargetService_List_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TargetService_Search_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SearchRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TargetServiceServer).Search(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: TargetService_Search_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TargetServiceServer).Search(ctx, req.(*SearchRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // TargetService_ServiceDesc is the grpc.ServiceDesc for TargetService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -300,10 +266,6 @@ var TargetService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "List",
 			Handler:    _TargetService_List_Handler,
-		},
-		{
-			MethodName: "Search",
-			Handler:    _TargetService_Search_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

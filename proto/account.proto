@@ -7,7 +7,6 @@ option go_package = "zxc/api/account;account";
 service AccountService {
   rpc Get(GetRequest) returns (GetResponse);
   rpc List(ListRequest) returns (ListResponse);
-  rpc Search(SearchRequest) returns (SearchResponse);
   rpc Disable(DisableRequest) returns (DisableResponse);
 }
 
@@ -35,18 +34,6 @@ message ListRequest {
 }
 
 message ListResponse {
-  repeated Account accounts = 1;
-  int32 total = 2;
-}
-
-message SearchRequest {
-  string tenant_id = 1;
-  string query = 2;
-  int32 page = 3;
-  int32 page_size = 4;
-}
-
-message SearchResponse {
   repeated Account accounts = 1;
   int32 total = 2;
 }

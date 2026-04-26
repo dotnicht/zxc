@@ -267,59 +267,6 @@ func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.Lis
 	return &target.ListResponse{Targets: out, Total: int32(total)}, nil
 }
 
-func (s *Target) Search(ctx context.Context, req *target.SearchRequest) (*target.SearchResponse, error) {
-	if req.Query == "" {
-		return nil, status.Error(codes.InvalidArgument, "search query is required")
-	}
-
-	page, pageSize := req.Page, req.PageSize
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
-	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "target.search", tenant, authz.Resource{Type: "target"}, authz.Related{}); err != nil {
-		return nil, err
-	}
-
-	pattern := "%" + req.Query + "%"
-	var total int64
-	if err := tenantDB.Model(&models.Target{}).Where("address ILIKE ?", pattern).Count(&total).Error; err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to count targets: %v", err)
-	}
-
-	var targets []*models.Target
-	offset := (int(page) - 1) * int(pageSize)
-	if err := tenantDB.Where("address ILIKE ?", pattern).Order("created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&targets).Error; err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to search targets: %v", err)
-	}
-
-	out := make([]*target.Target, len(targets))
-	for i, t := range targets {
-		d, err := authorize(ctx, "target.get", tenant, authz.Resource{
-			Type:    "target",
-			OwnerID: t.OwnerID,
-		}, authz.Related{})
-		if err != nil {
-			return nil, err
-		}
-		out[i] = s.targetToProto(t, d.RevealSecret)
-	}
-
-	return &target.SearchResponse{Targets: out, Total: int32(total)}, nil
-}
-
 func targetToProto(t *models.Target) *target.Target {
 	return &target.Target{
 		Id:        t.ID.String(),

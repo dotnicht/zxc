@@ -207,52 +207,6 @@ func (s *User) List(ctx context.Context, req *user.ListRequest) (*user.ListRespo
 	return &user.ListResponse{Users: out, Total: int32(total)}, nil
 }
 
-func (s *User) Search(ctx context.Context, req *user.SearchRequest) (*user.SearchResponse, error) {
-	if req.Query == "" {
-		return nil, status.Error(codes.InvalidArgument, "search query is required")
-	}
-
-	page, pageSize := req.Page, req.PageSize
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
-	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "user.search", tenant, authz.Resource{Type: "user"}, authz.Related{}); err != nil {
-		return nil, err
-	}
-
-	pattern := "%" + req.Query + "%"
-	var total int64
-	if err := tenantDB.Model(&models.User{}).Where("name ILIKE ?", pattern).Count(&total).Error; err != nil {
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to count users: %v", err))
-	}
-
-	var users []*models.User
-	offset := (int(page) - 1) * int(pageSize)
-	if err := tenantDB.Where("name ILIKE ?", pattern).Order("created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&users).Error; err != nil {
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to search users: %v", err))
-	}
-
-	out := make([]*user.User, len(users))
-	for i, u := range users {
-		out[i] = userToProto(u)
-	}
-
-	return &user.SearchResponse{Users: out, Total: int32(total)}, nil
-}
-
 func userToProto(m *models.User) *user.User {
 	return &user.User{
 		Id:        m.ID.String(),

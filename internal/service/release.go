@@ -243,51 +243,6 @@ func (s *Release) List(ctx context.Context, req *release.ListRequest) (*release.
 	return &release.ListResponse{Releases: out, Total: int32(total)}, nil
 }
 
-func (s *Release) Search(ctx context.Context, req *release.SearchRequest) (*release.SearchResponse, error) {
-	if req.Query == "" {
-		return nil, status.Error(codes.InvalidArgument, "search query is required")
-	}
-
-	page, pageSize := req.Page, req.PageSize
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
-	}
-
-	tenantID, err := parseID(req.TenantId, "tenant_id")
-	if err != nil {
-		return nil, err
-	}
-
-	tenant, tenantDB, err := resolve(ctx, s.cache, tenantID)
-	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "release.search", tenant, authz.Resource{Type: "release"}, authz.Related{}); err != nil {
-		return nil, err
-	}
-
-	var total int64
-	if err := tenantDB.Model(&models.Release{}).Where("status = ?", req.Query).Count(&total).Error; err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to count releases: %v", err)
-	}
-
-	var releases []*models.Release
-	offset := (int(page) - 1) * int(pageSize)
-	if err := tenantDB.Where("status = ?", req.Query).Order("created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&releases).Error; err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to search releases: %v", err)
-	}
-
-	out := make([]*release.Release, len(releases))
-	for i, r := range releases {
-		out[i] = releaseToProto(r)
-	}
-
-	return &release.SearchResponse{Releases: out, Total: int32(total)}, nil
-}
-
 func releaseToProto(r *models.Release) *release.Release {
 	p := &release.Release{
 		Id:          r.ID.String(),
