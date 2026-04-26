@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -145,31 +144,6 @@ func (w *DeployWorker) Work(ctx context.Context, job *workflow.Job[DeployRelease
 		})
 	if result.Error != nil {
 		return result.Error
-	}
-
-	if result.RowsAffected > 0 {
-		if err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-			return w.store.EnqueueCommand(ctx, tx, workflow.CommandInput{
-				Kind:          "release_health_timeout",
-				AggregateType: "release",
-				AggregateID:   release.ID,
-				Payload: ReleaseHealthTimeoutArgs{
-					TenantID:  job.Args.TenantID,
-					ReleaseID: release.ID,
-				},
-				RunAt:       time.Now().UTC().Add(2 * time.Minute),
-				MaxAttempts: 1,
-				DedupeKey:   "release-health:" + release.ID.String(),
-			})
-		}); err != nil {
-			revertErr := db.WithContext(ctx).Model(&models.Release{}).
-				Where("id = ? AND status = ?", release.ID, models.ReleaseDeployed).
-				Updates(map[string]any{
-					"status":        models.ReleaseWait,
-					"changed_by_id": job.Args.ChangedByID,
-				}).Error
-			return errors.Join(err, revertErr)
-		}
 	}
 
 	return nil
