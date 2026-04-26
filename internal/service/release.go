@@ -15,13 +15,6 @@ import (
 	"zxc/internal/workflow"
 )
 
-var validReleaseStatuses = map[string]bool{
-	models.ReleaseUnknown:  true,
-	models.ReleaseWait:     true,
-	models.ReleaseDeployed: true,
-	models.ReleaseDead:     true,
-	models.ReleaseAlive:    true,
-}
 
 type Release struct {
 	release.UnimplementedReleaseServiceServer
