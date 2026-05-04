@@ -25,13 +25,13 @@ func NewAccount() *Account {
 func (s *Account) Get(ctx context.Context, req *account.GetRequest) (*account.GetResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	_, tenantDB, err := ctxAccountDB(ctx)
+	_, db, err := ctxAccountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var a models.Profile
-	if err := tenantDB.First(&a, "id = ?", id).Error; err != nil {
+	if err := db.First(&a, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "account not found")
 		}
@@ -42,27 +42,27 @@ func (s *Account) Get(ctx context.Context, req *account.GetRequest) (*account.Ge
 }
 
 func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.ListResponse, error) {
-	page, pageSize := req.Page, req.PageSize
+	page, size := req.Page, req.PageSize
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
+	if size < 1 || size > 100 {
+		size = 10
 	}
 
-	_, tenantDB, err := ctxAccountDB(ctx)
+	_, db, err := ctxAccountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var total int64
-	if err := tenantDB.Model(&models.Profile{}).Count(&total).Error; err != nil {
+	if err := db.Model(&models.Profile{}).Count(&total).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to count accounts: %v", err)
 	}
 
 	var profiles []*models.Profile
-	offset := (int(page) - 1) * int(pageSize)
-	if err := tenantDB.Order("created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&profiles).Error; err != nil {
+	offset := (int(page) - 1) * int(size)
+	if err := db.Order("created_at DESC").Limit(int(size)).Offset(offset).Find(&profiles).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list accounts: %v", err)
 	}
 
@@ -77,20 +77,20 @@ func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.
 func (s *Account) Disable(ctx context.Context, req *account.DisableRequest) (*account.DisableResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	_, tenantDB, err := ctxAccountDB(ctx)
+	_, db, err := ctxAccountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var current models.Profile
-	if err := tenantDB.First(&current, "id = ?", id).Error; err != nil {
+	if err := db.First(&current, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "account not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load account: %v", err)
 	}
 
-	if err := tenantDB.Model(&models.Profile{}).
+	if err := db.Model(&models.Profile{}).
 		Where("id = ? AND status <> ? AND deleted_at IS NULL", id, models.ProfileDisabled).
 		Updates(map[string]any{
 			"status":     models.ProfileDisabled,
@@ -113,9 +113,9 @@ func profileToProto(a *models.Profile) *account.Account {
 	}
 }
 
-func loadProfile(ctx context.Context, tenantDB *gorm.DB, profileID uuid.UUID) (*models.Profile, error) {
+func loadProfile(ctx context.Context, db *gorm.DB, profileID uuid.UUID) (*models.Profile, error) {
 	var p models.Profile
-	if err := tenantDB.First(&p, "id = ?", profileID).Error; err != nil {
+	if err := db.First(&p, "id = ?", profileID).Error; err != nil {
 		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "account not found")
 		}

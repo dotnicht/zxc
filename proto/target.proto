@@ -26,11 +26,10 @@ message Target {
 }
 
 message CreateRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
-  string address = 3;
-  string user = 4;
-  string key = 5;
+  string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string address = 2;
+  string user = 3;
+  string key = 4;
 }
 
 message CreateResponse {
@@ -38,8 +37,7 @@ message CreateResponse {
 }
 
 message GetRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  string id = 2 [(buf.validate.field).string.uuid = true];
+  string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message GetResponse {
@@ -47,11 +45,10 @@ message GetResponse {
 }
 
 message UpdateRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  string id = 2 [(buf.validate.field).string.uuid = true];
-  string address = 3;
-  string user = 4;
-  string key = 5;
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string address = 2;
+  string user = 3;
+  string key = 4;
 }
 
 message UpdateResponse {
@@ -59,8 +56,7 @@ message UpdateResponse {
 }
 
 message DeleteRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  string id = 2 [(buf.validate.field).string.uuid = true];
+  string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message DeleteResponse {
@@ -68,9 +64,8 @@ message DeleteResponse {
 }
 
 message ListRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  int32 page = 2;
-  int32 page_size = 3;
+  int32 page = 1;
+  int32 page_size = 2;
 }
 
 message ListResponse {

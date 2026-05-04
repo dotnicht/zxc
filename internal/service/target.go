@@ -33,17 +33,17 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 		return nil, err
 	}
 
-	tenant, tenantDB, err := ctxDeployDB(ctx)
+	tenant, db, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	t := &models.Target{Address: req.Address, User: req.User, Key: req.Key, OwnerID: authUserID}
-	if err := tenantDB.Create(t).Error; err != nil {
+	if err := db.Create(t).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create target: %v", err)
 	}
 	if err := s.enqueueProbe(ctx, tenant.ID, t.ID); err != nil {
-		cleanupErr := tenantDB.Unscoped().Delete(&models.Target{}, "id = ?", t.ID).Error
+		cleanupErr := db.Unscoped().Delete(&models.Target{}, "id = ?", t.ID).Error
 		return nil, status.Errorf(codes.Internal, "failed to persist target creation: %v", errors.Join(err, cleanupErr))
 	}
 
@@ -53,13 +53,13 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	_, tenantDB, err := ctxDeployDB(ctx)
+	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var t models.Target
-	if err := tenantDB.First(&t, "id = ?", id).Error; err != nil {
+	if err := db.First(&t, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "target not found")
 		}
@@ -76,20 +76,20 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		return nil, status.Error(codes.InvalidArgument, "address is required")
 	}
 
-	tenant, tenantDB, err := ctxDeployDB(ctx)
+	tenant, db, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var previous models.Target
-	if err := tenantDB.First(&previous, "id = ?", id).Error; err != nil {
+	if err := db.First(&previous, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "target not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load previous target state: %v", err)
 	}
 
-	result := tenantDB.Model(&models.Target{}).Where("id = ?", id).Updates(&models.Target{Address: req.Address, User: req.User, Key: req.Key})
+	result := db.Model(&models.Target{}).Where("id = ?", id).Updates(&models.Target{Address: req.Address, User: req.User, Key: req.Key})
 	if result.Error != nil {
 		return nil, status.Errorf(codes.Internal, "failed to update target: %v", result.Error)
 	}
@@ -98,11 +98,11 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 	}
 
 	var updated models.Target
-	if err := tenantDB.First(&updated, "id = ?", id).Error; err != nil {
+	if err := db.First(&updated, "id = ?", id).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated target: %v", err)
 	}
 	if err := s.enqueueProbe(ctx, tenant.ID, updated.ID); err != nil {
-		revertErr := tenantDB.Model(&models.Target{}).Where("id = ?", id).Updates(map[string]any{
+		revertErr := db.Model(&models.Target{}).Where("id = ?", id).Updates(map[string]any{
 			"address":      previous.Address,
 			"user":         previous.User,
 			"key":          previous.Key,
@@ -120,20 +120,20 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target.DeleteResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	_, tenantDB, err := ctxDeployDB(ctx)
+	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var existing models.Target
-	if err := tenantDB.First(&existing, "id = ?", id).Error; err != nil {
+	if err := db.First(&existing, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "target not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load target: %v", err)
 	}
 
-	result := tenantDB.Where("id = ?", id).Delete(&models.Target{})
+	result := db.Where("id = ?", id).Delete(&models.Target{})
 	if result.Error != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete target: %v", result.Error)
 	}
@@ -145,27 +145,27 @@ func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target
 }
 
 func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.ListResponse, error) {
-	page, pageSize := req.Page, req.PageSize
+	page, size := req.Page, req.PageSize
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
+	if size < 1 || size > 100 {
+		size = 10
 	}
 
-	_, tenantDB, err := ctxDeployDB(ctx)
+	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var total int64
-	if err := tenantDB.Model(&models.Target{}).Count(&total).Error; err != nil {
+	if err := db.Model(&models.Target{}).Count(&total).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to count targets: %v", err)
 	}
 
 	var targets []*models.Target
-	offset := (int(page) - 1) * int(pageSize)
-	if err := tenantDB.Order("created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&targets).Error; err != nil {
+	offset := (int(page) - 1) * int(size)
+	if err := db.Order("created_at DESC").Limit(int(size)).Offset(offset).Find(&targets).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list targets: %v", err)
 	}
 

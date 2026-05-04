@@ -89,8 +89,8 @@ func (c *StorageClient) BucketConnectionString(bucketName string) string {
 	return fmt.Sprintf("%s://%s:%s@%s/%s", scheme, c.cfg.AccessKey, c.cfg.SecretKey, c.cfg.Endpoint, bucketName)
 }
 
-func ParseStorageConnectionString(connStr string) (StorageConfig, string, string, error) {
-	u, err := url.Parse(connStr)
+func ParseStorageConnectionString(dsn string) (StorageConfig, string, string, error) {
+	u, err := url.Parse(dsn)
 	if err != nil {
 		return StorageConfig{}, "", "", fmt.Errorf("invalid storage connection string: %w", err)
 	}
@@ -115,8 +115,8 @@ func ParseStorageConnectionString(connStr string) (StorageConfig, string, string
 	return cfg, bucketName, objectPrefix, nil
 }
 
-func StorageClientFromConnectionString(connStr string) (*StorageClient, string, error) {
-	cfg, bucketName, objectPrefix, err := ParseStorageConnectionString(connStr)
+func StorageClientFromConnectionString(dsn string) (*StorageClient, string, error) {
+	cfg, bucketName, objectPrefix, err := ParseStorageConnectionString(dsn)
 	if err != nil {
 		return nil, "", err
 	}
@@ -202,13 +202,13 @@ func StorageBucketName(tenantName string) string {
 			result.WriteRune('-')
 		}
 	}
-	name := strings.Trim(result.String(), "-")
-	if len(name) < 3 {
-		name = name + "---"
-		name = name[:3]
+	n := strings.Trim(result.String(), "-")
+	if len(n) < 3 {
+		n = n + "---"
+		n = n[:3]
 	}
-	if len(name) > 63 {
-		name = name[:63]
+	if len(n) > 63 {
+		n = n[:63]
 	}
-	return name
+	return n
 }

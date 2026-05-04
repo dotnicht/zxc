@@ -132,13 +132,12 @@ func (x *Payload) GetName() string {
 
 type CreateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	OwnerId       string                 `protobuf:"bytes,2,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
-	Content       []byte                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
-	Start         string                 `protobuf:"bytes,4,opt,name=start,proto3" json:"start,omitempty"`
-	Stop          string                 `protobuf:"bytes,5,opt,name=stop,proto3" json:"stop,omitempty"`
-	Config        string                 `protobuf:"bytes,6,opt,name=config,proto3" json:"config,omitempty"`
-	Name          string                 `protobuf:"bytes,7,opt,name=name,proto3" json:"name,omitempty"`
+	OwnerId       string                 `protobuf:"bytes,1,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	Content       []byte                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	Start         string                 `protobuf:"bytes,3,opt,name=start,proto3" json:"start,omitempty"`
+	Stop          string                 `protobuf:"bytes,4,opt,name=stop,proto3" json:"stop,omitempty"`
+	Config        string                 `protobuf:"bytes,5,opt,name=config,proto3" json:"config,omitempty"`
+	Name          string                 `protobuf:"bytes,6,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -171,13 +170,6 @@ func (x *CreateRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CreateRequest.ProtoReflect.Descriptor instead.
 func (*CreateRequest) Descriptor() ([]byte, []int) {
 	return file_payload_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *CreateRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
 }
 
 func (x *CreateRequest) GetOwnerId() string {
@@ -268,8 +260,7 @@ func (x *CreateResponse) GetPayload() *Payload {
 
 type GetRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -302,13 +293,6 @@ func (x *GetRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetRequest.ProtoReflect.Descriptor instead.
 func (*GetRequest) Descriptor() ([]byte, []int) {
 	return file_payload_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *GetRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
 }
 
 func (x *GetRequest) GetId() string {
@@ -364,12 +348,11 @@ func (x *GetResponse) GetPayload() *Payload {
 
 type UpdateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
-	Path          string                 `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
-	Start         string                 `protobuf:"bytes,4,opt,name=start,proto3" json:"start,omitempty"`
-	Stop          string                 `protobuf:"bytes,5,opt,name=stop,proto3" json:"stop,omitempty"`
-	Config        string                 `protobuf:"bytes,6,opt,name=config,proto3" json:"config,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	Start         string                 `protobuf:"bytes,3,opt,name=start,proto3" json:"start,omitempty"`
+	Stop          string                 `protobuf:"bytes,4,opt,name=stop,proto3" json:"stop,omitempty"`
+	Config        string                 `protobuf:"bytes,5,opt,name=config,proto3" json:"config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -402,13 +385,6 @@ func (x *UpdateRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use UpdateRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRequest) Descriptor() ([]byte, []int) {
 	return file_payload_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *UpdateRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
 }
 
 func (x *UpdateRequest) GetId() string {
@@ -492,8 +468,7 @@ func (x *UpdateResponse) GetPayload() *Payload {
 
 type DeleteRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -526,13 +501,6 @@ func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DeleteRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRequest) Descriptor() ([]byte, []int) {
 	return file_payload_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *DeleteRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
 }
 
 func (x *DeleteRequest) GetId() string {
@@ -588,9 +556,8 @@ func (x *DeleteResponse) GetSuccess() bool {
 
 type ListRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -623,13 +590,6 @@ func (x *ListRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListRequest.ProtoReflect.Descriptor instead.
 func (*ListRequest) Descriptor() ([]byte, []int) {
 	return file_payload_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *ListRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
 }
 
 func (x *ListRequest) GetPage() int32 {
@@ -714,41 +674,36 @@ const file_payload_proto_rawDesc = "" +
 	"\x05start\x18\x06 \x01(\tR\x05start\x12\x12\n" +
 	"\x04stop\x18\a \x01(\tR\x04stop\x12\x16\n" +
 	"\x06config\x18\b \x01(\tR\x06config\x12\x12\n" +
-	"\x04name\x18\t \x01(\tR\x04name\"\xce\x01\n" +
-	"\rCreateRequest\x12%\n" +
-	"\ttenant_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btenantId\x12&\n" +
-	"\bowner_id\x18\x02 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\aownerId\x12\x18\n" +
-	"\acontent\x18\x03 \x01(\fR\acontent\x12\x14\n" +
-	"\x05start\x18\x04 \x01(\tR\x05start\x12\x12\n" +
-	"\x04stop\x18\x05 \x01(\tR\x04stop\x12\x16\n" +
-	"\x06config\x18\x06 \x01(\tR\x06config\x12\x12\n" +
-	"\x04name\x18\a \x01(\tR\x04name\"<\n" +
+	"\x04name\x18\t \x01(\tR\x04name\"\xa7\x01\n" +
+	"\rCreateRequest\x12&\n" +
+	"\bowner_id\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\aownerId\x12\x18\n" +
+	"\acontent\x18\x02 \x01(\fR\acontent\x12\x14\n" +
+	"\x05start\x18\x03 \x01(\tR\x05start\x12\x12\n" +
+	"\x04stop\x18\x04 \x01(\tR\x04stop\x12\x16\n" +
+	"\x06config\x18\x05 \x01(\tR\x06config\x12\x12\n" +
+	"\x04name\x18\x06 \x01(\tR\x04name\"<\n" +
 	"\x0eCreateResponse\x12*\n" +
-	"\apayload\x18\x01 \x01(\v2\x10.payload.PayloadR\apayload\"M\n" +
+	"\apayload\x18\x01 \x01(\v2\x10.payload.PayloadR\apayload\"&\n" +
 	"\n" +
-	"GetRequest\x12%\n" +
-	"\ttenant_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btenantId\x12\x18\n" +
-	"\x02id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"9\n" +
+	"GetRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"9\n" +
 	"\vGetResponse\x12*\n" +
-	"\apayload\x18\x01 \x01(\v2\x10.payload.PayloadR\apayload\"\xa6\x01\n" +
-	"\rUpdateRequest\x12%\n" +
-	"\ttenant_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btenantId\x12\x18\n" +
-	"\x02id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12\x12\n" +
-	"\x04path\x18\x03 \x01(\tR\x04path\x12\x14\n" +
-	"\x05start\x18\x04 \x01(\tR\x05start\x12\x12\n" +
-	"\x04stop\x18\x05 \x01(\tR\x04stop\x12\x16\n" +
-	"\x06config\x18\x06 \x01(\tR\x06config\"<\n" +
+	"\apayload\x18\x01 \x01(\v2\x10.payload.PayloadR\apayload\"\x7f\n" +
+	"\rUpdateRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12\x12\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\x12\x14\n" +
+	"\x05start\x18\x03 \x01(\tR\x05start\x12\x12\n" +
+	"\x04stop\x18\x04 \x01(\tR\x04stop\x12\x16\n" +
+	"\x06config\x18\x05 \x01(\tR\x06config\"<\n" +
 	"\x0eUpdateResponse\x12*\n" +
-	"\apayload\x18\x01 \x01(\v2\x10.payload.PayloadR\apayload\"P\n" +
-	"\rDeleteRequest\x12%\n" +
-	"\ttenant_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btenantId\x12\x18\n" +
-	"\x02id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"*\n" +
+	"\apayload\x18\x01 \x01(\v2\x10.payload.PayloadR\apayload\")\n" +
+	"\rDeleteRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"*\n" +
 	"\x0eDeleteResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"e\n" +
-	"\vListRequest\x12%\n" +
-	"\ttenant_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btenantId\x12\x12\n" +
-	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"R\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\">\n" +
+	"\vListRequest\x12\x12\n" +
+	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"R\n" +
 	"\fListResponse\x12,\n" +
 	"\bpayloads\x18\x01 \x03(\v2\x10.payload.PayloadR\bpayloads\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total2\xa8\x02\n" +

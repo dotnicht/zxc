@@ -75,11 +75,11 @@ func effectiveTenantName() (string, error) {
 }
 
 func tenantCtx(ctx context.Context) (context.Context, string, error) {
-	tenantName, err := effectiveTenantName()
+	name, err := effectiveTenantName()
 	if err != nil {
 		return nil, "", err
 	}
-	tenantID, err := resolveTenant(ctx, tenantName)
+	tenantID, err := resolveTenant(ctx, name)
 	if err != nil {
 		return nil, "", err
 	}

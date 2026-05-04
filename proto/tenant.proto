@@ -9,7 +9,6 @@ option go_package = "zxc/api/tenant;tenant";
 service TenantService {
   rpc Create(CreateRequest) returns (CreateResponse);
   rpc Get(GetRequest) returns (GetResponse);
-  rpc Update(UpdateRequest) returns (UpdateResponse);
   rpc List(ListRequest) returns (ListResponse);
 }
 
@@ -42,20 +41,6 @@ message GetRequest {
 }
 
 message GetResponse {
-  Tenant tenant = 1;
-}
-
-message UpdateRequest {
-  string id = 1 [(buf.validate.field).string.uuid = true];
-  string name = 2;
-  string database = 3;
-  string storage = 4;
-  string owner_id = 5 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
-  string deploy = 6;
-  string account = 7;
-}
-
-message UpdateResponse {
   Tenant tenant = 1;
 }
 

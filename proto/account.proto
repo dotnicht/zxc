@@ -21,8 +21,7 @@ message Account {
 }
 
 message GetRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  string id = 2 [(buf.validate.field).string.uuid = true];
+  string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message GetResponse {
@@ -30,9 +29,8 @@ message GetResponse {
 }
 
 message ListRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  int32 page = 2;
-  int32 page_size = 3;
+  int32 page = 1;
+  int32 page_size = 2;
 }
 
 message ListResponse {
@@ -41,8 +39,7 @@ message ListResponse {
 }
 
 message DisableRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  string id = 2 [(buf.validate.field).string.uuid = true];
+  string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message DisableResponse {

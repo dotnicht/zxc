@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"time"
-
 	_ "github.com/lib/pq"
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
@@ -65,18 +63,18 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 		return nil, status.Error(codes.AlreadyExists, "tenant with this name already exists")
 	}
 
-	usersConnStr := s.usersConnStr(req.Name)
-	deployConnStr := s.deployConnStr(req.Name)
-	accountConnStr := s.accountConnStr(req.Name)
+	mainDSN := s.mainDSN(req.Name)
+	deployDSN := s.deployDSN(req.Name)
+	accountDSN := s.accountDSN(req.Name)
 
 	if req.Database != "" {
-		usersConnStr = req.Database
+		mainDSN = req.Database
 	}
 	if req.Deploy != "" {
-		deployConnStr = req.Deploy
+		deployDSN = req.Deploy
 	}
 	if req.Account != "" {
-		accountConnStr = req.Account
+		accountDSN = req.Account
 	}
 
 	storageStr := req.Storage
@@ -93,9 +91,9 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 
 	t := &models.Tenant{
 		Name:            req.Name,
-		UsersDatabase:   usersConnStr,
-		DeployDatabase:  deployConnStr,
-		AccountDatabase: accountConnStr,
+		MainDatabase:    mainDSN,
+		DeployDatabase:  deployDSN,
+		AccountDatabase: accountDSN,
 		Storage:         storageStr,
 		OwnerID:         s.root.ID,
 	}
@@ -112,7 +110,7 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 		customDSN string
 		suffix    string
 	}{
-		{req.Database, "_users"},
+		{req.Database, "_main"},
 		{req.Deploy, "_deploy"},
 		{req.Account, "_account"},
 	} {
@@ -126,21 +124,21 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 	}
 
 	for _, m := range []struct {
-		connStr string
-		fn      func(*gorm.DB) error
-		label   string
+		dsn   string
+		fn    func(*gorm.DB) error
+		label string
 	}{
-		{usersConnStr, infra.RunUsersMigrations, "users"},
-		{deployConnStr, infra.RunDeployMigrations, "deploy"},
-		{accountConnStr, infra.RunAccountMigrations, "account"},
+		{mainDSN, infra.RunMainMigrations, "main"},
+		{deployDSN, infra.RunDeployMigrations, "deploy"},
+		{accountDSN, infra.RunAccountMigrations, "account"},
 	} {
-		if err := s.runMigrationsOn(m.connStr, m.fn); err != nil {
+		if err := s.runMigrationsOn(m.dsn, m.fn); err != nil {
 			s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
 			return nil, status.Errorf(codes.Internal, "failed to run %s migrations: %v", m.label, err)
 		}
 	}
 
-	if err := s.seedTenantOwner(usersConnStr, s.root); err != nil {
+	if err := s.seedTenantOwner(mainDSN, s.root); err != nil {
 		s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
 		return nil, status.Errorf(codes.Internal, "failed to seed tenant owner: %v", err)
 	}
@@ -162,58 +160,14 @@ func (s *Tenant) Get(ctx context.Context, req *tenant.GetRequest) (*tenant.GetRe
 	return &tenant.GetResponse{Tenant: s.modelToProto(&t)}, nil
 }
 
-func (s *Tenant) Update(ctx context.Context, req *tenant.UpdateRequest) (*tenant.UpdateResponse, error) {
-	id := uuid.MustParse(req.Id)
-
-	var t models.Tenant
-	if err := s.db.First(&t, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Error(codes.NotFound, "tenant not found")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to get tenant: %v", err)
-	}
-
-	if req.Name != "" {
-		if err := validateTenantName(req.Name); err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "invalid tenant name: %v", err)
-		}
-		t.Name = req.Name
-	}
-	if req.Database != "" {
-		t.UsersDatabase = req.Database
-	}
-	if req.Deploy != "" {
-		t.DeployDatabase = req.Deploy
-	}
-	if req.Account != "" {
-		t.AccountDatabase = req.Account
-	}
-	if req.Storage != "" {
-		t.Storage = req.Storage
-	}
-	if req.OwnerId != "" {
-		t.OwnerID = uuid.MustParse(req.OwnerId)
-	}
-
-	t.UpdatedAt = time.Now().UTC()
-	if err := s.db.Save(&t).Error; err != nil {
-		if strings.Contains(err.Error(), "duplicate key") {
-			return nil, status.Error(codes.AlreadyExists, "tenant with this name already exists")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to update tenant: %v", err)
-	}
-
-	return &tenant.UpdateResponse{Tenant: s.modelToProto(&t)}, nil
-}
-
 func (s *Tenant) List(ctx context.Context, req *tenant.ListRequest) (*tenant.ListResponse, error) {
 	page := int(req.Page)
-	pageSize := int(req.PageSize)
+	size := int(req.PageSize)
 	if page <= 0 {
 		page = 1
 	}
-	if pageSize <= 0 {
-		pageSize = 10
+	if size <= 0 {
+		size = 10
 	}
 
 	var total int64
@@ -222,8 +176,8 @@ func (s *Tenant) List(ctx context.Context, req *tenant.ListRequest) (*tenant.Lis
 	}
 
 	var tenants []*models.Tenant
-	offset := (page - 1) * pageSize
-	if err := s.db.Order("created_at DESC").Limit(pageSize).Offset(offset).Find(&tenants).Error; err != nil {
+	offset := (page - 1) * size
+	if err := s.db.Order("created_at DESC").Limit(size).Offset(offset).Find(&tenants).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list tenants: %v", err)
 	}
 
@@ -235,24 +189,24 @@ func (s *Tenant) List(ctx context.Context, req *tenant.ListRequest) (*tenant.Lis
 	return &tenant.ListResponse{Tenants: out, Total: int32(total)}, nil
 }
 
-func (s *Tenant) usersConnStr(tenantName string) string {
-	return s.connStrWithSuffix(tenantName, "_users")
+func (s *Tenant) mainDSN(name string) string {
+	return s.dsnWithSuffix(name, "_main")
 }
 
-func (s *Tenant) deployConnStr(tenantName string) string {
-	return s.connStrWithSuffix(tenantName, "_deploy")
+func (s *Tenant) deployDSN(name string) string {
+	return s.dsnWithSuffix(name, "_deploy")
 }
 
-func (s *Tenant) accountConnStr(tenantName string) string {
-	return s.connStrWithSuffix(tenantName, "_account")
+func (s *Tenant) accountDSN(name string) string {
+	return s.dsnWithSuffix(name, "_account")
 }
 
-func (s *Tenant) connStrWithSuffix(tenantName, suffix string) string {
+func (s *Tenant) dsnWithSuffix(name, suffix string) string {
 	u, err := url.Parse(s.cfg.Database)
 	if err != nil {
 		return s.cfg.Database
 	}
-	u.Path = "/" + sanitizeDatabaseName(tenantName) + suffix
+	u.Path = "/" + sanitizeDatabaseName(name) + suffix
 	return u.String()
 }
 
@@ -272,27 +226,27 @@ func (s *Tenant) createTenantDatabase(dbName string) error {
 	}
 	defer sqlDB.Close()
 
-	safeName := sanitizeDatabaseName(dbName)
-	_, err = sqlDB.Exec(fmt.Sprintf(`CREATE DATABASE "%s"`, safeName))
+	name := sanitizeDatabaseName(dbName)
+	_, err = sqlDB.Exec(fmt.Sprintf(`CREATE DATABASE "%s"`, name))
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
-			return fmt.Errorf("database %s already exists", safeName)
+			return fmt.Errorf("database %s already exists", name)
 		}
 		return fmt.Errorf("failed to create database: %w", err)
 	}
 	return nil
 }
 
-func (s *Tenant) runMigrationsOn(connStr string, migrate func(*gorm.DB) error) error {
-	db, err := infra.NewConnection(connStr)
+func (s *Tenant) runMigrationsOn(dsn string, migrate func(*gorm.DB) error) error {
+	db, err := infra.NewConnection(dsn)
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
 	}
 	return migrate(db)
 }
 
-func (s *Tenant) seedTenantOwner(connStr string, owner *models.User) error {
-	sqldb := gosql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(connStr)))
+func (s *Tenant) seedTenantOwner(dsn string, owner *models.User) error {
+	sqldb := gosql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 	defer sqldb.Close()
 	db := bun.NewDB(sqldb, pgdialect.New())
 	u := &models.User{ID: owner.ID, Name: owner.Name}
@@ -304,15 +258,15 @@ func (s *Tenant) seedTenantOwner(connStr string, owner *models.User) error {
 
 func (s *Tenant) modelToProto(m *models.Tenant) *tenant.Tenant {
 	return &tenant.Tenant{
-		Id:              m.ID.String(),
-		Name:            m.Name,
-		Database: m.UsersDatabase,
+		Id:       m.ID.String(),
+		Name:     m.Name,
+		Database: m.MainDatabase,
 		Deploy:   m.DeployDatabase,
 		Account:  m.AccountDatabase,
-		Storage:         m.Storage,
-		OwnerId:         m.OwnerID.String(),
-		CreatedAt:       m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:       m.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		Storage:  m.Storage,
+		OwnerId:  m.OwnerID.String(),
+		CreatedAt: m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt: m.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }
 

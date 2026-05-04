@@ -30,7 +30,7 @@ func payloadAddCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, userID, err := tenantOwnerCtx(ctx)
+			authContext, _, userID, err := tenantOwnerCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -39,13 +39,12 @@ func payloadAddCmd() *cobra.Command {
 				return fmt.Errorf("read file %s: %w", file, err)
 			}
 			resp, err := st.payload.Create(authContext, &payload.CreateRequest{
-				TenantId: tenantID,
-				OwnerId:  userID,
-				Content:  content,
-				Name:     filepath.Base(file),
-				Config:   config,
-				Start:    start,
-				Stop:     stop,
+				OwnerId: userID,
+				Content: content,
+				Name:    filepath.Base(file),
+				Config:  config,
+				Start:   start,
+				Stop:    stop,
 			})
 			if err != nil {
 				return err
@@ -73,11 +72,11 @@ func payloadGetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
-			resp, err := st.payload.Get(authContext, &payload.GetRequest{TenantId: tenantID, Id: id})
+			resp, err := st.payload.Get(authContext, &payload.GetRequest{Id: id})
 			if err != nil {
 				return err
 			}
@@ -98,11 +97,11 @@ func payloadListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
-			resp, err := st.payload.List(authContext, &payload.ListRequest{TenantId: tenantID, Page: page, PageSize: size})
+			resp, err := st.payload.List(authContext, &payload.ListRequest{Page: page, PageSize: size})
 			if err != nil {
 				return err
 			}
@@ -128,17 +127,16 @@ func payloadUpdateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
 			resp, err := st.payload.Update(authContext, &payload.UpdateRequest{
-				TenantId: tenantID,
-				Id:       id,
-				Path:     path,
-				Config:   config,
-				Start:    start,
-				Stop:     stop,
+				Id:     id,
+				Path:   path,
+				Config: config,
+				Start:  start,
+				Stop:   stop,
 			})
 			if err != nil {
 				return err
@@ -177,11 +175,11 @@ func payloadDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
-			_, err = st.payload.Delete(authContext, &payload.DeleteRequest{TenantId: tenantID, Id: id})
+			_, err = st.payload.Delete(authContext, &payload.DeleteRequest{Id: id})
 			if err != nil {
 				return err
 			}

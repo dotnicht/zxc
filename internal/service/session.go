@@ -40,12 +40,12 @@ func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*sess
 		return nil, err
 	}
 
-	_, tenantDB, err := ctxAccountDB(ctx)
+	_, db, err := ctxAccountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	profile, err := loadProfile(ctx, tenantDB, profileID)
+	profile, err := loadProfile(ctx, db, profileID)
 	if err != nil {
 		return nil, err
 	}
@@ -54,18 +54,18 @@ func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*sess
 		ProfileID: profileID,
 		Status:    req.Status,
 	}
-	if err := tenantDB.Create(record).Error; err != nil {
+	if err := db.Create(record).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create session: %v", err)
 	}
 	if profile.Status == models.ProfileUnknown {
-		result := tenantDB.Model(&models.Profile{}).
+		result := db.Model(&models.Profile{}).
 			Where("id = ? AND status = ? AND deleted_at IS NULL", profileID, models.ProfileUnknown).
 			Updates(map[string]any{
 				"status":     models.ProfileActive,
 				"updated_at": time.Now().UTC(),
 			})
 		if result.Error != nil {
-			cleanupErr := tenantDB.Unscoped().Delete(&models.Session{}, "id = ?", record.ID).Error
+			cleanupErr := db.Unscoped().Delete(&models.Session{}, "id = ?", record.ID).Error
 			return nil, status.Errorf(codes.Internal, "failed to activate account: %v", errors.Join(result.Error, cleanupErr))
 		}
 	}
@@ -76,13 +76,13 @@ func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*sess
 func (s *Session) Get(ctx context.Context, req *session.GetRequest) (*session.GetResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	_, tenantDB, err := ctxAccountDB(ctx)
+	_, db, err := ctxAccountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var record models.Session
-	if err := tenantDB.First(&record, "id = ?", id).Error; err != nil {
+	if err := db.First(&record, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "session not found")
 		}
@@ -99,24 +99,24 @@ func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*sess
 		return nil, err
 	}
 
-	_, tenantDB, err := ctxAccountDB(ctx)
+	_, db, err := ctxAccountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := loadProfile(ctx, tenantDB, profileID); err != nil {
+	if _, err := loadProfile(ctx, db, profileID); err != nil {
 		return nil, err
 	}
 
 	var previous models.Session
-	if err := tenantDB.First(&previous, "id = ?", id).Error; err != nil {
+	if err := db.First(&previous, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "session not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load session: %v", err)
 	}
 
-	result := tenantDB.Model(&models.Session{}).Where("id = ? AND deleted_at IS NULL", id).
+	result := db.Model(&models.Session{}).Where("id = ? AND deleted_at IS NULL", id).
 		Updates(map[string]any{
 			"profile_id": profileID,
 			"status":     req.Status,
@@ -130,7 +130,7 @@ func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*sess
 	}
 
 	var updated models.Session
-	if err := tenantDB.First(&updated, "id = ?", id).Error; err != nil {
+	if err := db.First(&updated, "id = ?", id).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated session: %v", err)
 	}
 
@@ -140,20 +140,20 @@ func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*sess
 func (s *Session) Delete(ctx context.Context, req *session.DeleteRequest) (*session.DeleteResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	_, tenantDB, err := ctxAccountDB(ctx)
+	_, db, err := ctxAccountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var current models.Session
-	if err := tenantDB.First(&current, "id = ?", id).Error; err != nil {
+	if err := db.First(&current, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "session not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load session: %v", err)
 	}
 
-	result := tenantDB.Where("id = ?", id).Delete(&models.Session{})
+	result := db.Where("id = ?", id).Delete(&models.Session{})
 	if result.Error != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete session: %v", result.Error)
 	}
@@ -165,27 +165,27 @@ func (s *Session) Delete(ctx context.Context, req *session.DeleteRequest) (*sess
 }
 
 func (s *Session) List(ctx context.Context, req *session.ListRequest) (*session.ListResponse, error) {
-	page, pageSize := req.Page, req.PageSize
+	page, size := req.Page, req.PageSize
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
+	if size < 1 || size > 100 {
+		size = 10
 	}
 
-	_, tenantDB, err := ctxAccountDB(ctx)
+	_, db, err := ctxAccountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var total int64
-	if err := tenantDB.Model(&models.Session{}).Count(&total).Error; err != nil {
+	if err := db.Model(&models.Session{}).Count(&total).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to count sessions: %v", err)
 	}
 
 	var records []*models.Session
-	offset := (int(page) - 1) * int(pageSize)
-	if err := tenantDB.Order("created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&records).Error; err != nil {
+	offset := (int(page) - 1) * int(size)
+	if err := db.Order("created_at DESC").Limit(int(size)).Offset(offset).Find(&records).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list sessions: %v", err)
 	}
 

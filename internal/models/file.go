@@ -9,7 +9,9 @@ import (
 
 type File struct {
 	ID        uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	UserID    uuid.UUID      `gorm:"type:uuid;not null"`
+	TalkID    uuid.UUID      `gorm:"type:uuid;not null"`
+	ProfileID uuid.UUID      `gorm:"type:uuid;not null"`
+	Name      string         `gorm:"type:varchar(255);not null;default:''"`
 	CreatedAt time.Time      `gorm:"not null;default:now()"`
 	UpdatedAt time.Time      `gorm:"not null;default:now()"`
 	DeletedAt gorm.DeletedAt `gorm:"index"`

@@ -26,13 +26,13 @@ func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.Creat
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	_, tenantDB, err := ctxUsersDB(ctx)
+	_, db, err := ctxUsersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	u := &models.User{Name: req.Name}
-	if err := tenantDB.Create(u).Error; err != nil {
+	if err := db.Create(u).Error; err != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create user: %v", err))
 	}
 
@@ -42,13 +42,13 @@ func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.Creat
 func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse, error) {
 	uid := uuid.MustParse(req.Id)
 
-	_, tenantDB, err := ctxUsersDB(ctx)
+	_, db, err := ctxUsersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var u models.User
-	if err := tenantDB.First(&u, "id = ?", uid).Error; err != nil {
+	if err := db.First(&u, "id = ?", uid).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
@@ -65,20 +65,20 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	_, tenantDB, err := ctxUsersDB(ctx)
+	_, db, err := ctxUsersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var current models.User
-	if err := tenantDB.First(&current, "id = ?", uid).Error; err != nil {
+	if err := db.First(&current, "id = ?", uid).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to load user: %v", err))
 	}
 
-	result := tenantDB.Model(&models.User{}).Where("id = ?", uid).Updates(&models.User{Name: req.Name})
+	result := db.Model(&models.User{}).Where("id = ?", uid).Updates(&models.User{Name: req.Name})
 	if result.Error != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to update user: %v", result.Error))
 	}
@@ -87,7 +87,7 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 	}
 
 	var updated models.User
-	if err := tenantDB.First(&updated, "id = ?", uid).Error; err != nil {
+	if err := db.First(&updated, "id = ?", uid).Error; err != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to fetch updated user: %v", err))
 	}
 
@@ -97,12 +97,12 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 func (s *User) Delete(ctx context.Context, req *user.DeleteRequest) (*user.DeleteResponse, error) {
 	uid := uuid.MustParse(req.Id)
 
-	_, tenantDB, err := ctxUsersDB(ctx)
+	_, db, err := ctxUsersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	result := tenantDB.Where("id = ?", uid).Delete(&models.User{})
+	result := db.Where("id = ?", uid).Delete(&models.User{})
 	if result.Error != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to delete user: %v", result.Error))
 	}
@@ -114,27 +114,27 @@ func (s *User) Delete(ctx context.Context, req *user.DeleteRequest) (*user.Delet
 }
 
 func (s *User) List(ctx context.Context, req *user.ListRequest) (*user.ListResponse, error) {
-	page, pageSize := req.Page, req.PageSize
+	page, size := req.Page, req.PageSize
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
+	if size < 1 || size > 100 {
+		size = 10
 	}
 
-	_, tenantDB, err := ctxUsersDB(ctx)
+	_, db, err := ctxUsersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var total int64
-	if err := tenantDB.Model(&models.User{}).Count(&total).Error; err != nil {
+	if err := db.Model(&models.User{}).Count(&total).Error; err != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to count users: %v", err))
 	}
 
 	var users []*models.User
-	offset := (int(page) - 1) * int(pageSize)
-	if err := tenantDB.Order("created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&users).Error; err != nil {
+	offset := (int(page) - 1) * int(size)
+	if err := db.Order("created_at DESC").Limit(int(size)).Offset(offset).Find(&users).Error; err != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to list users: %v", err))
 	}
 

@@ -68,12 +68,12 @@ func RunRootMigrations(db *gorm.DB) error {
 	return nil
 }
 
-func RunUsersMigrations(db *gorm.DB) error {
-	slog.Info("Running users database migrations")
+func RunMainMigrations(db *gorm.DB) error {
+	slog.Info("Running main database migrations")
 	if err := db.AutoMigrate(&models.User{}); err != nil {
-		return fmt.Errorf("failed to run users migrations: %w", err)
+		return fmt.Errorf("failed to run main migrations: %w", err)
 	}
-	slog.Info("Users migrations completed")
+	slog.Info("Main migrations completed")
 	return nil
 }
 

@@ -33,18 +33,18 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 	targetID := uuid.MustParse(req.TargetId)
 	payloadID := uuid.MustParse(req.PayloadId)
 
-	_, tenantDB, err := ctxDeployDB(ctx)
+	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var t models.Target
-	if err := tenantDB.First(&t, "id = ?", targetID).Error; err != nil {
+	if err := db.First(&t, "id = ?", targetID).Error; err != nil {
 		return nil, status.Errorf(codes.NotFound, "target not found")
 	}
 
 	var p models.Payload
-	if err := tenantDB.First(&p, "id = ?", payloadID).Error; err != nil {
+	if err := db.First(&p, "id = ?", payloadID).Error; err != nil {
 		return nil, status.Errorf(codes.NotFound, "payload not found")
 	}
 
@@ -55,7 +55,7 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 		PayloadID:   &payloadID,
 		ChangedByID: authUserID,
 	}
-	if err := tenantDB.Create(rel).Error; err != nil {
+	if err := db.Create(rel).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create release: %v", err)
 	}
 
@@ -63,15 +63,15 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 }
 
 func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.GetResponse, error) {
-	releaseID := uuid.MustParse(req.Id)
+	id := uuid.MustParse(req.Id)
 
-	_, tenantDB, err := ctxDeployDB(ctx)
+	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var rel models.Release
-	if err := tenantDB.First(&rel, "id = ?", releaseID).Error; err != nil {
+	if err := db.First(&rel, "id = ?", id).Error; err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "release not found")
 		}
@@ -82,28 +82,28 @@ func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.Ge
 }
 
 func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*release.DeployResponse, error) {
-	releaseID := uuid.MustParse(req.Id)
+	id := uuid.MustParse(req.Id)
 
 	authUserID, err := ctxUserID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := ctxDeployDB(ctx)
+	tenant, db, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var current models.Release
-	if err := tenantDB.First(&current, "id = ?", releaseID).Error; err != nil {
+	if err := db.First(&current, "id = ?", id).Error; err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "release not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load release: %v", err)
 	}
 
-	res := tenantDB.Model(&models.Release{}).
-		Where("id = ? AND status = ? AND deleted_at IS NULL", releaseID, models.ReleaseUnknown).
+	res := db.Model(&models.Release{}).
+		Where("id = ? AND status = ? AND deleted_at IS NULL", id, models.ReleaseUnknown).
 		Updates(map[string]any{
 			"status":        models.ReleaseWait,
 			"changed_by_id": authUserID,
@@ -117,14 +117,14 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 	}
 
 	if _, err := s.wfclient.CreateWorkflowInstance(ctx, client.WorkflowInstanceOptions{
-		InstanceID: "deploy:" + releaseID.String(),
+		InstanceID: "deploy:" + id.String(),
 	}, jobs.Deploy, jobs.DeployArgs{
 		TenantID:    tenant.ID,
-		ReleaseID:   releaseID,
+		ReleaseID:   id,
 		ChangedByID: authUserID,
 	}); err != nil {
-		tenantDB.Model(&models.Release{}).
-			Where("id = ? AND status = ? AND deleted_at IS NULL", releaseID, models.ReleaseWait).
+		db.Model(&models.Release{}).
+			Where("id = ? AND status = ? AND deleted_at IS NULL", id, models.ReleaseWait).
 			Updates(map[string]any{
 				"status":        models.ReleaseUnknown,
 				"changed_by_id": authUserID,
@@ -134,7 +134,7 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 	}
 
 	var rel models.Release
-	if err := tenantDB.First(&rel, "id = ?", releaseID).Error; err != nil {
+	if err := db.First(&rel, "id = ?", id).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get release: %v", err)
 	}
 
@@ -142,27 +142,27 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 }
 
 func (s *Release) List(ctx context.Context, req *release.ListRequest) (*release.ListResponse, error) {
-	page, pageSize := req.Page, req.PageSize
+	page, size := req.Page, req.PageSize
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
+	if size < 1 || size > 100 {
+		size = 10
 	}
 
-	_, tenantDB, err := ctxDeployDB(ctx)
+	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var total int64
-	if err := tenantDB.Model(&models.Release{}).Count(&total).Error; err != nil {
+	if err := db.Model(&models.Release{}).Count(&total).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to count releases: %v", err)
 	}
 
 	var releases []*models.Release
-	offset := (int(page) - 1) * int(pageSize)
-	if err := tenantDB.Order("created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&releases).Error; err != nil {
+	offset := (int(page) - 1) * int(size)
+	if err := db.Order("created_at DESC").Limit(int(size)).Offset(offset).Find(&releases).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list releases: %v", err)
 	}
 

@@ -29,7 +29,7 @@ func targetAddCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, userID, err := tenantOwnerCtx(ctx)
+			authContext, _, userID, err := tenantOwnerCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -38,11 +38,10 @@ func targetAddCmd() *cobra.Command {
 				return fmt.Errorf("read key %s: %w", key, err)
 			}
 			resp, err := st.target.Create(authContext, &target.CreateRequest{
-				TenantId: tenantID,
-				OwnerId:  userID,
-				Address:  address,
-				User:     user,
-				Key:      string(keyContent),
+				OwnerId: userID,
+				Address: address,
+				User:    user,
+				Key:     string(keyContent),
 			})
 			if err != nil {
 				return err
@@ -68,11 +67,11 @@ func targetGetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
-			resp, err := st.target.Get(authContext, &target.GetRequest{TenantId: tenantID, Id: id})
+			resp, err := st.target.Get(authContext, &target.GetRequest{Id: id})
 			if err != nil {
 				return err
 			}
@@ -93,11 +92,11 @@ func targetListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
-			resp, err := st.target.List(authContext, &target.ListRequest{TenantId: tenantID, Page: page, PageSize: size})
+			resp, err := st.target.List(authContext, &target.ListRequest{Page: page, PageSize: size})
 			if err != nil {
 				return err
 			}
@@ -123,7 +122,7 @@ func targetUpdateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
@@ -135,7 +134,7 @@ func targetUpdateCmd() *cobra.Command {
 				}
 				keyContent = string(kb)
 			}
-			resp, err := st.target.Update(authContext, &target.UpdateRequest{TenantId: tenantID, Id: id, Address: address, User: user, Key: keyContent})
+			resp, err := st.target.Update(authContext, &target.UpdateRequest{Id: id, Address: address, User: user, Key: keyContent})
 			if err != nil {
 				return err
 			}
@@ -172,11 +171,11 @@ func targetDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
-			_, err = st.target.Delete(authContext, &target.DeleteRequest{TenantId: tenantID, Id: id})
+			_, err = st.target.Delete(authContext, &target.DeleteRequest{Id: id})
 			if err != nil {
 				return err
 			}

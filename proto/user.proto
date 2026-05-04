@@ -22,8 +22,7 @@ message User {
 }
 
 message CreateRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  string name = 2;
+  string name = 1;
 }
 
 message CreateResponse {
@@ -31,8 +30,7 @@ message CreateResponse {
 }
 
 message GetRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  string id = 2 [(buf.validate.field).string.uuid = true];
+  string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message GetResponse {
@@ -40,9 +38,8 @@ message GetResponse {
 }
 
 message UpdateRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  string id = 2 [(buf.validate.field).string.uuid = true];
-  string name = 3;
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2;
 }
 
 message UpdateResponse {
@@ -50,8 +47,7 @@ message UpdateResponse {
 }
 
 message DeleteRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  string id = 2 [(buf.validate.field).string.uuid = true];
+  string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message DeleteResponse {
@@ -59,9 +55,8 @@ message DeleteResponse {
 }
 
 message ListRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  int32 page = 2;
-  int32 page_size = 3;
+  int32 page = 1;
+  int32 page_size = 2;
 }
 
 message ListResponse {

@@ -40,7 +40,7 @@ func ValidateInterceptor() grpc.UnaryServerInterceptor {
 
 type userKey struct{}
 type tenantKey struct{}
-type usersDBKey struct{}
+type mainDBKey struct{}
 type deployDBKey struct{}
 type accountDBKey struct{}
 
@@ -84,7 +84,7 @@ func UserInterceptor(rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServerInte
 			return nil, status.Errorf(codes.Internal, "failed to get tenant: %v", err)
 		}
 
-		usersDB, err := infra.NewConnection(tenant.UsersDatabase)
+		mainDB, err := infra.NewConnection(tenant.MainDatabase)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to connect to users database: %v", err)
 		}
@@ -100,7 +100,7 @@ func UserInterceptor(rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServerInte
 		}
 
 		var user models.User
-		if err := usersDB.WithContext(ctx).First(&user, "id = ?", userID).Error; err != nil {
+		if err := mainDB.WithContext(ctx).First(&user, "id = ?", userID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, status.Error(codes.NotFound, "user not found")
 			}
@@ -109,7 +109,7 @@ func UserInterceptor(rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServerInte
 
 		ctx = context.WithValue(ctx, tenantKey{}, &tenant)
 		ctx = context.WithValue(ctx, userKey{}, &user)
-		ctx = context.WithValue(ctx, usersDBKey{}, usersDB)
+		ctx = context.WithValue(ctx, mainDBKey{}, mainDB)
 		ctx = context.WithValue(ctx, deployDBKey{}, deployDB)
 		ctx = context.WithValue(ctx, accountDBKey{}, accountDB)
 		return handler(ctx, req)
@@ -129,7 +129,7 @@ func ctxUsersDB(ctx context.Context) (*models.Tenant, *gorm.DB, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	db, ok := ctx.Value(usersDBKey{}).(*gorm.DB)
+	db, ok := ctx.Value(mainDBKey{}).(*gorm.DB)
 	if !ok || db == nil {
 		return nil, nil, status.Error(codes.Internal, "users database connection unavailable")
 	}

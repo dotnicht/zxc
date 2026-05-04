@@ -35,12 +35,12 @@ var (
 	composeCmd     []string
 )
 
-func logStep(format string, args ...any) {
+func log(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "[%s] %s\n", time.Now().Format(time.RFC3339), fmt.Sprintf(format, args...))
 }
 
 func TestMain(m *testing.M) {
-	logStep("generating test TLS certificates in %s", certsDir)
+	log("generating test TLS certificates in %s", certsDir)
 	if err := generateCerts(certsDir); err != nil {
 		fmt.Printf("generate certs failed: %v\n", err)
 		os.Exit(1)
@@ -53,37 +53,37 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	logStep("stopping any previous docker-compose stack")
+	log("stopping any previous docker-compose stack")
 	runCompose(projectRoot, "down", "-v", "--remove-orphans")
 
-	logStep("starting docker-compose stack")
+	log("starting docker-compose stack")
 	if out, err := runCompose(projectRoot, "up", "-d", "--build"); err != nil {
 		fmt.Printf("docker compose up failed:\n%s\n%v\n", out, err)
 		os.Exit(1)
 	}
 
-	logStep("waiting for migrator container %q to finish", migratorName)
+	log("waiting for migrator container %q to finish", migratorName)
 	if err := waitForMigrator(migratorName, 120*time.Second); err != nil {
 		printComposeDiagnostics()
 		fmt.Printf("migrator did not complete: %v\n", err)
 		os.Exit(1)
 	}
 
-	logStep("waiting for gRPC endpoint %s", grpcAddr)
+	log("waiting for gRPC endpoint %s", grpcAddr)
 	if err := waitForGRPC(grpcAddr, 60*time.Second); err != nil {
 		printComposeDiagnostics()
 		fmt.Printf("gRPC server not ready: %v\n", err)
 		os.Exit(1)
 	}
 
-	logStep("waiting for worker container %q to be running", workerName)
+	log("waiting for worker container %q to be running", workerName)
 	if err := waitForContainer(workerName, 60*time.Second); err != nil {
 		printComposeDiagnostics()
 		fmt.Printf("worker not running: %v\n", err)
 		os.Exit(1)
 	}
 
-	logStep("integration environment is ready; starting tests")
+	log("integration environment is ready; starting tests")
 	tmpDir, err := os.MkdirTemp("", "zxc-client-e2e-*")
 	if err != nil {
 		fmt.Printf("create temp dir failed: %v\n", err)
@@ -102,7 +102,7 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	logStep("building client binary at %s", clientBinPath)
+	log("building client binary at %s", clientBinPath)
 	build := exec.Command("go", "build", "-o", clientBinPath, "./cmd/client")
 	build.Dir = projectRoot
 	if out, err := build.CombinedOutput(); err != nil {
@@ -157,7 +157,7 @@ func printComposeDiagnostics() {
 
 func buildFixtureZip(t *testing.T) []byte {
 	t.Helper()
-	logStep("building payload fixture zip")
+	log("building payload fixture zip")
 	scriptContent, _ := os.ReadFile(projectRoot + "/test/fixtures/script.sh")
 	var buf bytes.Buffer
 	w := zip.NewWriter(&buf)
@@ -216,9 +216,9 @@ func runClient(t *testing.T, args ...string) string {
 	return string(out)
 }
 
-func runTenantClient(t *testing.T, tenantName string, args ...string) string {
+func runTenantClient(t *testing.T, name string, args ...string) string {
 	t.Helper()
-	rootArgs := append([]string{"--tenant", tenantName}, args...)
+	rootArgs := append([]string{"--tenant", name}, args...)
 	return runClient(t, rootArgs...)
 }
 
@@ -257,35 +257,35 @@ func firstDataID(t *testing.T, out string) string {
 func setupTenantWithDeps(t *testing.T, ts int64, idx int) (tenantID, ownerID, targetID, payloadID, tenantName string) {
 	t.Helper()
 	tenantName = fmt.Sprintf("inttenant%d_%d", ts, idx)
-	logStep("creating tenant %q", tenantName)
-	tenantAdd := parseKVOutput(t, runClient(t, "tenant", "add", "--name", tenantName))
+	name := tenantName
+	log("creating tenant %q", name)
+	tenantAdd := parseKVOutput(t, runClient(t, "tenant", "add", "--name", name))
 	tenantID = tenantAdd["id"]
-	logStep("tenant created: id=%s", tenantID)
+	log("tenant created: id=%s", tenantID)
 
-	logStep("listing users for tenant %s", tenantID)
-	ownerID = firstDataID(t, runTenantClient(t, tenantName, "user", "list", "--size", "10"))
-	logStep("tenant owner resolved: userid=%s", ownerID)
+	log("listing users for tenant %s", tenantID)
+	ownerID = firstDataID(t, runTenantClient(t, name, "user", "list", "--size", "10"))
+	log("tenant owner resolved: userid=%s", ownerID)
 
-	logStep("loading SSH key fixture")
-	logStep("creating deploy target")
+	log("creating deploy target")
 	targetAdd := parseKVOutput(t, runClient(t,
-		"--tenant", tenantName,
+		"--tenant", name,
 		"target", "add",
 		"--address", "zxc-target",
 		"--user", "deploy",
 		"--key", filepath.Join(absProjectRoot, "test/fixtures/id_ed25519"),
 	))
 	targetID = targetAdd["id"]
-	logStep("target created: id=%s address=%s", targetID, targetAdd["address"])
+	log("target created: id=%s address=%s", targetID, targetAdd["address"])
 
 	zipContent := buildFixtureZip(t)
 	tmpZip := filepath.Join(t.TempDir(), "payload.zip")
 	if err := os.WriteFile(tmpZip, zipContent, 0o644); err != nil {
 		t.Fatalf("write payload fixture zip: %v", err)
 	}
-	logStep("creating payload (%d bytes)", len(zipContent))
+	log("creating payload (%d bytes)", len(zipContent))
 	payloadAdd := parseKVOutput(t, runClient(t,
-		"--tenant", tenantName,
+		"--tenant", name,
 		"payload", "add",
 		"--file", tmpZip,
 		"--config", "script.conf",
@@ -293,7 +293,7 @@ func setupTenantWithDeps(t *testing.T, ts int64, idx int) (tenantID, ownerID, ta
 		"--stop", "true",
 	))
 	payloadID = payloadAdd["id"]
-	logStep("payload created: id=%s", payloadID)
+	log("payload created: id=%s", payloadID)
 
 	return
 }
@@ -303,18 +303,18 @@ func TestE2E(t *testing.T) {
 	ts := time.Now().UnixNano()
 
 	tenantID, ownerID, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 0)
-	logStep("fixture setup complete: tenant=%s owner=%s target=%s payload=%s", tenantID, ownerID, targetID, payloadID)
+	log("fixture setup complete: tenant=%s owner=%s target=%s payload=%s", tenantID, ownerID, targetID, payloadID)
 
-	logStep("creating release for tenant %s", tenantName)
+	log("creating release for tenant %s", tenantName)
 	releaseAdd := parseKVOutput(t, runTenantClient(t, tenantName,
 		"release", "add",
 		"--target", targetID,
 		"--payload", payloadID,
 	))
 	releaseID := releaseAdd["id"]
-	logStep("release created: id=%s status=%s", releaseID, releaseAdd["status"])
+	log("release created: id=%s status=%s", releaseID, releaseAdd["status"])
 
-	logStep("triggering deploy for release %s", releaseID)
+	log("triggering deploy for release %s", releaseID)
 	deployResp := parseKVOutput(t, runTenantClient(t, tenantName,
 		"release", "deploy",
 		"--id", releaseID,
@@ -323,8 +323,8 @@ func TestE2E(t *testing.T) {
 		t.Fatalf("expected 'wait', got %q", deployResp["status"])
 	}
 
-	statusRank := func(status string) int {
-		switch status {
+	statusRank := func(s string) int {
+		switch s {
 		case "unknown":
 			return 0
 		case "wait":
@@ -338,28 +338,28 @@ func TestE2E(t *testing.T) {
 		}
 	}
 
-	pollForAtLeast := func(releaseID, target string, timeout time.Duration) string {
+	pollForAtLeast := func(id, target string, timeout time.Duration) string {
 		t.Helper()
-		logStep("polling release %s for status at least %q with timeout %s", releaseID, target, timeout)
+		log("polling release %s for status at least %q with timeout %s", id, target, timeout)
 		deadline := time.Now().Add(timeout)
 		var last, prev string
 		for time.Now().Before(deadline) {
 			getResp := parseKVOutput(t, runTenantClient(t, tenantName,
 				"release", "get",
-				"--id", releaseID,
+				"--id", id,
 			))
 			last = getResp["status"]
 			if last != prev {
-				logStep("release %s status changed: %q", releaseID, last)
+				log("release %s status changed: %q", id, last)
 				prev = last
 			}
 			if statusRank(last) >= statusRank(target) {
-				logStep("release %s reached %q or later state %q", releaseID, target, last)
+				log("release %s reached %q or later state %q", id, target, last)
 				return last
 			}
 			time.Sleep(2 * time.Second)
 		}
-		logStep("timeout waiting for %q, last status=%q", target, last)
+		log("timeout waiting for %q, last status=%q", target, last)
 		return last
 	}
 
@@ -367,31 +367,31 @@ func TestE2E(t *testing.T) {
 		t.Fatalf("release did not reach 'deployed' within 90s, last status: %q", s)
 	}
 
-	logStep("waiting for webhook requests and accounts to appear in tenant DB")
+	log("waiting for webhook requests and accounts to appear in tenant DB")
 	requests, accounts := waitForWebhookAccounts(t, tenantName, releaseID, 60*time.Second)
-	logStep("webhook result: requests=%d accounts=%d", requests, accounts)
+	log("webhook result: requests=%d accounts=%d", requests, accounts)
 	if requests < 2 {
 		t.Fatalf("expected repeated webhook requests for release %s, got %d", releaseID, requests)
 	}
 	if accounts < 1 {
 		t.Fatalf("expected at least one account for release %s, got %d", releaseID, accounts)
 	}
-	logStep("webhook pipeline verified: %d requests received, %d accounts created", requests, accounts)
+	log("webhook pipeline verified: %d requests received, %d accounts created", requests, accounts)
 	verifyAccountFromRequest(t, tenantName, releaseID)
 
-	logStep("end-to-end deploy completed successfully in %s", time.Since(started).Round(time.Millisecond))
+	log("end-to-end deploy completed successfully in %s", time.Since(started).Round(time.Millisecond))
 }
 
-func waitForWebhookAccounts(t *testing.T, tenantName, releaseID string, timeout time.Duration) (requests, accounts int) {
+func waitForWebhookAccounts(t *testing.T, name, id string, timeout time.Duration) (requests, accounts int) {
 	t.Helper()
 
-	deployDB, err := sql.Open("postgres", deployDSN(tenantName))
+	deployDB, err := sql.Open("postgres", deployDSN(name))
 	if err != nil {
 		t.Fatalf("open deploy database: %v", err)
 	}
 	defer deployDB.Close()
 
-	accountDB, err := sql.Open("postgres", accountDSN(tenantName))
+	accountDB, err := sql.Open("postgres", accountDSN(name))
 	if err != nil {
 		t.Fatalf("open account database: %v", err)
 	}
@@ -403,7 +403,7 @@ func waitForWebhookAccounts(t *testing.T, tenantName, releaseID string, timeout 
 		if err := deployDB.QueryRow(`
 			SELECT COUNT(*)::int FROM requests
 			WHERE release_id = $1 AND deleted_at IS NULL
-		`, releaseID).Scan(&requests); err != nil {
+		`, id).Scan(&requests); err != nil {
 			t.Fatalf("count requests: %v", err)
 		}
 		if err := accountDB.QueryRow(`SELECT COUNT(*)::int FROM profiles`).Scan(&accounts); err != nil {
@@ -411,7 +411,7 @@ func waitForWebhookAccounts(t *testing.T, tenantName, releaseID string, timeout 
 		}
 		cur := fmt.Sprintf("requests=%d accounts=%d", requests, accounts)
 		if cur != prev {
-			logStep("webhook poll: %s", cur)
+			log("webhook poll: %s", cur)
 			prev = cur
 		}
 		if requests >= 2 && accounts >= 1 {
@@ -423,16 +423,16 @@ func waitForWebhookAccounts(t *testing.T, tenantName, releaseID string, timeout 
 	return requests, accounts
 }
 
-func verifyAccountFromRequest(t *testing.T, tenantName, releaseID string) {
+func verifyAccountFromRequest(t *testing.T, name, id string) {
 	t.Helper()
 
-	deployDB, err := sql.Open("postgres", deployDSN(tenantName))
+	deployDB, err := sql.Open("postgres", deployDSN(name))
 	if err != nil {
 		t.Fatalf("open deploy database: %v", err)
 	}
 	defer deployDB.Close()
 
-	accountDB, err := sql.Open("postgres", accountDSN(tenantName))
+	accountDB, err := sql.Open("postgres", accountDSN(name))
 	if err != nil {
 		t.Fatalf("open account database: %v", err)
 	}
@@ -444,7 +444,7 @@ func verifyAccountFromRequest(t *testing.T, tenantName, releaseID string) {
 		FROM requests
 		WHERE release_id = $1 AND deleted_at IS NULL AND data->>'node_name' IS NOT NULL
 		LIMIT 1
-	`, releaseID).Scan(&nodeName); err != nil {
+	`, id).Scan(&nodeName); err != nil {
 		t.Fatalf("read node_name from request: %v", err)
 	}
 	if nodeName == "" {
@@ -458,15 +458,15 @@ func verifyAccountFromRequest(t *testing.T, tenantName, releaseID string) {
 	if count == 0 {
 		t.Fatalf("no profile found with name %q derived from webhook request", nodeName)
 	}
-	logStep("account name %q matches node_name from webhook request data", nodeName)
+	log("account name %q matches node_name from webhook request data", nodeName)
 }
 
-func deployDSN(tenantName string) string {
-	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s_deploy?sslmode=disable", sanitizeTenantDBName(tenantName))
+func deployDSN(name string) string {
+	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s_deploy?sslmode=disable", sanitizeTenantDBName(name))
 }
 
-func accountDSN(tenantName string) string {
-	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s_account?sslmode=disable", sanitizeTenantDBName(tenantName))
+func accountDSN(name string) string {
+	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s_account?sslmode=disable", sanitizeTenantDBName(name))
 }
 
 func sanitizeTenantDBName(name string) string {

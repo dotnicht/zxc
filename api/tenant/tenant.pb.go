@@ -338,142 +338,6 @@ func (x *GetResponse) GetTenant() *Tenant {
 	return nil
 }
 
-type UpdateRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Database      string                 `protobuf:"bytes,3,opt,name=database,proto3" json:"database,omitempty"`
-	Storage       string                 `protobuf:"bytes,4,opt,name=storage,proto3" json:"storage,omitempty"`
-	OwnerId       string                 `protobuf:"bytes,5,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
-	Deploy        string                 `protobuf:"bytes,6,opt,name=deploy,proto3" json:"deploy,omitempty"`
-	Account       string                 `protobuf:"bytes,7,opt,name=account,proto3" json:"account,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateRequest) Reset() {
-	*x = UpdateRequest{}
-	mi := &file_tenant_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateRequest) ProtoMessage() {}
-
-func (x *UpdateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tenant_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateRequest.ProtoReflect.Descriptor instead.
-func (*UpdateRequest) Descriptor() ([]byte, []int) {
-	return file_tenant_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *UpdateRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *UpdateRequest) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *UpdateRequest) GetDatabase() string {
-	if x != nil {
-		return x.Database
-	}
-	return ""
-}
-
-func (x *UpdateRequest) GetStorage() string {
-	if x != nil {
-		return x.Storage
-	}
-	return ""
-}
-
-func (x *UpdateRequest) GetOwnerId() string {
-	if x != nil {
-		return x.OwnerId
-	}
-	return ""
-}
-
-func (x *UpdateRequest) GetDeploy() string {
-	if x != nil {
-		return x.Deploy
-	}
-	return ""
-}
-
-func (x *UpdateRequest) GetAccount() string {
-	if x != nil {
-		return x.Account
-	}
-	return ""
-}
-
-type UpdateResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Tenant        *Tenant                `protobuf:"bytes,1,opt,name=tenant,proto3" json:"tenant,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateResponse) Reset() {
-	*x = UpdateResponse{}
-	mi := &file_tenant_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateResponse) ProtoMessage() {}
-
-func (x *UpdateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tenant_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateResponse.ProtoReflect.Descriptor instead.
-func (*UpdateResponse) Descriptor() ([]byte, []int) {
-	return file_tenant_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *UpdateResponse) GetTenant() *Tenant {
-	if x != nil {
-		return x.Tenant
-	}
-	return nil
-}
-
 type ListRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
@@ -484,7 +348,7 @@ type ListRequest struct {
 
 func (x *ListRequest) Reset() {
 	*x = ListRequest{}
-	mi := &file_tenant_proto_msgTypes[7]
+	mi := &file_tenant_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -496,7 +360,7 @@ func (x *ListRequest) String() string {
 func (*ListRequest) ProtoMessage() {}
 
 func (x *ListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tenant_proto_msgTypes[7]
+	mi := &file_tenant_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -509,7 +373,7 @@ func (x *ListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRequest.ProtoReflect.Descriptor instead.
 func (*ListRequest) Descriptor() ([]byte, []int) {
-	return file_tenant_proto_rawDescGZIP(), []int{7}
+	return file_tenant_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ListRequest) GetPage() int32 {
@@ -536,7 +400,7 @@ type ListResponse struct {
 
 func (x *ListResponse) Reset() {
 	*x = ListResponse{}
-	mi := &file_tenant_proto_msgTypes[8]
+	mi := &file_tenant_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -548,7 +412,7 @@ func (x *ListResponse) String() string {
 func (*ListResponse) ProtoMessage() {}
 
 func (x *ListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tenant_proto_msgTypes[8]
+	mi := &file_tenant_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -561,7 +425,7 @@ func (x *ListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListResponse.ProtoReflect.Descriptor instead.
 func (*ListResponse) Descriptor() ([]byte, []int) {
-	return file_tenant_proto_rawDescGZIP(), []int{8}
+	return file_tenant_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ListResponse) GetTenants() []*Tenant {
@@ -607,27 +471,16 @@ const file_tenant_proto_rawDesc = "" +
 	"GetRequest\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"5\n" +
 	"\vGetResponse\x12&\n" +
-	"\x06tenant\x18\x01 \x01(\v2\x0e.tenant.TenantR\x06tenant\"\xcd\x01\n" +
-	"\rUpdateRequest\x12\x18\n" +
-	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
-	"\bdatabase\x18\x03 \x01(\tR\bdatabase\x12\x18\n" +
-	"\astorage\x18\x04 \x01(\tR\astorage\x12&\n" +
-	"\bowner_id\x18\x05 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\aownerId\x12\x16\n" +
-	"\x06deploy\x18\x06 \x01(\tR\x06deploy\x12\x18\n" +
-	"\aaccount\x18\a \x01(\tR\aaccount\"8\n" +
-	"\x0eUpdateResponse\x12&\n" +
 	"\x06tenant\x18\x01 \x01(\v2\x0e.tenant.TenantR\x06tenant\">\n" +
 	"\vListRequest\x12\x12\n" +
 	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"N\n" +
 	"\fListResponse\x12(\n" +
 	"\atenants\x18\x01 \x03(\v2\x0e.tenant.TenantR\atenants\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total2\xe4\x01\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total2\xab\x01\n" +
 	"\rTenantService\x127\n" +
 	"\x06Create\x12\x15.tenant.CreateRequest\x1a\x16.tenant.CreateResponse\x12.\n" +
-	"\x03Get\x12\x12.tenant.GetRequest\x1a\x13.tenant.GetResponse\x127\n" +
-	"\x06Update\x12\x15.tenant.UpdateRequest\x1a\x16.tenant.UpdateResponse\x121\n" +
+	"\x03Get\x12\x12.tenant.GetRequest\x1a\x13.tenant.GetResponse\x121\n" +
 	"\x04List\x12\x13.tenant.ListRequest\x1a\x14.tenant.ListResponseB\x17Z\x15zxc/api/tenant;tenantb\x06proto3"
 
 var (
@@ -642,36 +495,31 @@ func file_tenant_proto_rawDescGZIP() []byte {
 	return file_tenant_proto_rawDescData
 }
 
-var file_tenant_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_tenant_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_tenant_proto_goTypes = []any{
 	(*Tenant)(nil),         // 0: tenant.Tenant
 	(*CreateRequest)(nil),  // 1: tenant.CreateRequest
 	(*CreateResponse)(nil), // 2: tenant.CreateResponse
 	(*GetRequest)(nil),     // 3: tenant.GetRequest
 	(*GetResponse)(nil),    // 4: tenant.GetResponse
-	(*UpdateRequest)(nil),  // 5: tenant.UpdateRequest
-	(*UpdateResponse)(nil), // 6: tenant.UpdateResponse
-	(*ListRequest)(nil),    // 7: tenant.ListRequest
-	(*ListResponse)(nil),   // 8: tenant.ListResponse
+	(*ListRequest)(nil),    // 5: tenant.ListRequest
+	(*ListResponse)(nil),   // 6: tenant.ListResponse
 }
 var file_tenant_proto_depIdxs = []int32{
 	0, // 0: tenant.CreateResponse.tenant:type_name -> tenant.Tenant
 	0, // 1: tenant.GetResponse.tenant:type_name -> tenant.Tenant
-	0, // 2: tenant.UpdateResponse.tenant:type_name -> tenant.Tenant
-	0, // 3: tenant.ListResponse.tenants:type_name -> tenant.Tenant
-	1, // 4: tenant.TenantService.Create:input_type -> tenant.CreateRequest
-	3, // 5: tenant.TenantService.Get:input_type -> tenant.GetRequest
-	5, // 6: tenant.TenantService.Update:input_type -> tenant.UpdateRequest
-	7, // 7: tenant.TenantService.List:input_type -> tenant.ListRequest
-	2, // 8: tenant.TenantService.Create:output_type -> tenant.CreateResponse
-	4, // 9: tenant.TenantService.Get:output_type -> tenant.GetResponse
-	6, // 10: tenant.TenantService.Update:output_type -> tenant.UpdateResponse
-	8, // 11: tenant.TenantService.List:output_type -> tenant.ListResponse
-	8, // [8:12] is the sub-list for method output_type
-	4, // [4:8] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0, // 2: tenant.ListResponse.tenants:type_name -> tenant.Tenant
+	1, // 3: tenant.TenantService.Create:input_type -> tenant.CreateRequest
+	3, // 4: tenant.TenantService.Get:input_type -> tenant.GetRequest
+	5, // 5: tenant.TenantService.List:input_type -> tenant.ListRequest
+	2, // 6: tenant.TenantService.Create:output_type -> tenant.CreateResponse
+	4, // 7: tenant.TenantService.Get:output_type -> tenant.GetResponse
+	6, // 8: tenant.TenantService.List:output_type -> tenant.ListResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_tenant_proto_init() }
@@ -685,7 +533,7 @@ func file_tenant_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tenant_proto_rawDesc), len(file_tenant_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

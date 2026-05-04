@@ -9,7 +9,7 @@ import (
 
 type Talk struct {
 	ID        uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	UserID    uuid.UUID      `gorm:"type:uuid;not null"`
+	ProfileID uuid.UUID      `gorm:"type:uuid;not null"`
 	CreatedAt time.Time      `gorm:"not null;default:now()"`
 	UpdatedAt time.Time      `gorm:"not null;default:now()"`
 	DeletedAt gorm.DeletedAt `gorm:"index"`

@@ -124,8 +124,7 @@ func (x *Release) GetChangedById() string {
 
 type GetRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -158,13 +157,6 @@ func (x *GetRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetRequest.ProtoReflect.Descriptor instead.
 func (*GetRequest) Descriptor() ([]byte, []int) {
 	return file_release_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *GetRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
 }
 
 func (x *GetRequest) GetId() string {
@@ -220,10 +212,9 @@ func (x *GetResponse) GetRelease() *Release {
 
 type CreateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	OwnerId       string                 `protobuf:"bytes,2,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
-	TargetId      string                 `protobuf:"bytes,3,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
-	PayloadId     string                 `protobuf:"bytes,4,opt,name=payload_id,json=payloadId,proto3" json:"payload_id,omitempty"`
+	OwnerId       string                 `protobuf:"bytes,1,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	TargetId      string                 `protobuf:"bytes,2,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
+	PayloadId     string                 `protobuf:"bytes,3,opt,name=payload_id,json=payloadId,proto3" json:"payload_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -256,13 +247,6 @@ func (x *CreateRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CreateRequest.ProtoReflect.Descriptor instead.
 func (*CreateRequest) Descriptor() ([]byte, []int) {
 	return file_release_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *CreateRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
 }
 
 func (x *CreateRequest) GetOwnerId() string {
@@ -332,9 +316,8 @@ func (x *CreateResponse) GetRelease() *Release {
 
 type DeployRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
-	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -367,13 +350,6 @@ func (x *DeployRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DeployRequest.ProtoReflect.Descriptor instead.
 func (*DeployRequest) Descriptor() ([]byte, []int) {
 	return file_release_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *DeployRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
 }
 
 func (x *DeployRequest) GetId() string {
@@ -436,9 +412,8 @@ func (x *DeployResponse) GetRelease() *Release {
 
 type ListRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -471,13 +446,6 @@ func (x *ListRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListRequest.ProtoReflect.Descriptor instead.
 func (*ListRequest) Descriptor() ([]byte, []int) {
 	return file_release_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *ListRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
 }
 
 func (x *ListRequest) GetPage() int32 {
@@ -562,31 +530,27 @@ const file_release_proto_rawDesc = "" +
 	"\ttarget_id\x18\x06 \x01(\tR\btargetId\x12\x1d\n" +
 	"\n" +
 	"payload_id\x18\a \x01(\tR\tpayloadId\x12\"\n" +
-	"\rchanged_by_id\x18\b \x01(\tR\vchangedById\"M\n" +
+	"\rchanged_by_id\x18\b \x01(\tR\vchangedById\"&\n" +
 	"\n" +
-	"GetRequest\x12%\n" +
-	"\ttenant_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btenantId\x12\x18\n" +
-	"\x02id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"9\n" +
+	"GetRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"9\n" +
 	"\vGetResponse\x12*\n" +
-	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\"\xae\x01\n" +
-	"\rCreateRequest\x12%\n" +
-	"\ttenant_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btenantId\x12&\n" +
-	"\bowner_id\x18\x02 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\aownerId\x12%\n" +
-	"\ttarget_id\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btargetId\x12'\n" +
+	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\"\x87\x01\n" +
+	"\rCreateRequest\x12&\n" +
+	"\bowner_id\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\aownerId\x12%\n" +
+	"\ttarget_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btargetId\x12'\n" +
 	"\n" +
-	"payload_id\x18\x04 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tpayloadId\"<\n" +
+	"payload_id\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tpayloadId\"<\n" +
 	"\x0eCreateResponse\x12*\n" +
-	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\"v\n" +
-	"\rDeployRequest\x12%\n" +
-	"\ttenant_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btenantId\x12\x18\n" +
-	"\x02id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12$\n" +
-	"\auser_id\x18\x03 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\x06userId\"<\n" +
+	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\"O\n" +
+	"\rDeployRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12$\n" +
+	"\auser_id\x18\x02 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\x06userId\"<\n" +
 	"\x0eDeployResponse\x12*\n" +
-	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\"e\n" +
-	"\vListRequest\x12%\n" +
-	"\ttenant_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btenantId\x12\x12\n" +
-	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"R\n" +
+	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\">\n" +
+	"\vListRequest\x12\x12\n" +
+	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"R\n" +
 	"\fListResponse\x12,\n" +
 	"\breleases\x18\x01 \x03(\v2\x10.release.ReleaseR\breleases\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total2\xed\x01\n" +

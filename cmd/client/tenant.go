@@ -15,7 +15,6 @@ func tenantCmd() *cobra.Command {
 	cmd.AddCommand(tenantAddCmd())
 	cmd.AddCommand(tenantGetCmd())
 	cmd.AddCommand(tenantListCmd())
-	cmd.AddCommand(tenantUpdateCmd())
 	return cmd
 }
 
@@ -116,40 +115,3 @@ func tenantListCmd() *cobra.Command {
 	cmd.Flags().Int32Var(&size, "size", 20, "page size")
 	return cmd
 }
-
-func tenantUpdateCmd() *cobra.Command {
-	var id, name string
-	cmd := &cobra.Command{
-		Use:   "update",
-		Short: "Update a tenant",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := newCtx()
-			defer cancel()
-			authContext, err := rootAuthCtx(ctx)
-			if err != nil {
-				return err
-			}
-			resp, err := st.tenant.Update(authContext, &tenant.UpdateRequest{Id: id, Name: name})
-			if err != nil {
-				return err
-			}
-			t := resp.Tenant
-			printKV([][2]string{
-				{"id", t.Id},
-				{"name", t.Name},
-				{"database", t.Database},
-				{"storage", t.Storage},
-				{"owner_id", t.OwnerId},
-				{"created_at", t.CreatedAt},
-				{"updated_at", t.UpdatedAt},
-			})
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&id, "id", "", "tenant ID")
-	_ = cmd.MarkFlagRequired("id")
-	cmd.Flags().StringVar(&name, "name", "", "new tenant name")
-	_ = cmd.MarkFlagRequired("name")
-	return cmd
-}
-

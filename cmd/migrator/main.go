@@ -158,7 +158,7 @@ func migrateTenantDatabases(tenant *models.Tenant) error {
 		fn      func(*gorm.DB) error
 		label   string
 	}{
-		{tenant.UsersDatabase, infra.RunUsersMigrations, "users"},
+		{tenant.MainDatabase, infra.RunMainMigrations, "main"},
 		{tenant.DeployDatabase, infra.RunDeployMigrations, "deploy"},
 		{tenant.AccountDatabase, infra.RunAccountMigrations, "account"},
 	} {

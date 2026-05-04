@@ -25,8 +25,7 @@ message Release {
 }
 
 message GetRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  string id = 2 [(buf.validate.field).string.uuid = true];
+  string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message GetResponse {
@@ -34,10 +33,9 @@ message GetResponse {
 }
 
 message CreateRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
-  string target_id = 3 [(buf.validate.field).string.uuid = true];
-  string payload_id = 4 [(buf.validate.field).string.uuid = true];
+  string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string target_id = 2 [(buf.validate.field).string.uuid = true];
+  string payload_id = 3 [(buf.validate.field).string.uuid = true];
 }
 
 message CreateResponse {
@@ -45,9 +43,8 @@ message CreateResponse {
 }
 
 message DeployRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  string id = 2 [(buf.validate.field).string.uuid = true];
-  string user_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string user_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
 }
 
 message DeployResponse {
@@ -55,9 +52,8 @@ message DeployResponse {
 }
 
 message ListRequest {
-  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
-  int32 page = 2;
-  int32 page_size = 3;
+  int32 page = 1;
+  int32 page_size = 2;
 }
 
 message ListResponse {

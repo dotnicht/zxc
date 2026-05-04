@@ -79,7 +79,7 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 		return nil, err
 	}
 
-	tenant, tenantDB, err := ctxDeployDB(ctx)
+	tenant, db, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 		Start:   req.Start,
 		Stop:    req.Stop,
 	}
-	if err := tenantDB.Create(p).Error; err != nil {
+	if err := db.Create(p).Error; err != nil {
 		_ = mc.Delete(ctx, bucket, scriptPath)
 		return nil, status.Errorf(codes.Internal, "failed to create payload: %v", err)
 	}
@@ -119,13 +119,13 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.GetResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	_, tenantDB, err := ctxDeployDB(ctx)
+	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var p models.Payload
-	if err := tenantDB.First(&p, "id = ?", id).Error; err != nil {
+	if err := db.First(&p, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "payload not found")
 		}
@@ -138,20 +138,20 @@ func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.Ge
 func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payload.UpdateResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	_, tenantDB, err := ctxDeployDB(ctx)
+	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var current models.Payload
-	if err := tenantDB.First(&current, "id = ?", id).Error; err != nil {
+	if err := db.First(&current, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "payload not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load payload: %v", err)
 	}
 
-	result := tenantDB.Model(&models.Payload{}).Where("id = ?", id).Updates(&models.Payload{Path: req.Path, Config: req.Config, Start: req.Start, Stop: req.Stop})
+	result := db.Model(&models.Payload{}).Where("id = ?", id).Updates(&models.Payload{Path: req.Path, Config: req.Config, Start: req.Start, Stop: req.Stop})
 	if result.Error != nil {
 		return nil, status.Errorf(codes.Internal, "failed to update payload: %v", result.Error)
 	}
@@ -160,7 +160,7 @@ func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payl
 	}
 
 	var updated models.Payload
-	if err := tenantDB.First(&updated, "id = ?", id).Error; err != nil {
+	if err := db.First(&updated, "id = ?", id).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated payload: %v", err)
 	}
 
@@ -170,20 +170,20 @@ func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payl
 func (s *Payload) Delete(ctx context.Context, req *payload.DeleteRequest) (*payload.DeleteResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	_, tenantDB, err := ctxDeployDB(ctx)
+	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var current models.Payload
-	if err := tenantDB.First(&current, "id = ?", id).Error; err != nil {
+	if err := db.First(&current, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "payload not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load payload: %v", err)
 	}
 
-	result := tenantDB.Where("id = ?", id).Delete(&models.Payload{})
+	result := db.Where("id = ?", id).Delete(&models.Payload{})
 	if result.Error != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete payload: %v", result.Error)
 	}
@@ -195,27 +195,27 @@ func (s *Payload) Delete(ctx context.Context, req *payload.DeleteRequest) (*payl
 }
 
 func (s *Payload) List(ctx context.Context, req *payload.ListRequest) (*payload.ListResponse, error) {
-	page, pageSize := req.Page, req.PageSize
+	page, size := req.Page, req.PageSize
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
+	if size < 1 || size > 100 {
+		size = 10
 	}
 
-	_, tenantDB, err := ctxDeployDB(ctx)
+	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var total int64
-	if err := tenantDB.Model(&models.Payload{}).Count(&total).Error; err != nil {
+	if err := db.Model(&models.Payload{}).Count(&total).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to count payloads: %v", err)
 	}
 
 	var payloads []*models.Payload
-	offset := (int(page) - 1) * int(pageSize)
-	if err := tenantDB.Order("created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&payloads).Error; err != nil {
+	offset := (int(page) - 1) * int(size)
+	if err := db.Order("created_at DESC").Limit(int(size)).Offset(offset).Find(&payloads).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list payloads: %v", err)
 	}
 

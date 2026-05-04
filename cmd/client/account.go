@@ -26,11 +26,11 @@ func accountGetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
-			resp, err := st.account.Get(authContext, &account.GetRequest{TenantId: tenantID, Id: id})
+			resp, err := st.account.Get(authContext, &account.GetRequest{Id: id})
 			if err != nil {
 				return err
 			}
@@ -51,11 +51,11 @@ func accountListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
-			resp, err := st.account.List(authContext, &account.ListRequest{TenantId: tenantID, Page: page, PageSize: size})
+			resp, err := st.account.List(authContext, &account.ListRequest{Page: page, PageSize: size})
 			if err != nil {
 				return err
 			}
@@ -81,11 +81,11 @@ func accountDisableCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
-			resp, err := st.account.Disable(authContext, &account.DisableRequest{TenantId: tenantID, Id: id})
+			resp, err := st.account.Disable(authContext, &account.DisableRequest{Id: id})
 			if err != nil {
 				return err
 			}

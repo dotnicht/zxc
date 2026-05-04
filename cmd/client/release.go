@@ -27,12 +27,11 @@ func releaseAddCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, userID, err := tenantOwnerCtx(ctx)
+			authContext, _, userID, err := tenantOwnerCtx(ctx)
 			if err != nil {
 				return err
 			}
 			resp, err := st.release.Create(authContext, &release.CreateRequest{
-				TenantId:  tenantID,
 				OwnerId:   userID,
 				TargetId:  targetID,
 				PayloadId: payloadID,
@@ -60,11 +59,11 @@ func releaseGetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
-			resp, err := st.release.Get(authContext, &release.GetRequest{TenantId: tenantID, Id: id})
+			resp, err := st.release.Get(authContext, &release.GetRequest{Id: id})
 			if err != nil {
 				return err
 			}
@@ -85,11 +84,11 @@ func releaseListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
-			resp, err := st.release.List(authContext, &release.ListRequest{TenantId: tenantID, Page: page, PageSize: size})
+			resp, err := st.release.List(authContext, &release.ListRequest{Page: page, PageSize: size})
 			if err != nil {
 				return err
 			}
@@ -115,14 +114,13 @@ func releaseDeployCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, userID, err := tenantOwnerCtx(ctx)
+			authContext, _, userID, err := tenantOwnerCtx(ctx)
 			if err != nil {
 				return err
 			}
 			resp, err := st.release.Deploy(authContext, &release.DeployRequest{
-				TenantId: tenantID,
-				Id:       id,
-				UserId:   userID,
+				Id:     id,
+				UserId: userID,
 			})
 			if err != nil {
 				return err

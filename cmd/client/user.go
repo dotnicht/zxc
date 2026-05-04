@@ -28,13 +28,12 @@ func userAddCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
 			resp, err := st.user.Create(authContext, &user.CreateRequest{
-				TenantId: tenantID,
-				Name:     name,
+				Name: name,
 			})
 			if err != nil {
 				return err
@@ -62,11 +61,11 @@ func userGetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
-			resp, err := st.user.Get(authContext, &user.GetRequest{TenantId: tenantID, Id: id})
+			resp, err := st.user.Get(authContext, &user.GetRequest{Id: id})
 			if err != nil {
 				return err
 			}
@@ -93,11 +92,11 @@ func userListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
-			resp, err := st.user.List(authContext, &user.ListRequest{TenantId: tenantID, Page: page, PageSize: size})
+			resp, err := st.user.List(authContext, &user.ListRequest{Page: page, PageSize: size})
 			if err != nil {
 				return err
 			}
@@ -123,11 +122,11 @@ func userUpdateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
-			resp, err := st.user.Update(authContext, &user.UpdateRequest{TenantId: tenantID, Id: id, Name: name})
+			resp, err := st.user.Update(authContext, &user.UpdateRequest{Id: id, Name: name})
 			if err != nil {
 				return err
 			}
@@ -156,11 +155,11 @@ func userDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, tenantID, err := tenantCtx(ctx)
+			authContext, _, err := tenantCtx(ctx)
 			if err != nil {
 				return err
 			}
-			_, err = st.user.Delete(authContext, &user.DeleteRequest{TenantId: tenantID, Id: id})
+			_, err = st.user.Delete(authContext, &user.DeleteRequest{Id: id})
 			if err != nil {
 				return err
 			}
