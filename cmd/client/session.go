@@ -12,41 +12,10 @@ func sessionCmd() *cobra.Command {
 		Use:   "session",
 		Short: "Manage sessions",
 	}
-	cmd.AddCommand(sessionAddCmd())
 	cmd.AddCommand(sessionGetCmd())
 	cmd.AddCommand(sessionListCmd())
-	cmd.AddCommand(sessionUpdateCmd())
-	cmd.AddCommand(sessionDeleteCmd())
-	return cmd
-}
-
-func sessionAddCmd() *cobra.Command {
-	var accountID, status string
-	cmd := &cobra.Command{
-		Use:   "add",
-		Short: "Create a session",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := newCtx()
-			defer cancel()
-			authContext, _, err := tenantCtx(ctx)
-			if err != nil {
-				return err
-			}
-			resp, err := st.session.Create(authContext, &session.CreateRequest{
-				AccountId: accountID,
-				Status:    status,
-			})
-			if err != nil {
-				return err
-			}
-			printSession(resp.Session)
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&accountID, "account", "", "account ID")
-	_ = cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&status, "status", "", "session status: online, offline, sync")
-	_ = cmd.MarkFlagRequired("status")
+	cmd.AddCommand(sessionStartCmd())
+	cmd.AddCommand(sessionStopCmd())
 	return cmd
 }
 
@@ -105,11 +74,11 @@ func sessionListCmd() *cobra.Command {
 	return cmd
 }
 
-func sessionUpdateCmd() *cobra.Command {
-	var id, accountID, status string
+func sessionStartCmd() *cobra.Command {
+	var id string
 	cmd := &cobra.Command{
-		Use:   "update",
-		Short: "Update a session",
+		Use:   "start",
+		Short: "Start a session",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
@@ -117,11 +86,7 @@ func sessionUpdateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.session.Update(authContext, &session.UpdateRequest{
-				Id:        id,
-				AccountId: accountID,
-				Status:    status,
-			})
+			resp, err := st.session.Start(authContext, &session.StartRequest{Id: id})
 			if err != nil {
 				return err
 			}
@@ -131,18 +96,14 @@ func sessionUpdateCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&id, "id", "", "session ID")
 	_ = cmd.MarkFlagRequired("id")
-	cmd.Flags().StringVar(&accountID, "account", "", "account ID")
-	_ = cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&status, "status", "", "session status: online, offline, sync")
-	_ = cmd.MarkFlagRequired("status")
 	return cmd
 }
 
-func sessionDeleteCmd() *cobra.Command {
+func sessionStopCmd() *cobra.Command {
 	var id string
 	cmd := &cobra.Command{
-		Use:   "delete",
-		Short: "Delete a session",
+		Use:   "stop",
+		Short: "Stop a session",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
@@ -150,10 +111,11 @@ func sessionDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if _, err := st.session.Delete(authContext, &session.DeleteRequest{Id: id}); err != nil {
+			resp, err := st.session.Stop(authContext, &session.StopRequest{Id: id})
+			if err != nil {
 				return err
 			}
-			fmt.Println("deleted")
+			printSession(resp.Session)
 			return nil
 		},
 	}

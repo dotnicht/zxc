@@ -21,56 +21,6 @@ func NewSession() *Session {
 	return &Session{}
 }
 
-func validateSessionStatus(raw string) error {
-	switch raw {
-	case models.SessionOnline, models.SessionOffline, models.SessionSync:
-		return nil
-	}
-	return status.Errorf(codes.InvalidArgument, "invalid status: must be one of %q, %q, %q", models.SessionOnline, models.SessionOffline, models.SessionSync)
-}
-
-func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*session.CreateResponse, error) {
-	profileID := uuid.MustParse(req.AccountId)
-	if err := validateSessionStatus(req.Status); err != nil {
-		return nil, err
-	}
-
-	_, db, err := ctxAccountDB(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var profile models.Profile
-	if err := db.First(&profile, "id = ?", profileID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Error(codes.NotFound, "account not found")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to load account: %v", err)
-	}
-
-	record := &models.Session{
-		ProfileID: profileID,
-		Status:    req.Status,
-	}
-	if err := db.Create(record).Error; err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to create session: %v", err)
-	}
-	if profile.Status == models.ProfileUnknown {
-		result := db.Model(&models.Profile{}).
-			Where("id = ? AND status = ? AND deleted_at IS NULL", profileID, models.ProfileUnknown).
-			Updates(map[string]any{
-				"status":     models.ProfileActive,
-				"updated_at": time.Now().UTC(),
-			})
-		if result.Error != nil {
-			cleanupErr := db.Unscoped().Delete(&models.Session{}, "id = ?", record.ID).Error
-			return nil, status.Errorf(codes.Internal, "failed to activate account: %v", errors.Join(result.Error, cleanupErr))
-		}
-	}
-
-	return &session.CreateResponse{Session: sessionToProto(record)}, nil
-}
-
 func (s *Session) Get(ctx context.Context, req *session.GetRequest) (*session.GetResponse, error) {
 	id := uuid.MustParse(req.Id)
 
@@ -88,82 +38,6 @@ func (s *Session) Get(ctx context.Context, req *session.GetRequest) (*session.Ge
 	}
 
 	return &session.GetResponse{Session: sessionToProto(&record)}, nil
-}
-
-func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*session.UpdateResponse, error) {
-	id := uuid.MustParse(req.Id)
-	profileID := uuid.MustParse(req.AccountId)
-	if err := validateSessionStatus(req.Status); err != nil {
-		return nil, err
-	}
-
-	_, db, err := ctxAccountDB(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var checkProfile models.Profile
-	if err := db.First(&checkProfile, "id = ?", profileID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Error(codes.NotFound, "account not found")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to load account: %v", err)
-	}
-
-	var previous models.Session
-	if err := db.First(&previous, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Error(codes.NotFound, "session not found")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to load session: %v", err)
-	}
-
-	result := db.Model(&models.Session{}).Where("id = ? AND deleted_at IS NULL", id).
-		Updates(map[string]any{
-			"profile_id": profileID,
-			"status":     req.Status,
-			"updated_at": time.Now().UTC(),
-		})
-	if result.Error != nil {
-		return nil, status.Errorf(codes.Internal, "failed to update session: %v", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return nil, status.Error(codes.NotFound, "session not found")
-	}
-
-	var updated models.Session
-	if err := db.First(&updated, "id = ?", id).Error; err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to fetch updated session: %v", err)
-	}
-
-	return &session.UpdateResponse{Session: sessionToProto(&updated)}, nil
-}
-
-func (s *Session) Delete(ctx context.Context, req *session.DeleteRequest) (*session.DeleteResponse, error) {
-	id := uuid.MustParse(req.Id)
-
-	_, db, err := ctxAccountDB(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var current models.Session
-	if err := db.First(&current, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Error(codes.NotFound, "session not found")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to load session: %v", err)
-	}
-
-	result := db.Where("id = ?", id).Delete(&models.Session{})
-	if result.Error != nil {
-		return nil, status.Errorf(codes.Internal, "failed to delete session: %v", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return nil, status.Error(codes.NotFound, "session not found")
-	}
-
-	return &session.DeleteResponse{Success: true}, nil
 }
 
 func (s *Session) List(ctx context.Context, req *session.ListRequest) (*session.ListResponse, error) {
@@ -197,6 +71,47 @@ func (s *Session) List(ctx context.Context, req *session.ListRequest) (*session.
 	}
 
 	return &session.ListResponse{Sessions: out, Total: int32(total)}, nil
+}
+
+func (s *Session) Start(ctx context.Context, req *session.StartRequest) (*session.StartResponse, error) {
+	return s.setStatus(ctx, req.Id, models.SessionOnline)
+}
+
+func (s *Session) Stop(ctx context.Context, req *session.StopRequest) (*session.StopResponse, error) {
+	r, err := s.setStatus(ctx, req.Id, models.SessionOffline)
+	if err != nil {
+		return nil, err
+	}
+	return &session.StopResponse{Session: r.Session}, nil
+}
+
+func (s *Session) setStatus(ctx context.Context, rawID string, newStatus string) (*session.StartResponse, error) {
+	id := uuid.MustParse(rawID)
+
+	_, db, err := ctxAccountDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := db.Model(&models.Session{}).
+		Where("id = ? AND deleted_at IS NULL", id).
+		Updates(map[string]any{
+			"status":     newStatus,
+			"updated_at": time.Now().UTC(),
+		})
+	if result.Error != nil {
+		return nil, status.Errorf(codes.Internal, "failed to update session: %v", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return nil, status.Error(codes.NotFound, "session not found")
+	}
+
+	var record models.Session
+	if err := db.First(&record, "id = ?", id).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to fetch session: %v", err)
+	}
+
+	return &session.StartResponse{Session: sessionToProto(&record)}, nil
 }
 
 func sessionToProto(record *models.Session) *session.Session {

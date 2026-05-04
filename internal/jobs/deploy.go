@@ -210,5 +210,8 @@ func injectConfig(zipContent []byte, config string, releaseID, tenantID uuid.UUI
 		}
 	}
 
-	return buf.Bytes(), w.Close()
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }

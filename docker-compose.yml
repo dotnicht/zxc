@@ -82,7 +82,7 @@ services:
         CMD: worker
     container_name: zxc-worker
     volumes:
-      - ./config.worker-a.docker.toml:/app/config.toml
+      - ./config.worker.docker.toml:/app/config.toml
       - ./test/fixtures/id_ed25519:/app/deploy_key:ro
     depends_on:
       postgres:

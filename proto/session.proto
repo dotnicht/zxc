@@ -7,11 +7,10 @@ import "buf/validate/validate.proto";
 option go_package = "zxc/api/session;session";
 
 service SessionService {
-  rpc Create(CreateRequest) returns (CreateResponse);
   rpc Get(GetRequest) returns (GetResponse);
-  rpc Update(UpdateRequest) returns (UpdateResponse);
-  rpc Delete(DeleteRequest) returns (DeleteResponse);
   rpc List(ListRequest) returns (ListResponse);
+  rpc Start(StartRequest) returns (StartResponse);
+  rpc Stop(StopRequest) returns (StopResponse);
 }
 
 message Session {
@@ -22,15 +21,6 @@ message Session {
   string updated_at = 5;
 }
 
-message CreateRequest {
-  string account_id = 1 [(buf.validate.field).string.uuid = true];
-  string status = 2;
-}
-
-message CreateResponse {
-  Session session = 1;
-}
-
 message GetRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
 }
@@ -39,22 +29,20 @@ message GetResponse {
   Session session = 1;
 }
 
-message UpdateRequest {
+message StartRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
-  string account_id = 2 [(buf.validate.field).string.uuid = true];
-  string status = 3;
 }
 
-message UpdateResponse {
+message StartResponse {
   Session session = 1;
 }
 
-message DeleteRequest {
+message StopRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
-message DeleteResponse {
-  bool success = 1;
+message StopResponse {
+  Session session = 1;
 }
 
 message ListRequest {
