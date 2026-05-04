@@ -13,12 +13,6 @@ import (
 	"zxc/internal/models"
 )
 
-var validSessionStatuses = map[string]bool{
-	models.SessionOnline:  true,
-	models.SessionOffline: true,
-	models.SessionSync:    true,
-}
-
 type Session struct {
 	session.UnimplementedSessionServiceServer
 }
@@ -28,10 +22,11 @@ func NewSession() *Session {
 }
 
 func validateSessionStatus(raw string) error {
-	if !validSessionStatuses[raw] {
-		return status.Errorf(codes.InvalidArgument, "invalid status: must be one of %q, %q, %q", models.SessionOnline, models.SessionOffline, models.SessionSync)
+	switch raw {
+	case models.SessionOnline, models.SessionOffline, models.SessionSync:
+		return nil
 	}
-	return nil
+	return status.Errorf(codes.InvalidArgument, "invalid status: must be one of %q, %q, %q", models.SessionOnline, models.SessionOffline, models.SessionSync)
 }
 
 func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*session.CreateResponse, error) {
@@ -45,9 +40,12 @@ func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*sess
 		return nil, err
 	}
 
-	profile, err := loadProfile(ctx, db, profileID)
-	if err != nil {
-		return nil, err
+	var profile models.Profile
+	if err := db.First(&profile, "id = ?", profileID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "account not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to load account: %v", err)
 	}
 
 	record := &models.Session{
@@ -104,8 +102,12 @@ func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*sess
 		return nil, err
 	}
 
-	if _, err := loadProfile(ctx, db, profileID); err != nil {
-		return nil, err
+	var checkProfile models.Profile
+	if err := db.First(&checkProfile, "id = ?", profileID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "account not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to load account: %v", err)
 	}
 
 	var previous models.Session

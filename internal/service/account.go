@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"time"
 
@@ -111,15 +110,4 @@ func profileToProto(a *models.Profile) *account.Account {
 		CreatedAt: a.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: a.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
-}
-
-func loadProfile(ctx context.Context, db *gorm.DB, profileID uuid.UUID) (*models.Profile, error) {
-	var p models.Profile
-	if err := db.First(&p, "id = ?", profileID).Error; err != nil {
-		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Error(codes.NotFound, "account not found")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to load account: %v", err)
-	}
-	return &p, nil
 }

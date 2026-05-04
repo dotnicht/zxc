@@ -47,7 +47,7 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to persist target creation: %v", errors.Join(err, cleanupErr))
 	}
 
-	return &target.CreateResponse{Target: targetToProto(t, true)}, nil
+	return &target.CreateResponse{Target: targetToProto(t)}, nil
 }
 
 func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetResponse, error) {
@@ -66,7 +66,7 @@ func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetRe
 		return nil, status.Errorf(codes.Internal, "failed to get target: %v", err)
 	}
 
-	return &target.GetResponse{Target: targetToProto(&t, true)}, nil
+	return &target.GetResponse{Target: targetToProto(&t)}, nil
 }
 
 func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target.UpdateResponse, error) {
@@ -114,7 +114,7 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to persist target update: %v", errors.Join(err, revertErr))
 	}
 
-	return &target.UpdateResponse{Target: targetToProto(&updated, true)}, nil
+	return &target.UpdateResponse{Target: targetToProto(&updated)}, nil
 }
 
 func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target.DeleteResponse, error) {
@@ -171,14 +171,14 @@ func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.Lis
 
 	out := make([]*target.Target, len(targets))
 	for i, t := range targets {
-		out[i] = targetToProto(t, true)
+		out[i] = targetToProto(t)
 	}
 
 	return &target.ListResponse{Targets: out, Total: int32(total)}, nil
 }
 
-func targetToProto(t *models.Target, reveal bool) *target.Target {
-	p := &target.Target{
+func targetToProto(t *models.Target) *target.Target {
+	return &target.Target{
 		Id:        t.ID.String(),
 		Address:   t.Address,
 		User:      t.User,
@@ -188,10 +188,6 @@ func targetToProto(t *models.Target, reveal bool) *target.Target {
 		CreatedAt: t.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: t.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
-	if !reveal {
-		p.Key = ""
-	}
-	return p
 }
 
 func (s *Target) enqueueProbe(ctx context.Context, tenantID uuid.UUID, targetID uuid.UUID) error {
