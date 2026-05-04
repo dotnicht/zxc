@@ -72,6 +72,12 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 	if req.Database != "" {
 		usersConnStr = req.Database
 	}
+	if req.Deploy != "" {
+		deployConnStr = req.Deploy
+	}
+	if req.Account != "" {
+		accountConnStr = req.Account
+	}
 
 	storageStr := req.Storage
 	if storageStr == "" && s.cfg.Storage != "" {
@@ -102,10 +108,20 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 	}
 
 	dbName := sanitizeDatabaseName(req.Name)
-	for _, suffix := range []string{"_users", "_deploy", "_account"} {
-		if err := s.createTenantDatabase(dbName + suffix); err != nil {
+	for _, entry := range []struct {
+		customDSN string
+		suffix    string
+	}{
+		{req.Database, "_users"},
+		{req.Deploy, "_deploy"},
+		{req.Account, "_account"},
+	} {
+		if entry.customDSN != "" {
+			continue
+		}
+		if err := s.createTenantDatabase(dbName + entry.suffix); err != nil {
 			s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
-			return nil, status.Errorf(codes.Internal, "failed to create %s database: %v", suffix, err)
+			return nil, status.Errorf(codes.Internal, "failed to create %s database: %v", entry.suffix, err)
 		}
 	}
 
@@ -165,6 +181,12 @@ func (s *Tenant) Update(ctx context.Context, req *tenant.UpdateRequest) (*tenant
 	}
 	if req.Database != "" {
 		t.UsersDatabase = req.Database
+	}
+	if req.Deploy != "" {
+		t.DeployDatabase = req.Deploy
+	}
+	if req.Account != "" {
+		t.AccountDatabase = req.Account
 	}
 	if req.Storage != "" {
 		t.Storage = req.Storage
@@ -281,16 +303,17 @@ func (s *Tenant) seedTenantOwner(connStr string, owner *models.User) error {
 }
 
 func (s *Tenant) modelToProto(m *models.Tenant) *tenant.Tenant {
-	t := &tenant.Tenant{
-		Id:        m.ID.String(),
-		Name:      m.Name,
-		Database:  m.UsersDatabase,
-		Storage:   m.Storage,
-		OwnerId:   m.OwnerID.String(),
-		CreatedAt: m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt: m.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	return &tenant.Tenant{
+		Id:              m.ID.String(),
+		Name:            m.Name,
+		Database: m.UsersDatabase,
+		Deploy:   m.DeployDatabase,
+		Account:  m.AccountDatabase,
+		Storage:         m.Storage,
+		OwnerId:         m.OwnerID.String(),
+		CreatedAt:       m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:       m.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
-	return t
 }
 
 func sanitizeDatabaseName(name string) string {

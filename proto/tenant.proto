@@ -21,12 +21,16 @@ message Tenant {
   string created_at = 5;
   string updated_at = 6;
   string owner_id = 7;
+  string deploy = 8;
+  string account = 9;
 }
 
 message CreateRequest {
   string name = 1;
   string database = 2;
   string storage = 3;
+  string deploy = 4;
+  string account = 5;
 }
 
 message CreateResponse {
@@ -47,6 +51,8 @@ message UpdateRequest {
   string database = 3;
   string storage = 4;
   string owner_id = 5 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string deploy = 6;
+  string account = 7;
 }
 
 message UpdateResponse {

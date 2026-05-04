@@ -31,6 +31,8 @@ type Tenant struct {
 	CreatedAt     string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     string                 `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	OwnerId       string                 `protobuf:"bytes,7,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	Deploy        string                 `protobuf:"bytes,8,opt,name=deploy,proto3" json:"deploy,omitempty"`
+	Account       string                 `protobuf:"bytes,9,opt,name=account,proto3" json:"account,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -114,11 +116,27 @@ func (x *Tenant) GetOwnerId() string {
 	return ""
 }
 
+func (x *Tenant) GetDeploy() string {
+	if x != nil {
+		return x.Deploy
+	}
+	return ""
+}
+
+func (x *Tenant) GetAccount() string {
+	if x != nil {
+		return x.Account
+	}
+	return ""
+}
+
 type CreateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Database      string                 `protobuf:"bytes,2,opt,name=database,proto3" json:"database,omitempty"`
 	Storage       string                 `protobuf:"bytes,3,opt,name=storage,proto3" json:"storage,omitempty"`
+	Deploy        string                 `protobuf:"bytes,4,opt,name=deploy,proto3" json:"deploy,omitempty"`
+	Account       string                 `protobuf:"bytes,5,opt,name=account,proto3" json:"account,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -170,6 +188,20 @@ func (x *CreateRequest) GetDatabase() string {
 func (x *CreateRequest) GetStorage() string {
 	if x != nil {
 		return x.Storage
+	}
+	return ""
+}
+
+func (x *CreateRequest) GetDeploy() string {
+	if x != nil {
+		return x.Deploy
+	}
+	return ""
+}
+
+func (x *CreateRequest) GetAccount() string {
+	if x != nil {
+		return x.Account
 	}
 	return ""
 }
@@ -313,6 +345,8 @@ type UpdateRequest struct {
 	Database      string                 `protobuf:"bytes,3,opt,name=database,proto3" json:"database,omitempty"`
 	Storage       string                 `protobuf:"bytes,4,opt,name=storage,proto3" json:"storage,omitempty"`
 	OwnerId       string                 `protobuf:"bytes,5,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	Deploy        string                 `protobuf:"bytes,6,opt,name=deploy,proto3" json:"deploy,omitempty"`
+	Account       string                 `protobuf:"bytes,7,opt,name=account,proto3" json:"account,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -378,6 +412,20 @@ func (x *UpdateRequest) GetStorage() string {
 func (x *UpdateRequest) GetOwnerId() string {
 	if x != nil {
 		return x.OwnerId
+	}
+	return ""
+}
+
+func (x *UpdateRequest) GetDeploy() string {
+	if x != nil {
+		return x.Deploy
+	}
+	return ""
+}
+
+func (x *UpdateRequest) GetAccount() string {
+	if x != nil {
+		return x.Account
 	}
 	return ""
 }
@@ -534,7 +582,7 @@ var File_tenant_proto protoreflect.FileDescriptor
 
 const file_tenant_proto_rawDesc = "" +
 	"\n" +
-	"\ftenant.proto\x12\x06tenant\x1a\x1bbuf/validate/validate.proto\"\xbb\x01\n" +
+	"\ftenant.proto\x12\x06tenant\x1a\x1bbuf/validate/validate.proto\"\xed\x01\n" +
 	"\x06Tenant\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
@@ -544,24 +592,30 @@ const file_tenant_proto_rawDesc = "" +
 	"created_at\x18\x05 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\x06 \x01(\tR\tupdatedAt\x12\x19\n" +
-	"\bowner_id\x18\a \x01(\tR\aownerId\"Y\n" +
+	"\bowner_id\x18\a \x01(\tR\aownerId\x12\x16\n" +
+	"\x06deploy\x18\b \x01(\tR\x06deploy\x12\x18\n" +
+	"\aaccount\x18\t \x01(\tR\aaccount\"\x8b\x01\n" +
 	"\rCreateRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
 	"\bdatabase\x18\x02 \x01(\tR\bdatabase\x12\x18\n" +
-	"\astorage\x18\x03 \x01(\tR\astorage\"8\n" +
+	"\astorage\x18\x03 \x01(\tR\astorage\x12\x16\n" +
+	"\x06deploy\x18\x04 \x01(\tR\x06deploy\x12\x18\n" +
+	"\aaccount\x18\x05 \x01(\tR\aaccount\"8\n" +
 	"\x0eCreateResponse\x12&\n" +
 	"\x06tenant\x18\x01 \x01(\v2\x0e.tenant.TenantR\x06tenant\"&\n" +
 	"\n" +
 	"GetRequest\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"5\n" +
 	"\vGetResponse\x12&\n" +
-	"\x06tenant\x18\x01 \x01(\v2\x0e.tenant.TenantR\x06tenant\"\x9b\x01\n" +
+	"\x06tenant\x18\x01 \x01(\v2\x0e.tenant.TenantR\x06tenant\"\xcd\x01\n" +
 	"\rUpdateRequest\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
 	"\bdatabase\x18\x03 \x01(\tR\bdatabase\x12\x18\n" +
 	"\astorage\x18\x04 \x01(\tR\astorage\x12&\n" +
-	"\bowner_id\x18\x05 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\aownerId\"8\n" +
+	"\bowner_id\x18\x05 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\aownerId\x12\x16\n" +
+	"\x06deploy\x18\x06 \x01(\tR\x06deploy\x12\x18\n" +
+	"\aaccount\x18\a \x01(\tR\aaccount\"8\n" +
 	"\x0eUpdateResponse\x12&\n" +
 	"\x06tenant\x18\x01 \x01(\v2\x0e.tenant.TenantR\x06tenant\">\n" +
 	"\vListRequest\x12\x12\n" +
