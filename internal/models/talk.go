@@ -7,21 +7,14 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	SessionOnline  = "online"
-	SessionOffline = "offline"
-	SessionSync    = "sync"
-)
-
-type Session struct {
+type Talk struct {
 	ID        uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	ProfileID uuid.UUID      `gorm:"type:uuid;not null;index"`
-	Status    string         `gorm:"type:varchar(20);not null;default:'offline'"`
+	UserID    uuid.UUID      `gorm:"type:uuid;not null"`
 	CreatedAt time.Time      `gorm:"not null;default:now()"`
 	UpdatedAt time.Time      `gorm:"not null;default:now()"`
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
-func (Session) TableName() string {
-	return "sessions"
+func (Talk) TableName() string {
+	return "talks"
 }

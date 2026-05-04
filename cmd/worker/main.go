@@ -37,7 +37,7 @@ func main() {
 	backend := infra.NewWorkflowBackend(cfg.Database, true)
 
 	jobs.RegisterDeployDeps(root, infra.NewConnection, cfg)
-	jobs.RegisterAccountDeps(root, infra.NewConnection)
+	jobs.RegisterAccountDeps(root, infra.NewConnection, infra.NewConnection)
 	jobs.RegisterProbeDeps(root, infra.NewConnection)
 
 	w := worker.New(backend, nil)

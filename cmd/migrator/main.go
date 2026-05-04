@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -78,9 +77,8 @@ func main() {
 	}
 
 	slog.Info("Fetching tenants...")
-	ctx := context.Background()
 	var tenants []*models.Tenant
-	if err := rootDB.WithContext(ctx).Find(&tenants).Error; err != nil {
+	if err := rootDB.Find(&tenants).Error; err != nil {
 		slog.Error("Failed to fetch tenants", "error", err)
 		os.Exit(1)
 	}
@@ -96,7 +94,7 @@ func main() {
 	for i, tenant := range tenants {
 		slog.Info("Migrating tenant", "index", i+1, "total", len(tenants), "name", tenant.Name)
 		start := time.Now()
-		if err := migrateTenantDatabase(tenant.Database); err != nil {
+		if err := migrateTenantDatabases(tenant); err != nil {
 			slog.Error("Tenant migration failed", "name", tenant.Name, "error", err)
 			failCount++
 		} else {
@@ -154,19 +152,30 @@ func ensureRootDatabase(dsn string) (created bool, err error) {
 	return false, nil
 }
 
-func migrateTenantDatabase(connStr string) error {
-	tenantDB, err := gorm.Open(postgres.Open(connStr), &gorm.Config{Logger: nil})
-	if err != nil {
-		return fmt.Errorf("failed to connect to tenant database: %w", err)
-	}
-
-	if err := infra.RunTenantMigrations(tenantDB); err != nil {
-		return fmt.Errorf("failed to run migrations: %w", err)
-	}
-
-	sqlDB, err := tenantDB.DB()
-	if err == nil {
-		sqlDB.Close()
+func migrateTenantDatabases(tenant *models.Tenant) error {
+	for _, m := range []struct {
+		connStr string
+		fn      func(*gorm.DB) error
+		label   string
+	}{
+		{tenant.UsersDatabase, infra.RunUsersMigrations, "users"},
+		{tenant.DeployDatabase, infra.RunDeployMigrations, "deploy"},
+		{tenant.AccountDatabase, infra.RunAccountMigrations, "account"},
+	} {
+		if m.connStr == "" {
+			continue
+		}
+		db, err := gorm.Open(postgres.Open(m.connStr), &gorm.Config{Logger: nil})
+		if err != nil {
+			return fmt.Errorf("connect to %s db: %w", m.label, err)
+		}
+		if err := m.fn(db); err != nil {
+			return fmt.Errorf("migrate %s db: %w", m.label, err)
+		}
+		sqlDB, _ := db.DB()
+		if sqlDB != nil {
+			sqlDB.Close()
+		}
 	}
 	return nil
 }

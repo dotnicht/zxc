@@ -15,7 +15,6 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"zxc/api/payload"
-	"zxc/internal/authz"
 	"zxc/internal/consts"
 	"zxc/internal/infra"
 	"zxc/internal/models"
@@ -80,11 +79,8 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 		return nil, err
 	}
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	tenant, tenantDB, err := ctxDeployDB(ctx)
 	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "payload.create", tenant, authz.Resource{Type: "payload"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -123,7 +119,7 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.GetResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -135,12 +131,6 @@ func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.Ge
 		}
 		return nil, status.Errorf(codes.Internal, "failed to get payload: %v", err)
 	}
-	if _, err := authorize(ctx, "payload.get", tenant, authz.Resource{
-		Type:    "payload",
-		OwnerID: p.OwnerID,
-	}, authz.Related{}); err != nil {
-		return nil, err
-	}
 
 	return &payload.GetResponse{Payload: payloadToProto(&p)}, nil
 }
@@ -148,7 +138,7 @@ func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.Ge
 func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payload.UpdateResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -159,12 +149,6 @@ func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payl
 			return nil, status.Error(codes.NotFound, "payload not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load payload: %v", err)
-	}
-	if _, err := authorize(ctx, "payload.update", tenant, authz.Resource{
-		Type:    "payload",
-		OwnerID: current.OwnerID,
-	}, authz.Related{}); err != nil {
-		return nil, err
 	}
 
 	result := tenantDB.Model(&models.Payload{}).Where("id = ?", id).Updates(&models.Payload{Path: req.Path, Config: req.Config, Start: req.Start, Stop: req.Stop})
@@ -186,7 +170,7 @@ func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payl
 func (s *Payload) Delete(ctx context.Context, req *payload.DeleteRequest) (*payload.DeleteResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -197,12 +181,6 @@ func (s *Payload) Delete(ctx context.Context, req *payload.DeleteRequest) (*payl
 			return nil, status.Error(codes.NotFound, "payload not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load payload: %v", err)
-	}
-	if _, err := authorize(ctx, "payload.delete", tenant, authz.Resource{
-		Type:    "payload",
-		OwnerID: current.OwnerID,
-	}, authz.Related{}); err != nil {
-		return nil, err
 	}
 
 	result := tenantDB.Where("id = ?", id).Delete(&models.Payload{})
@@ -225,11 +203,8 @@ func (s *Payload) List(ctx context.Context, req *payload.ListRequest) (*payload.
 		pageSize = 10
 	}
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxDeployDB(ctx)
 	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "payload.list", tenant, authz.Resource{Type: "payload"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 

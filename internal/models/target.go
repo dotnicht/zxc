@@ -22,7 +22,6 @@ type Target struct {
 	Deploying   bool           `gorm:"not null;default:false"`
 	DeployingAt *time.Time     `gorm:"index"`
 	OwnerID     uuid.UUID      `gorm:"type:uuid;not null"`
-	Owner       *User          `gorm:"constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedAt   time.Time      `gorm:"not null;default:now()"`
 	UpdatedAt   time.Time      `gorm:"not null;default:now()"`
 	DeletedAt   gorm.DeletedAt `gorm:"index"`

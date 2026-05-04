@@ -3,13 +3,13 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"zxc/api/session"
-	"zxc/internal/authz"
 	"zxc/internal/models"
 )
 
@@ -35,37 +35,38 @@ func validateSessionStatus(raw string) error {
 }
 
 func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*session.CreateResponse, error) {
-	accountID := uuid.MustParse(req.AccountId)
+	profileID := uuid.MustParse(req.AccountId)
 	if err := validateSessionStatus(req.Status); err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxAccountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorize(ctx, "session.create", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
-		return nil, err
-	}
 
-	account, err := loadAccount(ctx, tenantDB, accountID)
+	profile, err := loadProfile(ctx, tenantDB, profileID)
 	if err != nil {
 		return nil, err
 	}
 
 	record := &models.Session{
-		AccountID: accountID,
+		ProfileID: profileID,
 		Status:    req.Status,
 	}
-	if err := tenantDB.WithContext(ctx).Create(record).Error; err != nil {
+	if err := tenantDB.Create(record).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create session: %v", err)
 	}
-	if account.Status == models.AccountUnknown {
-		if err := tenantDB.WithContext(ctx).Model(&models.Account{}).
-			Where("id = ? AND status = ?", accountID, models.AccountUnknown).
-			Update("status", models.AccountActive).Error; err != nil {
-			cleanupErr := tenantDB.WithContext(ctx).Unscoped().Delete(&models.Session{}, "id = ?", record.ID).Error
-			return nil, status.Errorf(codes.Internal, "failed to activate account: %v", errors.Join(err, cleanupErr))
+	if profile.Status == models.ProfileUnknown {
+		result := tenantDB.Model(&models.Profile{}).
+			Where("id = ? AND status = ? AND deleted_at IS NULL", profileID, models.ProfileUnknown).
+			Updates(map[string]any{
+				"status":     models.ProfileActive,
+				"updated_at": time.Now().UTC(),
+			})
+		if result.Error != nil {
+			cleanupErr := tenantDB.Unscoped().Delete(&models.Session{}, "id = ?", record.ID).Error
+			return nil, status.Errorf(codes.Internal, "failed to activate account: %v", errors.Join(result.Error, cleanupErr))
 		}
 	}
 
@@ -75,16 +76,13 @@ func (s *Session) Create(ctx context.Context, req *session.CreateRequest) (*sess
 func (s *Session) Get(ctx context.Context, req *session.GetRequest) (*session.GetResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxAccountDB(ctx)
 	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "session.get", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
 	var record models.Session
-	if err := tenantDB.WithContext(ctx).First(&record, "id = ?", id).Error; err != nil {
+	if err := tenantDB.First(&record, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "session not found")
 		}
@@ -96,35 +94,34 @@ func (s *Session) Get(ctx context.Context, req *session.GetRequest) (*session.Ge
 
 func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*session.UpdateResponse, error) {
 	id := uuid.MustParse(req.Id)
-	accountID := uuid.MustParse(req.AccountId)
+	profileID := uuid.MustParse(req.AccountId)
 	if err := validateSessionStatus(req.Status); err != nil {
 		return nil, err
 	}
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxAccountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorize(ctx, "session.update", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
-		return nil, err
-	}
 
-	if _, err := loadAccount(ctx, tenantDB, accountID); err != nil {
+	if _, err := loadProfile(ctx, tenantDB, profileID); err != nil {
 		return nil, err
 	}
 
 	var previous models.Session
-	if err := tenantDB.WithContext(ctx).First(&previous, "id = ?", id).Error; err != nil {
+	if err := tenantDB.First(&previous, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "session not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load session: %v", err)
 	}
 
-	result := tenantDB.WithContext(ctx).Model(&models.Session{}).Where("id = ?", id).Updates(map[string]any{
-		"account_id": accountID,
-		"status":     req.Status,
-	})
+	result := tenantDB.Model(&models.Session{}).Where("id = ? AND deleted_at IS NULL", id).
+		Updates(map[string]any{
+			"profile_id": profileID,
+			"status":     req.Status,
+			"updated_at": time.Now().UTC(),
+		})
 	if result.Error != nil {
 		return nil, status.Errorf(codes.Internal, "failed to update session: %v", result.Error)
 	}
@@ -133,7 +130,7 @@ func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*sess
 	}
 
 	var updated models.Session
-	if err := tenantDB.WithContext(ctx).First(&updated, "id = ?", id).Error; err != nil {
+	if err := tenantDB.First(&updated, "id = ?", id).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated session: %v", err)
 	}
 
@@ -143,23 +140,20 @@ func (s *Session) Update(ctx context.Context, req *session.UpdateRequest) (*sess
 func (s *Session) Delete(ctx context.Context, req *session.DeleteRequest) (*session.DeleteResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxAccountDB(ctx)
 	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "session.delete", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
 	var current models.Session
-	if err := tenantDB.WithContext(ctx).First(&current, "id = ?", id).Error; err != nil {
+	if err := tenantDB.First(&current, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "session not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load session: %v", err)
 	}
 
-	result := tenantDB.WithContext(ctx).Where("id = ?", id).Delete(&models.Session{})
+	result := tenantDB.Where("id = ?", id).Delete(&models.Session{})
 	if result.Error != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete session: %v", result.Error)
 	}
@@ -179,22 +173,19 @@ func (s *Session) List(ctx context.Context, req *session.ListRequest) (*session.
 		pageSize = 10
 	}
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxAccountDB(ctx)
 	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "session.list", tenant, authz.Resource{Type: "session"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
 	var total int64
-	if err := tenantDB.WithContext(ctx).Model(&models.Session{}).Count(&total).Error; err != nil {
+	if err := tenantDB.Model(&models.Session{}).Count(&total).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to count sessions: %v", err)
 	}
 
 	var records []*models.Session
 	offset := (int(page) - 1) * int(pageSize)
-	if err := tenantDB.WithContext(ctx).Order("created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&records).Error; err != nil {
+	if err := tenantDB.Order("created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&records).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list sessions: %v", err)
 	}
 
@@ -206,21 +197,10 @@ func (s *Session) List(ctx context.Context, req *session.ListRequest) (*session.
 	return &session.ListResponse{Sessions: out, Total: int32(total)}, nil
 }
 
-func loadAccount(ctx context.Context, tenantDB *gorm.DB, accountID uuid.UUID) (*models.Account, error) {
-	var account models.Account
-	if err := tenantDB.WithContext(ctx).First(&account, "id = ?", accountID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Error(codes.NotFound, "account not found")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to load account: %v", err)
-	}
-	return &account, nil
-}
-
 func sessionToProto(record *models.Session) *session.Session {
 	return &session.Session{
 		Id:        record.ID.String(),
-		AccountId: record.AccountID.String(),
+		AccountId: record.ProfileID.String(),
 		Status:    record.Status,
 		CreatedAt: record.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: record.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),

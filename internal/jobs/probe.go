@@ -28,13 +28,13 @@ func Probe(ctx workflow.Context, args ProbeArgs) error {
 
 type probeDeps struct {
 	rootDB    *gorm.DB
-	newTenant func(string) (*gorm.DB, error)
+	newDeploy func(string) (*gorm.DB, error)
 }
 
 var probeDep *probeDeps
 
-func RegisterProbeDeps(rootDB *gorm.DB, newTenant func(string) (*gorm.DB, error)) {
-	probeDep = &probeDeps{rootDB: rootDB, newTenant: newTenant}
+func RegisterProbeDeps(rootDB *gorm.DB, newDeploy func(string) (*gorm.DB, error)) {
+	probeDep = &probeDeps{rootDB: rootDB, newDeploy: newDeploy}
 }
 
 func ProbeActivity(ctx context.Context, args ProbeArgs) error {
@@ -43,7 +43,7 @@ func ProbeActivity(ctx context.Context, args ProbeArgs) error {
 		return err
 	}
 
-	db, err := probeDep.newTenant(tenant.Database)
+	db, err := probeDep.newDeploy(tenant.DeployDatabase)
 	if err != nil {
 		return err
 	}

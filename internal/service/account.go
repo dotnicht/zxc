@@ -2,14 +2,15 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"zxc/api/account"
-	"zxc/internal/authz"
 	"zxc/internal/models"
 )
 
@@ -24,23 +25,20 @@ func NewAccount() *Account {
 func (s *Account) Get(ctx context.Context, req *account.GetRequest) (*account.GetResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxAccountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorize(ctx, "account.get", tenant, authz.Resource{Type: "account"}, authz.Related{}); err != nil {
-		return nil, err
-	}
 
-	var a models.Account
-	if err := tenantDB.WithContext(ctx).First(&a, "id = ?", id).Error; err != nil {
+	var a models.Profile
+	if err := tenantDB.First(&a, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "account not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to get account: %v", err)
 	}
 
-	return &account.GetResponse{Account: accountToProto(&a)}, nil
+	return &account.GetResponse{Account: profileToProto(&a)}, nil
 }
 
 func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.ListResponse, error) {
@@ -52,28 +50,25 @@ func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.
 		pageSize = 10
 	}
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxAccountDB(ctx)
 	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "account.list", tenant, authz.Resource{Type: "account"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
 	var total int64
-	if err := tenantDB.WithContext(ctx).Model(&models.Account{}).Count(&total).Error; err != nil {
+	if err := tenantDB.Model(&models.Profile{}).Count(&total).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to count accounts: %v", err)
 	}
 
-	var accounts []*models.Account
+	var profiles []*models.Profile
 	offset := (int(page) - 1) * int(pageSize)
-	if err := tenantDB.WithContext(ctx).Order("created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&accounts).Error; err != nil {
+	if err := tenantDB.Order("created_at DESC").Limit(int(pageSize)).Offset(offset).Find(&profiles).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list accounts: %v", err)
 	}
 
-	out := make([]*account.Account, len(accounts))
-	for i, a := range accounts {
-		out[i] = accountToProto(a)
+	out := make([]*account.Account, len(profiles))
+	for i, a := range profiles {
+		out[i] = profileToProto(a)
 	}
 
 	return &account.ListResponse{Accounts: out, Total: int32(total)}, nil
@@ -82,34 +77,33 @@ func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.
 func (s *Account) Disable(ctx context.Context, req *account.DisableRequest) (*account.DisableResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxAccountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := authorize(ctx, "account.disable", tenant, authz.Resource{Type: "account"}, authz.Related{}); err != nil {
-		return nil, err
-	}
 
-	var current models.Account
-	if err := tenantDB.WithContext(ctx).First(&current, "id = ?", id).Error; err != nil {
+	var current models.Profile
+	if err := tenantDB.First(&current, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "account not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load account: %v", err)
 	}
 
-	result := tenantDB.WithContext(ctx).Model(&models.Account{}).
-		Where("id = ? AND status <> ?", id, models.AccountDisabled).
-		Update("status", models.AccountDisabled)
-	if result.Error != nil {
-		return nil, status.Errorf(codes.Internal, "failed to disable account: %v", result.Error)
+	if err := tenantDB.Model(&models.Profile{}).
+		Where("id = ? AND status <> ? AND deleted_at IS NULL", id, models.ProfileDisabled).
+		Updates(map[string]any{
+			"status":     models.ProfileDisabled,
+			"updated_at": time.Now().UTC(),
+		}).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to disable account: %v", err)
 	}
 
-	current.Status = models.AccountDisabled
-	return &account.DisableResponse{Account: accountToProto(&current)}, nil
+	current.Status = models.ProfileDisabled
+	return &account.DisableResponse{Account: profileToProto(&current)}, nil
 }
 
-func accountToProto(a *models.Account) *account.Account {
+func profileToProto(a *models.Profile) *account.Account {
 	return &account.Account{
 		Id:        a.ID.String(),
 		Name:      a.Name,
@@ -117,4 +111,15 @@ func accountToProto(a *models.Account) *account.Account {
 		CreatedAt: a.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: a.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
+}
+
+func loadProfile(ctx context.Context, tenantDB *gorm.DB, profileID uuid.UUID) (*models.Profile, error) {
+	var p models.Profile
+	if err := tenantDB.First(&p, "id = ?", profileID).Error; err != nil {
+		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "account not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to load account: %v", err)
+	}
+	return &p, nil
 }
