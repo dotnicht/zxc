@@ -12,9 +12,9 @@ type Tenant struct {
 	Name            string         `gorm:"type:varchar(255);not null;uniqueIndex"`
 	OwnerID         uuid.UUID      `gorm:"type:uuid;not null"`
 	Owner           *User          `gorm:"constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	MainDatabase    string         `gorm:"type:text"`
-	DeployDatabase  string         `gorm:"type:text"`
-	AccountDatabase string         `gorm:"type:text"`
+	Main    string         `gorm:"type:text"`
+	Deploy  string         `gorm:"type:text"`
+	Account string         `gorm:"type:text"`
 	Storage         string         `gorm:"type:text"`
 	CreatedAt       time.Time      `gorm:"not null;default:now()"`
 	UpdatedAt       time.Time      `gorm:"not null;default:now()"`

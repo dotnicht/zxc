@@ -43,7 +43,7 @@ func ProbeActivity(ctx context.Context, args ProbeArgs) error {
 		return err
 	}
 
-	db, err := probeDep.newDeploy(tenant.DeployDatabase)
+	db, err := probeDep.newDeploy(tenant.Deploy)
 	if err != nil {
 		return err
 	}

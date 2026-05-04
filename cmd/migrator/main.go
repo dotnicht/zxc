@@ -158,9 +158,9 @@ func migrateTenantDatabases(tenant *models.Tenant) error {
 		fn      func(*gorm.DB) error
 		label   string
 	}{
-		{tenant.MainDatabase, infra.RunMainMigrations, "main"},
-		{tenant.DeployDatabase, infra.RunDeployMigrations, "deploy"},
-		{tenant.AccountDatabase, infra.RunAccountMigrations, "account"},
+		{tenant.Main, infra.RunMainMigrations, "main"},
+		{tenant.Deploy, infra.RunDeployMigrations, "deploy"},
+		{tenant.Account, infra.RunAccountMigrations, "account"},
 	} {
 		if m.connStr == "" {
 			continue

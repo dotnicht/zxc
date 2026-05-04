@@ -124,8 +124,8 @@ services:
       retries: 5
     networks:
       - zxc-network
-
-  storage-init:
+      
+  storage-init:  # TODO: why we need it? can be simplified? 
     image: minio/mc:latest
     container_name: zxc-storage-init
     entrypoint: >
@@ -140,6 +140,20 @@ services:
     networks:
       - zxc-network
     restart: "no"
+
+  pgweb:
+    image: sosedoff/pgweb:latest
+    container_name: zxc-pgweb
+    environment:
+      PGWEB_DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - zxc-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:

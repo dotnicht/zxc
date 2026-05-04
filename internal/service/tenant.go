@@ -91,9 +91,9 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 
 	t := &models.Tenant{
 		Name:            req.Name,
-		MainDatabase:    mainDSN,
-		DeployDatabase:  deployDSN,
-		AccountDatabase: accountDSN,
+		Main:    mainDSN,
+		Deploy:  deployDSN,
+		Account: accountDSN,
 		Storage:         storageStr,
 		OwnerID:         s.root.ID,
 	}
@@ -260,9 +260,9 @@ func (s *Tenant) modelToProto(m *models.Tenant) *tenant.Tenant {
 	return &tenant.Tenant{
 		Id:       m.ID.String(),
 		Name:     m.Name,
-		Database: m.MainDatabase,
-		Deploy:   m.DeployDatabase,
-		Account:  m.AccountDatabase,
+		Database: m.Main,
+		Deploy:   m.Deploy,
+		Account:  m.Account,
 		Storage:  m.Storage,
 		OwnerId:  m.OwnerID.String(),
 		CreatedAt: m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),

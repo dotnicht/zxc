@@ -9,5 +9,3 @@ ca   = "certs/ca.crt"
 cert = "certs/server.crt"
 key  = "certs/server.key"
 
-[worker]
-id = "00000000-0000-0000-0000-000000000100"

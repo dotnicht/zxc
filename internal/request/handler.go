@@ -73,7 +73,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deployDB, err := infra.NewConnection(tenant.DeployDatabase)
+	deployDB, err := infra.NewConnection(tenant.Deploy)
 	if err != nil {
 		http.Error(w, "failed to connect to tenant database", http.StatusInternalServerError)
 		return

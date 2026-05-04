@@ -42,12 +42,12 @@ func AccountActivity(ctx context.Context, args AccountArgs) error {
 		return err
 	}
 
-	deployDB, err := accountDep.newDeploy(tenant.DeployDatabase)
+	deployDB, err := accountDep.newDeploy(tenant.Deploy)
 	if err != nil {
 		return err
 	}
 
-	accountDB, err := accountDep.newAccount(tenant.AccountDatabase)
+	accountDB, err := accountDep.newAccount(tenant.Account)
 	if err != nil {
 		return err
 	}

@@ -12,6 +12,8 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
+// TODO: why do we have cert stuff in config? 
+
 type TLS struct {
 	CA   string
 	Cert string

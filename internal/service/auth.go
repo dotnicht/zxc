@@ -84,17 +84,17 @@ func UserInterceptor(rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServerInte
 			return nil, status.Errorf(codes.Internal, "failed to get tenant: %v", err)
 		}
 
-		mainDB, err := infra.NewConnection(tenant.MainDatabase)
+		mainDB, err := infra.NewConnection(tenant.Main)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to connect to users database: %v", err)
 		}
 
-		deployDB, err := infra.NewConnection(tenant.DeployDatabase)
+		deployDB, err := infra.NewConnection(tenant.Deploy)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to connect to deploy database: %v", err)
 		}
 
-		accountDB, err := infra.NewConnection(tenant.AccountDatabase)
+		accountDB, err := infra.NewConnection(tenant.Account)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to connect to account database: %v", err)
 		}

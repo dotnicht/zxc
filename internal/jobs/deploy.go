@@ -21,7 +21,7 @@ import (
 	"zxc/internal/models"
 )
 
-const maxDeployPayloadSize = 50 * 1024 * 1024
+const maxPayloadSize = 50 * 1024 * 1024
 
 type DeployArgs struct {
 	TenantID    uuid.UUID
@@ -52,7 +52,7 @@ func DeployActivity(ctx context.Context, args DeployArgs) error {
 		return fmt.Errorf("load tenant %s: %w", args.TenantID, err)
 	}
 
-	db, err := deployDep.newDeploy(tenant.DeployDatabase)
+	db, err := deployDep.newDeploy(tenant.Deploy)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,6 @@ func DeployActivity(ctx context.Context, args DeployArgs) error {
 	if release.Status != models.ReleaseWait {
 		return nil
 	}
-
 	if release.TargetID == nil {
 		return fmt.Errorf("release %s has no target assigned", release.ID)
 	}
@@ -73,19 +72,19 @@ func DeployActivity(ctx context.Context, args DeployArgs) error {
 		return fmt.Errorf("release %s has no payload assigned", release.ID)
 	}
 
-	release.Target = &models.Target{}
-	if err := db.WithContext(ctx).First(release.Target, "id = ?", *release.TargetID).Error; err != nil {
+	var tgt models.Target
+	if err := db.WithContext(ctx).First(&tgt, "id = ?", *release.TargetID).Error; err != nil {
 		return fmt.Errorf("load target %s: %w", *release.TargetID, err)
 	}
-	release.Payload = &models.Payload{}
-	if err := db.WithContext(ctx).First(release.Payload, "id = ?", *release.PayloadID).Error; err != nil {
+	var pld models.Payload
+	if err := db.WithContext(ctx).First(&pld, "id = ?", *release.PayloadID).Error; err != nil {
 		return fmt.Errorf("load payload %s: %w", *release.PayloadID, err)
 	}
 
 	now := time.Now().UTC()
 	stale := now.Add(-15 * time.Minute)
 	lockResult := db.WithContext(ctx).Model(&models.Target{}).
-		Where("id = ? AND (deploying = false OR deploying_at < ?) AND deleted_at IS NULL", release.Target.ID, stale).
+		Where("id = ? AND (deploying = false OR deploying_at < ?) AND deleted_at IS NULL", tgt.ID, stale).
 		Updates(map[string]any{"deploying": true, "deploying_at": now})
 	if lockResult.Error != nil {
 		return fmt.Errorf("acquire deploy lock: %w", lockResult.Error)
@@ -95,9 +94,9 @@ func DeployActivity(ctx context.Context, args DeployArgs) error {
 	}
 	defer func() {
 		if err := db.Model(&models.Target{}).
-			Where("id = ?", release.Target.ID).
+			Where("id = ?", tgt.ID).
 			Updates(map[string]any{"deploying": false, "deploying_at": nil}).Error; err != nil {
-			slog.Error("failed to release deploy lock", "target_id", release.Target.ID, "error", err)
+			slog.Error("failed to release deploy lock", "target_id", tgt.ID, "error", err)
 		}
 	}()
 
@@ -106,18 +105,18 @@ func DeployActivity(ctx context.Context, args DeployArgs) error {
 		return fmt.Errorf("storage client: %w", err)
 	}
 
-	scriptReader, err := mc.Download(ctx, bucket, release.Payload.Path)
+	scriptReader, err := mc.Download(ctx, bucket, pld.Path)
 	if err != nil {
 		return fmt.Errorf("download payload script: %w", err)
 	}
 	defer scriptReader.Close()
 
-	scriptContent, err := io.ReadAll(io.LimitReader(scriptReader, maxDeployPayloadSize))
+	scriptContent, err := io.ReadAll(io.LimitReader(scriptReader, maxPayloadSize))
 	if err != nil {
 		return fmt.Errorf("read payload script: %w", err)
 	}
 
-	deployZip, err := injectConfig(scriptContent, release.Payload.Config, release.ID, args.TenantID, deployDep.cfg.Webhook, deployDep.cfg.Secret, release.Target.Key)
+	deployZip, err := injectConfig(scriptContent, pld.Config, release.ID, args.TenantID, deployDep.cfg.Webhook, deployDep.cfg.Secret, tgt.Key)
 	if err != nil {
 		return fmt.Errorf("create deploy zip: %w", err)
 	}
@@ -127,35 +126,31 @@ func DeployActivity(ctx context.Context, args DeployArgs) error {
 		return fmt.Errorf("upload release zip: %w", err)
 	}
 
-	if err := infra.Deploy(ctx, infra.SSHRequest{
-		Host:     release.Target.Address,
-		User:     release.Target.User,
-		Key:      []byte(release.Target.Key),
+	if err := infra.Deploy(ctx, infra.Request{
+		Host:     tgt.Address,
+		User:     tgt.User,
+		Key:      []byte(tgt.Key),
 		Payload:  bytes.NewReader(deployZip),
-		StopCmd:  release.Payload.Stop,
-		StartCmd: release.Payload.Start,
+		Stop:  pld.Stop,
+		Start: pld.Start,
 	}); err != nil {
 		if markErr := db.Model(&models.Release{}).
 			Where("id = ? AND status <> ? AND deleted_at IS NULL", args.ReleaseID, models.ReleaseDead).
 			Updates(map[string]any{"status": models.ReleaseDead, "changed_by_id": args.ChangedByID}).Error; markErr != nil {
 			slog.Error("failed to mark release dead", "release_id", args.ReleaseID, "error", markErr)
 		}
-		return fmt.Errorf("ssh deploy to %s: %w", release.Target.Address, err)
+		return fmt.Errorf("ssh deploy to %s: %w", tgt.Address, err)
 	}
 
 	if err := db.Model(&models.Target{}).
-		Where("id = ?", release.Target.ID).
+		Where("id = ?", tgt.ID).
 		Update("status", models.TargetOnline).Error; err != nil {
-		slog.Error("failed to update target status", "target_id", release.Target.ID, "error", err)
+		slog.Error("failed to update target status", "target_id", tgt.ID, "error", err)
 	}
 
-	if err := db.Model(&models.Release{}).
+	return db.Model(&models.Release{}).
 		Where("id = ? AND status = ? AND deleted_at IS NULL", release.ID, models.ReleaseWait).
-		Updates(map[string]any{"status": models.ReleaseDeployed, "changed_by_id": args.ChangedByID}).Error; err != nil {
-		return err
-	}
-
-	return nil
+		Updates(map[string]any{"status": models.ReleaseDeployed, "changed_by_id": args.ChangedByID}).Error
 }
 
 func injectConfig(zipContent []byte, config string, releaseID, tenantID uuid.UUID, webhookURL, secret, key string) ([]byte, error) {
@@ -215,8 +210,5 @@ func injectConfig(zipContent []byte, config string, releaseID, tenantID uuid.UUI
 		}
 	}
 
-	if err := w.Close(); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+	return buf.Bytes(), w.Close()
 }
