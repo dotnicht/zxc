@@ -73,7 +73,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tenantDB, err := infra.NewConnection(tenant.Database)
+	deployDB, err := infra.NewConnection(tenant.DeployDatabase)
 	if err != nil {
 		http.Error(w, "failed to connect to tenant database", http.StatusInternalServerError)
 		return
@@ -95,7 +95,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		Data:      json.RawMessage(body),
 	}
 
-	if err := tenantDB.Create(record).Error; err != nil {
+	if err := deployDB.Create(record).Error; err != nil {
 		http.Error(w, "failed to save request", http.StatusInternalServerError)
 		return
 	}
@@ -107,7 +107,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		RequestID: record.ID,
 		ReleaseID: releaseID,
 	}); err != nil {
-		cleanupErr := tenantDB.Unscoped().Delete(&models.Request{}, "id = ?", record.ID).Error
+		cleanupErr := deployDB.Unscoped().Delete(&models.Request{}, "id = ?", record.ID).Error
 		http.Error(w, errors.Join(err, cleanupErr).Error(), http.StatusInternalServerError)
 		return
 	}

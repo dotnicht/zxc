@@ -68,11 +68,29 @@ func RunRootMigrations(db *gorm.DB) error {
 	return nil
 }
 
-func RunTenantMigrations(db *gorm.DB) error {
-	slog.Info("Running tenant database migrations")
-	if err := db.AutoMigrate(&models.User{}, &models.Account{}, &models.Session{}, &models.Request{}, &models.Target{}, &models.Payload{}, &models.Release{}); err != nil {
-		return fmt.Errorf("failed to run tenant migrations: %w", err)
+func RunUsersMigrations(db *gorm.DB) error {
+	slog.Info("Running users database migrations")
+	if err := db.AutoMigrate(&models.User{}); err != nil {
+		return fmt.Errorf("failed to run users migrations: %w", err)
 	}
-	slog.Info("Tenant migrations completed")
+	slog.Info("Users migrations completed")
+	return nil
+}
+
+func RunDeployMigrations(db *gorm.DB) error {
+	slog.Info("Running deploy database migrations")
+	if err := db.AutoMigrate(&models.Target{}, &models.Payload{}, &models.Release{}, &models.Request{}); err != nil {
+		return fmt.Errorf("failed to run deploy migrations: %w", err)
+	}
+	slog.Info("Deploy migrations completed")
+	return nil
+}
+
+func RunAccountMigrations(db *gorm.DB) error {
+	slog.Info("Running account database migrations")
+	if err := db.AutoMigrate(&models.Profile{}, &models.Session{}, &models.Talk{}, &models.File{}, &models.Message{}); err != nil {
+		return fmt.Errorf("failed to run account migrations: %w", err)
+	}
+	slog.Info("Account migrations completed")
 	return nil
 }

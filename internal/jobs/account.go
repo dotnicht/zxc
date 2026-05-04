@@ -25,14 +25,15 @@ func Account(ctx workflow.Context, args AccountArgs) error {
 }
 
 type accountDeps struct {
-	rootDB    *gorm.DB
-	newTenant func(string) (*gorm.DB, error)
+	rootDB     *gorm.DB
+	newDeploy  func(string) (*gorm.DB, error)
+	newAccount func(string) (*gorm.DB, error)
 }
 
 var accountDep *accountDeps
 
-func RegisterAccountDeps(rootDB *gorm.DB, newTenant func(string) (*gorm.DB, error)) {
-	accountDep = &accountDeps{rootDB: rootDB, newTenant: newTenant}
+func RegisterAccountDeps(rootDB *gorm.DB, newDeploy func(string) (*gorm.DB, error), newAccount func(string) (*gorm.DB, error)) {
+	accountDep = &accountDeps{rootDB: rootDB, newDeploy: newDeploy, newAccount: newAccount}
 }
 
 func AccountActivity(ctx context.Context, args AccountArgs) error {
@@ -41,13 +42,18 @@ func AccountActivity(ctx context.Context, args AccountArgs) error {
 		return err
 	}
 
-	db, err := accountDep.newTenant(tenant.Database)
+	deployDB, err := accountDep.newDeploy(tenant.DeployDatabase)
+	if err != nil {
+		return err
+	}
+
+	accountDB, err := accountDep.newAccount(tenant.AccountDatabase)
 	if err != nil {
 		return err
 	}
 
 	var request models.Request
-	if err := db.WithContext(ctx).First(&request, "id = ?", args.RequestID).Error; err != nil {
+	if err := deployDB.WithContext(ctx).First(&request, "id = ?", args.RequestID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
 		}
@@ -59,10 +65,10 @@ func AccountActivity(ctx context.Context, args AccountArgs) error {
 		return nil
 	}
 
-	account := models.Account{Name: nodeName, Status: models.AccountUnknown}
-	if err := db.WithContext(ctx).Create(&account).Error; err != nil {
+	profile := &models.Profile{Name: nodeName, Status: models.ProfileUnknown}
+	if err := accountDB.WithContext(ctx).Create(profile).Error; err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
-			slog.Info("account already exists, skipping", "name", nodeName, "request_id", args.RequestID)
+			slog.Info("profile already exists, skipping", "name", nodeName, "request_id", args.RequestID)
 			return nil
 		}
 		return err

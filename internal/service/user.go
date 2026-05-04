@@ -10,7 +10,6 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"zxc/api/user"
-	"zxc/internal/authz"
 	"zxc/internal/models"
 )
 
@@ -27,11 +26,8 @@ func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.Creat
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxUsersDB(ctx)
 	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "user.create", tenant, authz.Resource{Type: "user"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -46,7 +42,7 @@ func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.Creat
 func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse, error) {
 	uid := uuid.MustParse(req.Id)
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxUsersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -57,12 +53,6 @@ func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to get user: %v", err))
-	}
-	if _, err := authorize(ctx, "user.get", tenant, authz.Resource{
-		Type:    "user",
-		OwnerID: u.ID,
-	}, authz.Related{}); err != nil {
-		return nil, err
 	}
 
 	return &user.GetResponse{User: userToProto(&u)}, nil
@@ -75,7 +65,7 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxUsersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -86,12 +76,6 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to load user: %v", err))
-	}
-	if _, err := authorize(ctx, "user.update", tenant, authz.Resource{
-		Type:    "user",
-		OwnerID: current.ID,
-	}, authz.Related{}); err != nil {
-		return nil, err
 	}
 
 	result := tenantDB.Model(&models.User{}).Where("id = ?", uid).Updates(&models.User{Name: req.Name})
@@ -113,14 +97,8 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 func (s *User) Delete(ctx context.Context, req *user.DeleteRequest) (*user.DeleteResponse, error) {
 	uid := uuid.MustParse(req.Id)
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxUsersDB(ctx)
 	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "user.delete", tenant, authz.Resource{
-		Type:    "user",
-		OwnerID: uid,
-	}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -144,11 +122,8 @@ func (s *User) List(ctx context.Context, req *user.ListRequest) (*user.ListRespo
 		pageSize = 10
 	}
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxUsersDB(ctx)
 	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "user.list", tenant, authz.Resource{Type: "user"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 

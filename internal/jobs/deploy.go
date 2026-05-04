@@ -36,14 +36,14 @@ func Deploy(ctx workflow.Context, args DeployArgs) error {
 
 type deployDeps struct {
 	rootDB    *gorm.DB
-	newTenant func(string) (*gorm.DB, error)
+	newDeploy func(string) (*gorm.DB, error)
 	cfg       *config.Config
 }
 
 var deployDep *deployDeps
 
-func RegisterDeployDeps(rootDB *gorm.DB, newTenant func(string) (*gorm.DB, error), cfg *config.Config) {
-	deployDep = &deployDeps{rootDB: rootDB, newTenant: newTenant, cfg: cfg}
+func RegisterDeployDeps(rootDB *gorm.DB, newDeploy func(string) (*gorm.DB, error), cfg *config.Config) {
+	deployDep = &deployDeps{rootDB: rootDB, newDeploy: newDeploy, cfg: cfg}
 }
 
 func DeployActivity(ctx context.Context, args DeployArgs) error {
@@ -52,33 +52,40 @@ func DeployActivity(ctx context.Context, args DeployArgs) error {
 		return fmt.Errorf("load tenant %s: %w", args.TenantID, err)
 	}
 
-	db, err := deployDep.newTenant(tenant.Database)
+	db, err := deployDep.newDeploy(tenant.DeployDatabase)
 	if err != nil {
 		return err
 	}
 
 	var release models.Release
-	if err := db.WithContext(ctx).
-		Preload("Target").
-		Preload("Payload").
-		First(&release, "id = ?", args.ReleaseID).Error; err != nil {
+	if err := db.WithContext(ctx).First(&release, "id = ?", args.ReleaseID).Error; err != nil {
 		return fmt.Errorf("load release %s: %w", args.ReleaseID, err)
 	}
 
 	if release.Status != models.ReleaseWait {
 		return nil
 	}
-	if release.Target == nil {
+
+	if release.TargetID == nil {
 		return fmt.Errorf("release %s has no target assigned", release.ID)
 	}
-	if release.Payload == nil {
+	if release.PayloadID == nil {
 		return fmt.Errorf("release %s has no payload assigned", release.ID)
+	}
+
+	release.Target = &models.Target{}
+	if err := db.WithContext(ctx).First(release.Target, "id = ?", *release.TargetID).Error; err != nil {
+		return fmt.Errorf("load target %s: %w", *release.TargetID, err)
+	}
+	release.Payload = &models.Payload{}
+	if err := db.WithContext(ctx).First(release.Payload, "id = ?", *release.PayloadID).Error; err != nil {
+		return fmt.Errorf("load payload %s: %w", *release.PayloadID, err)
 	}
 
 	now := time.Now().UTC()
 	stale := now.Add(-15 * time.Minute)
 	lockResult := db.WithContext(ctx).Model(&models.Target{}).
-		Where("id = ? AND (deploying = false OR deploying_at < ?)", release.Target.ID, stale).
+		Where("id = ? AND (deploying = false OR deploying_at < ?) AND deleted_at IS NULL", release.Target.ID, stale).
 		Updates(map[string]any{"deploying": true, "deploying_at": now})
 	if lockResult.Error != nil {
 		return fmt.Errorf("acquire deploy lock: %w", lockResult.Error)
@@ -87,7 +94,8 @@ func DeployActivity(ctx context.Context, args DeployArgs) error {
 		return fmt.Errorf("target is locked, will retry")
 	}
 	defer func() {
-		if err := db.Model(&models.Target{}).Where("id = ?", release.Target.ID).
+		if err := db.Model(&models.Target{}).
+			Where("id = ?", release.Target.ID).
 			Updates(map[string]any{"deploying": false, "deploying_at": nil}).Error; err != nil {
 			slog.Error("failed to release deploy lock", "target_id", release.Target.ID, "error", err)
 		}
@@ -127,22 +135,22 @@ func DeployActivity(ctx context.Context, args DeployArgs) error {
 		StopCmd:  release.Payload.Stop,
 		StartCmd: release.Payload.Start,
 	}); err != nil {
-		if markErr := db.WithContext(ctx).Model(&models.Release{}).
-			Where("id = ? AND status <> ?", args.ReleaseID, models.ReleaseDead).
+		if markErr := db.Model(&models.Release{}).
+			Where("id = ? AND status <> ? AND deleted_at IS NULL", args.ReleaseID, models.ReleaseDead).
 			Updates(map[string]any{"status": models.ReleaseDead, "changed_by_id": args.ChangedByID}).Error; markErr != nil {
 			slog.Error("failed to mark release dead", "release_id", args.ReleaseID, "error", markErr)
 		}
 		return fmt.Errorf("ssh deploy to %s: %w", release.Target.Address, err)
 	}
 
-	if err := db.WithContext(ctx).Model(&models.Target{}).
+	if err := db.Model(&models.Target{}).
 		Where("id = ?", release.Target.ID).
 		Update("status", models.TargetOnline).Error; err != nil {
 		slog.Error("failed to update target status", "target_id", release.Target.ID, "error", err)
 	}
 
-	if err := db.WithContext(ctx).Model(&models.Release{}).
-		Where("id = ? AND status = ?", release.ID, models.ReleaseWait).
+	if err := db.Model(&models.Release{}).
+		Where("id = ? AND status = ? AND deleted_at IS NULL", release.ID, models.ReleaseWait).
 		Updates(map[string]any{"status": models.ReleaseDeployed, "changed_by_id": args.ChangedByID}).Error; err != nil {
 		return err
 	}

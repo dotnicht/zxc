@@ -2,15 +2,15 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/cschleiden/go-workflows/client"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"gorm.io/gorm"
 	"zxc/api/release"
-	"zxc/internal/authz"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
 )
@@ -33,7 +33,7 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 	targetID := uuid.MustParse(req.TargetId)
 	payloadID := uuid.MustParse(req.PayloadId)
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -46,12 +46,6 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 	var p models.Payload
 	if err := tenantDB.First(&p, "id = ?", payloadID).Error; err != nil {
 		return nil, status.Errorf(codes.NotFound, "payload not found")
-	}
-	if _, err := authorize(ctx, "release.create", tenant, authz.Resource{Type: "release"}, authz.Related{
-		TargetOwnerID:  t.OwnerID,
-		PayloadOwnerID: p.OwnerID,
-	}); err != nil {
-		return nil, err
 	}
 
 	rel := &models.Release{
@@ -71,24 +65,17 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.GetResponse, error) {
 	releaseID := uuid.MustParse(req.Id)
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var rel models.Release
 	if err := tenantDB.First(&rel, "id = ?", releaseID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "release not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to get release: %v", err)
-	}
-	if _, err := authorize(ctx, "release.get", tenant, authz.Resource{
-		Type:    "release",
-		OwnerID: rel.OwnerID,
-		Status:  rel.Status,
-	}, authz.Related{}); err != nil {
-		return nil, err
 	}
 
 	return &release.GetResponse{Release: releaseToProto(&rel)}, nil
@@ -102,35 +89,33 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 		return nil, err
 	}
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	tenant, tenantDB, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var current models.Release
 	if err := tenantDB.First(&current, "id = ?", releaseID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "release not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load release: %v", err)
 	}
-	if _, err := authorize(ctx, "release.deploy", tenant, authz.Resource{
-		Type:    "release",
-		OwnerID: current.OwnerID,
-		Status:  current.Status,
-	}, authz.Related{}); err != nil {
-		return nil, err
-	}
 
-	result := tenantDB.Model(&models.Release{}).
-		Where("id = ? AND status = ?", releaseID, models.ReleaseUnknown).
-		Updates(map[string]any{"status": models.ReleaseWait, "changed_by_id": authUserID})
-	if result.Error != nil {
-		return nil, status.Errorf(codes.Internal, "failed to update release: %v", result.Error)
+	res := tenantDB.Model(&models.Release{}).
+		Where("id = ? AND status = ? AND deleted_at IS NULL", releaseID, models.ReleaseUnknown).
+		Updates(map[string]any{
+			"status":        models.ReleaseWait,
+			"changed_by_id": authUserID,
+			"updated_at":    time.Now().UTC(),
+		})
+	if res.Error != nil {
+		return nil, status.Errorf(codes.Internal, "failed to update release: %v", res.Error)
 	}
-	if result.RowsAffected == 0 {
+	if res.RowsAffected == 0 {
 		return nil, status.Error(codes.NotFound, "release not found")
 	}
+
 	if _, err := s.wfclient.CreateWorkflowInstance(ctx, client.WorkflowInstanceOptions{
 		InstanceID: "deploy:" + releaseID.String(),
 	}, jobs.Deploy, jobs.DeployArgs{
@@ -138,10 +123,14 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 		ReleaseID:   releaseID,
 		ChangedByID: authUserID,
 	}); err != nil {
-		revertErr := tenantDB.Model(&models.Release{}).
-			Where("id = ? AND status = ?", releaseID, models.ReleaseWait).
-			Updates(map[string]any{"status": models.ReleaseUnknown, "changed_by_id": authUserID}).Error
-		return nil, status.Errorf(codes.Internal, "failed to start deploy workflow: %v", errors.Join(err, revertErr))
+		tenantDB.Model(&models.Release{}).
+			Where("id = ? AND status = ? AND deleted_at IS NULL", releaseID, models.ReleaseWait).
+			Updates(map[string]any{
+				"status":        models.ReleaseUnknown,
+				"changed_by_id": authUserID,
+				"updated_at":    time.Now().UTC(),
+			})
+		return nil, status.Errorf(codes.Internal, "failed to start deploy workflow: %v", err)
 	}
 
 	var rel models.Release
@@ -161,11 +150,8 @@ func (s *Release) List(ctx context.Context, req *release.ListRequest) (*release.
 		pageSize = 10
 	}
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxDeployDB(ctx)
 	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "release.list", tenant, authz.Resource{Type: "release"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 

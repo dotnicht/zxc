@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cschleiden/go-workflows/client"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -20,7 +21,6 @@ import (
 	targetapi "zxc/api/target"
 	tenantapi "zxc/api/tenant"
 	userapi "zxc/api/user"
-	"github.com/cschleiden/go-workflows/client"
 	"zxc/internal/config"
 	"zxc/internal/infra"
 	"zxc/internal/models"
@@ -85,7 +85,6 @@ func main() {
 		grpc.ChainUnaryInterceptor(
 			service.ValidateInterceptor(),
 			service.UserInterceptor(database, root.ID),
-			service.OwnerInterceptor(),
 		),
 	)
 	userapi.RegisterUserServiceServer(grpcServer, user)

@@ -12,9 +12,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
 	"gorm.io/gorm"
-	"zxc/internal/authz"
 	"zxc/internal/infra"
 	"zxc/internal/models"
 )
@@ -42,7 +40,9 @@ func ValidateInterceptor() grpc.UnaryServerInterceptor {
 
 type userKey struct{}
 type tenantKey struct{}
-type tenantDBKey struct{}
+type usersDBKey struct{}
+type deployDBKey struct{}
+type accountDBKey struct{}
 
 func UserInterceptor(rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
@@ -84,13 +84,23 @@ func UserInterceptor(rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServerInte
 			return nil, status.Errorf(codes.Internal, "failed to get tenant: %v", err)
 		}
 
-		tenantDB, err := infra.NewConnection(tenant.Database)
+		usersDB, err := infra.NewConnection(tenant.UsersDatabase)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to connect to tenant database: %v", err)
+			return nil, status.Errorf(codes.Internal, "failed to connect to users database: %v", err)
+		}
+
+		deployDB, err := infra.NewConnection(tenant.DeployDatabase)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to connect to deploy database: %v", err)
+		}
+
+		accountDB, err := infra.NewConnection(tenant.AccountDatabase)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to connect to account database: %v", err)
 		}
 
 		var user models.User
-		if err := tenantDB.WithContext(ctx).First(&user, "id = ?", userID).Error; err != nil {
+		if err := usersDB.WithContext(ctx).First(&user, "id = ?", userID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, status.Error(codes.NotFound, "user not found")
 			}
@@ -99,58 +109,53 @@ func UserInterceptor(rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServerInte
 
 		ctx = context.WithValue(ctx, tenantKey{}, &tenant)
 		ctx = context.WithValue(ctx, userKey{}, &user)
-		ctx = context.WithValue(ctx, tenantDBKey{}, tenantDB)
+		ctx = context.WithValue(ctx, usersDBKey{}, usersDB)
+		ctx = context.WithValue(ctx, deployDBKey{}, deployDB)
+		ctx = context.WithValue(ctx, accountDBKey{}, accountDB)
 		return handler(ctx, req)
 	}
 }
 
-func OwnerInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		if _, ok := ctx.Value(tenantKey{}).(*models.Tenant); !ok {
-			return handler(ctx, req)
-		}
-		user, ok := ctx.Value(userKey{}).(*models.User)
-		if !ok || user == nil {
-			return handler(ctx, req)
-		}
-		if msg, ok := req.(interface{ ProtoReflect() protoreflect.Message }); ok {
-			m := msg.ProtoReflect()
-			var fieldErr error
-			m.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
-				if fd.Kind() != protoreflect.StringKind {
-					return true
-				}
-				name := string(fd.Name())
-				if name != "owner_id" && name != "user_id" {
-					return true
-				}
-				s := v.String()
-				if s == "" {
-					return true
-				}
-				id, err := uuid.Parse(s)
-				if err != nil || id != user.ID {
-					fieldErr = status.Errorf(codes.PermissionDenied, "%s must match authenticated user", name)
-					return false
-				}
-				return true
-			})
-			if fieldErr != nil {
-				return nil, fieldErr
-			}
-		}
-		return handler(ctx, req)
-	}
-}
-
-func ctxTenantAndDB(ctx context.Context) (*models.Tenant, *gorm.DB, error) {
+func ctxTenant(ctx context.Context) (*models.Tenant, error) {
 	tenant, ok := ctx.Value(tenantKey{}).(*models.Tenant)
 	if !ok || tenant == nil {
-		return nil, nil, status.Error(codes.Unauthenticated, "authenticated tenant user is required")
+		return nil, status.Error(codes.Unauthenticated, "authenticated tenant user is required")
 	}
-	db, ok := ctx.Value(tenantDBKey{}).(*gorm.DB)
+	return tenant, nil
+}
+
+func ctxUsersDB(ctx context.Context) (*models.Tenant, *gorm.DB, error) {
+	tenant, err := ctxTenant(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	db, ok := ctx.Value(usersDBKey{}).(*gorm.DB)
 	if !ok || db == nil {
-		return nil, nil, status.Error(codes.Internal, "tenant database connection unavailable")
+		return nil, nil, status.Error(codes.Internal, "users database connection unavailable")
+	}
+	return tenant, db, nil
+}
+
+func ctxDeployDB(ctx context.Context) (*models.Tenant, *gorm.DB, error) {
+	tenant, err := ctxTenant(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	db, ok := ctx.Value(deployDBKey{}).(*gorm.DB)
+	if !ok || db == nil {
+		return nil, nil, status.Error(codes.Internal, "deploy database connection unavailable")
+	}
+	return tenant, db, nil
+}
+
+func ctxAccountDB(ctx context.Context) (*models.Tenant, *gorm.DB, error) {
+	tenant, err := ctxTenant(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	db, ok := ctx.Value(accountDBKey{}).(*gorm.DB)
+	if !ok || db == nil {
+		return nil, nil, status.Error(codes.Internal, "account database connection unavailable")
 	}
 	return tenant, db, nil
 }
@@ -174,38 +179,3 @@ func ctxUserID(ctx context.Context) (uuid.UUID, error) {
 	}
 	return user.ID, nil
 }
-
-func authorize(ctx context.Context, action string, tenant *models.Tenant, resource authz.Resource, related authz.Related) (authz.Decision, error) {
-	engine, err := authz.Default()
-	if err != nil {
-		return authz.Decision{}, status.Errorf(codes.Internal, "failed to load authorization policy: %v", err)
-	}
-
-	user, ok := ctx.Value(userKey{}).(*models.User)
-	if !ok || user == nil {
-		return authz.Decision{}, status.Error(codes.Unauthenticated, "authenticated user is required")
-	}
-
-	input := authz.Input{
-		Subject:  authz.Subject{ID: user.ID, IsRoot: tenant == nil},
-		Action:   action,
-		Resource: resource,
-		Related:  related,
-	}
-	if tenant != nil {
-		input.Tenant = authz.Tenant{ID: tenant.ID, OwnerID: tenant.OwnerID}
-	}
-
-	decision, err := engine.Evaluate(ctx, input)
-	if err != nil {
-		return authz.Decision{}, status.Errorf(codes.Internal, "authorization policy evaluation failed: %v", err)
-	}
-	if !decision.Allow {
-		if decision.Reason == "" {
-			decision.Reason = "policy denied"
-		}
-		return decision, status.Error(codes.PermissionDenied, decision.Reason)
-	}
-	return decision, nil
-}
-

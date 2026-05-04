@@ -10,7 +10,6 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"zxc/api/target"
-	"zxc/internal/authz"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
 )
@@ -34,11 +33,8 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 		return nil, err
 	}
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	tenant, tenantDB, err := ctxDeployDB(ctx)
 	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "target.create", tenant, authz.Resource{Type: "target"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -51,20 +47,13 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to persist target creation: %v", errors.Join(err, cleanupErr))
 	}
 
-	decision, err := authorize(ctx, "target.get", tenant, authz.Resource{
-		Type:    "target",
-		OwnerID: t.OwnerID,
-	}, authz.Related{})
-	if err != nil {
-		return nil, err
-	}
-	return &target.CreateResponse{Target: s.targetToProto(t, decision.RevealSecret)}, nil
+	return &target.CreateResponse{Target: targetToProto(t, true)}, nil
 }
 
 func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -76,14 +65,8 @@ func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetRe
 		}
 		return nil, status.Errorf(codes.Internal, "failed to get target: %v", err)
 	}
-	decision, err := authorize(ctx, "target.get", tenant, authz.Resource{
-		Type:    "target",
-		OwnerID: t.OwnerID,
-	}, authz.Related{})
-	if err != nil {
-		return nil, err
-	}
-	return &target.GetResponse{Target: s.targetToProto(&t, decision.RevealSecret)}, nil
+
+	return &target.GetResponse{Target: targetToProto(&t, true)}, nil
 }
 
 func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target.UpdateResponse, error) {
@@ -93,7 +76,7 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		return nil, status.Error(codes.InvalidArgument, "address is required")
 	}
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	tenant, tenantDB, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -104,12 +87,6 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 			return nil, status.Error(codes.NotFound, "target not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load previous target state: %v", err)
-	}
-	if _, err := authorize(ctx, "target.update", tenant, authz.Resource{
-		Type:    "target",
-		OwnerID: previous.OwnerID,
-	}, authz.Related{}); err != nil {
-		return nil, err
 	}
 
 	result := tenantDB.Model(&models.Target{}).Where("id = ?", id).Updates(&models.Target{Address: req.Address, User: req.User, Key: req.Key})
@@ -137,20 +114,13 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to persist target update: %v", errors.Join(err, revertErr))
 	}
 
-	decision, err := authorize(ctx, "target.get", tenant, authz.Resource{
-		Type:    "target",
-		OwnerID: updated.OwnerID,
-	}, authz.Related{})
-	if err != nil {
-		return nil, err
-	}
-	return &target.UpdateResponse{Target: s.targetToProto(&updated, decision.RevealSecret)}, nil
+	return &target.UpdateResponse{Target: targetToProto(&updated, true)}, nil
 }
 
 func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target.DeleteResponse, error) {
 	id := uuid.MustParse(req.Id)
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxDeployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -161,12 +131,6 @@ func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target
 			return nil, status.Error(codes.NotFound, "target not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to load target: %v", err)
-	}
-	if _, err := authorize(ctx, "target.delete", tenant, authz.Resource{
-		Type:    "target",
-		OwnerID: existing.OwnerID,
-	}, authz.Related{}); err != nil {
-		return nil, err
 	}
 
 	result := tenantDB.Where("id = ?", id).Delete(&models.Target{})
@@ -189,11 +153,8 @@ func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.Lis
 		pageSize = 10
 	}
 
-	tenant, tenantDB, err := ctxTenantAndDB(ctx)
+	_, tenantDB, err := ctxDeployDB(ctx)
 	if err != nil {
-		return nil, err
-	}
-	if _, err := authorize(ctx, "target.list", tenant, authz.Resource{Type: "target"}, authz.Related{}); err != nil {
 		return nil, err
 	}
 
@@ -210,20 +171,13 @@ func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.Lis
 
 	out := make([]*target.Target, len(targets))
 	for i, t := range targets {
-		d, err := authorize(ctx, "target.get", tenant, authz.Resource{
-			Type:    "target",
-			OwnerID: t.OwnerID,
-		}, authz.Related{})
-		if err != nil {
-			return nil, err
-		}
-		out[i] = s.targetToProto(t, d.RevealSecret)
+		out[i] = targetToProto(t, true)
 	}
 
 	return &target.ListResponse{Targets: out, Total: int32(total)}, nil
 }
 
-func (s *Target) targetToProto(t *models.Target, reveal bool) *target.Target {
+func targetToProto(t *models.Target, reveal bool) *target.Target {
 	p := &target.Target{
 		Id:        t.ID.String(),
 		Address:   t.Address,

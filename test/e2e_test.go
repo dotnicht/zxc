@@ -385,23 +385,29 @@ func TestE2E(t *testing.T) {
 func waitForWebhookAccounts(t *testing.T, tenantName, releaseID string, timeout time.Duration) (requests, accounts int) {
 	t.Helper()
 
-	db, err := sql.Open("postgres", tenantDSN(tenantName))
+	deployDB, err := sql.Open("postgres", deployDSN(tenantName))
 	if err != nil {
-		t.Fatalf("open tenant database: %v", err)
+		t.Fatalf("open deploy database: %v", err)
 	}
-	defer db.Close()
+	defer deployDB.Close()
+
+	accountDB, err := sql.Open("postgres", accountDSN(tenantName))
+	if err != nil {
+		t.Fatalf("open account database: %v", err)
+	}
+	defer accountDB.Close()
 
 	var prev string
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		if err := db.QueryRow(`
+		if err := deployDB.QueryRow(`
 			SELECT COUNT(*)::int FROM requests
 			WHERE release_id = $1 AND deleted_at IS NULL
 		`, releaseID).Scan(&requests); err != nil {
 			t.Fatalf("count requests: %v", err)
 		}
-		if err := db.QueryRow(`SELECT COUNT(*)::int FROM accounts`).Scan(&accounts); err != nil {
-			t.Fatalf("count accounts: %v", err)
+		if err := accountDB.QueryRow(`SELECT COUNT(*)::int FROM profiles`).Scan(&accounts); err != nil {
+			t.Fatalf("count profiles: %v", err)
 		}
 		cur := fmt.Sprintf("requests=%d accounts=%d", requests, accounts)
 		if cur != prev {
@@ -420,14 +426,20 @@ func waitForWebhookAccounts(t *testing.T, tenantName, releaseID string, timeout 
 func verifyAccountFromRequest(t *testing.T, tenantName, releaseID string) {
 	t.Helper()
 
-	db, err := sql.Open("postgres", tenantDSN(tenantName))
+	deployDB, err := sql.Open("postgres", deployDSN(tenantName))
 	if err != nil {
-		t.Fatalf("open tenant database: %v", err)
+		t.Fatalf("open deploy database: %v", err)
 	}
-	defer db.Close()
+	defer deployDB.Close()
+
+	accountDB, err := sql.Open("postgres", accountDSN(tenantName))
+	if err != nil {
+		t.Fatalf("open account database: %v", err)
+	}
+	defer accountDB.Close()
 
 	var nodeName string
-	if err := db.QueryRow(`
+	if err := deployDB.QueryRow(`
 		SELECT data->>'node_name'
 		FROM requests
 		WHERE release_id = $1 AND deleted_at IS NULL AND data->>'node_name' IS NOT NULL
@@ -440,17 +452,21 @@ func verifyAccountFromRequest(t *testing.T, tenantName, releaseID string) {
 	}
 
 	var count int
-	if err := db.QueryRow(`SELECT COUNT(*)::int FROM accounts WHERE name = $1`, nodeName).Scan(&count); err != nil {
-		t.Fatalf("check account by name: %v", err)
+	if err := accountDB.QueryRow(`SELECT COUNT(*)::int FROM profiles WHERE name = $1`, nodeName).Scan(&count); err != nil {
+		t.Fatalf("check profile by name: %v", err)
 	}
 	if count == 0 {
-		t.Fatalf("no account found with name %q derived from webhook request", nodeName)
+		t.Fatalf("no profile found with name %q derived from webhook request", nodeName)
 	}
 	logStep("account name %q matches node_name from webhook request data", nodeName)
 }
 
-func tenantDSN(tenantName string) string {
-	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s?sslmode=disable", sanitizeTenantDBName(tenantName))
+func deployDSN(tenantName string) string {
+	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s_deploy?sslmode=disable", sanitizeTenantDBName(tenantName))
+}
+
+func accountDSN(tenantName string) string {
+	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s_account?sslmode=disable", sanitizeTenantDBName(tenantName))
 }
 
 func sanitizeTenantDBName(name string) string {
