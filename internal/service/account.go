@@ -22,7 +22,7 @@ func NewAccount() *Account {
 }
 
 func (s *Account) Get(ctx context.Context, req *account.GetRequest) (*account.GetResponse, error) {
-	id := uuid.MustParse(req.Id)
+	id := uuid.UUID(req.Id)
 
 	_, db, err := ctxAccountDB(ctx)
 	if err != nil {
@@ -74,7 +74,7 @@ func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.
 }
 
 func (s *Account) Disable(ctx context.Context, req *account.DisableRequest) (*account.DisableResponse, error) {
-	id := uuid.MustParse(req.Id)
+	id := uuid.UUID(req.Id)
 
 	_, db, err := ctxAccountDB(ctx)
 	if err != nil {
@@ -104,7 +104,7 @@ func (s *Account) Disable(ctx context.Context, req *account.DisableRequest) (*ac
 
 func profileToProto(a *models.Profile) *account.Account {
 	return &account.Account{
-		Id:        a.ID.String(),
+		Id:        a.ID[:],
 		Name:      a.Name,
 		Status:    a.Status,
 		CreatedAt: a.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),

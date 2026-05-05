@@ -7,6 +7,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc/metadata"
 	"zxc/api/tenant"
 )
@@ -47,6 +48,15 @@ func rootAuthCtx(ctx context.Context) (context.Context, error) {
 	return metadata.AppendToOutgoingContext(ctx, "x-user-id", userID), nil
 }
 
+func parseUUID(s string) []byte {
+	id := uuid.MustParse(s)
+	return id[:]
+}
+
+func formatUUID(b []byte) string {
+	return uuid.UUID(b).String()
+}
+
 func resolveTenant(ctx context.Context, name string) (string, error) {
 	authContext, err := rootAuthCtx(ctx)
 	if err != nil {
@@ -58,7 +68,7 @@ func resolveTenant(ctx context.Context, name string) (string, error) {
 	}
 	for _, t := range resp.Tenants {
 		if t.Name == name {
-			return t.Id, nil
+			return formatUUID(t.Id), nil
 		}
 	}
 	return "", fmt.Errorf("tenant %q not found", name)

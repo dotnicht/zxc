@@ -7,7 +7,6 @@
 package account
 
 import (
-	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -24,7 +23,7 @@ const (
 
 type Account struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
 	CreatedAt     string                 `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
@@ -63,11 +62,11 @@ func (*Account) Descriptor() ([]byte, []int) {
 	return file_account_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Account) GetId() string {
+func (x *Account) GetId() []byte {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return nil
 }
 
 func (x *Account) GetName() string {
@@ -100,7 +99,7 @@ func (x *Account) GetUpdatedAt() string {
 
 type GetRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -135,11 +134,11 @@ func (*GetRequest) Descriptor() ([]byte, []int) {
 	return file_account_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GetRequest) GetId() string {
+func (x *GetRequest) GetId() []byte {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return nil
 }
 
 type GetResponse struct {
@@ -292,7 +291,7 @@ func (x *ListResponse) GetTotal() int32 {
 
 type DisableRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -327,11 +326,11 @@ func (*DisableRequest) Descriptor() ([]byte, []int) {
 	return file_account_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *DisableRequest) GetId() string {
+func (x *DisableRequest) GetId() []byte {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return nil
 }
 
 type DisableResponse struct {
@@ -382,18 +381,18 @@ var File_account_proto protoreflect.FileDescriptor
 
 const file_account_proto_rawDesc = "" +
 	"\n" +
-	"\raccount.proto\x12\aaccount\x1a\x1bbuf/validate/validate.proto\"\x83\x01\n" +
+	"\raccount.proto\x12\aaccount\"\x83\x01\n" +
 	"\aAccount\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
 	"\x06status\x18\x03 \x01(\tR\x06status\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x04 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x05 \x01(\tR\tupdatedAt\"&\n" +
+	"updated_at\x18\x05 \x01(\tR\tupdatedAt\"\x1c\n" +
 	"\n" +
-	"GetRequest\x12\x18\n" +
-	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"9\n" +
+	"GetRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\"9\n" +
 	"\vGetResponse\x12*\n" +
 	"\aaccount\x18\x01 \x01(\v2\x10.account.AccountR\aaccount\">\n" +
 	"\vListRequest\x12\x12\n" +
@@ -401,9 +400,9 @@ const file_account_proto_rawDesc = "" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"R\n" +
 	"\fListResponse\x12,\n" +
 	"\baccounts\x18\x01 \x03(\v2\x10.account.AccountR\baccounts\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"*\n" +
-	"\x0eDisableRequest\x12\x18\n" +
-	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"=\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\" \n" +
+	"\x0eDisableRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\"=\n" +
 	"\x0fDisableResponse\x12*\n" +
 	"\aaccount\x18\x01 \x01(\v2\x10.account.AccountR\aaccount2\xb5\x01\n" +
 	"\x0eAccountService\x120\n" +

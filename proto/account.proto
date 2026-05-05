@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package account;
 
-import "buf/validate/validate.proto";
-
 option go_package = "zxc/api/account;account";
 
 service AccountService {
@@ -13,7 +11,7 @@ service AccountService {
 }
 
 message Account {
-  string id = 1;
+  bytes id = 1;
   string name = 2;
   string status = 3;
   string created_at = 4;
@@ -21,7 +19,7 @@ message Account {
 }
 
 message GetRequest {
-  string id = 1 [(buf.validate.field).string.uuid = true];
+  bytes id = 1;
 }
 
 message GetResponse {
@@ -39,7 +37,7 @@ message ListResponse {
 }
 
 message DisableRequest {
-  string id = 1 [(buf.validate.field).string.uuid = true];
+  bytes id = 1;
 }
 
 message DisableResponse {

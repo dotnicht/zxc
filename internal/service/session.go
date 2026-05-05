@@ -22,7 +22,7 @@ func NewSession() *Session {
 }
 
 func (s *Session) Get(ctx context.Context, req *session.GetRequest) (*session.GetResponse, error) {
-	id := uuid.MustParse(req.Id)
+	id := uuid.UUID(req.Id)
 
 	_, db, err := ctxAccountDB(ctx)
 	if err != nil {
@@ -85,8 +85,8 @@ func (s *Session) Stop(ctx context.Context, req *session.StopRequest) (*session.
 	return &session.StopResponse{Session: r.Session}, nil
 }
 
-func (s *Session) setStatus(ctx context.Context, rawID string, newStatus string) (*session.StartResponse, error) {
-	id := uuid.MustParse(rawID)
+func (s *Session) setStatus(ctx context.Context, rawID []byte, newStatus string) (*session.StartResponse, error) {
+	id := uuid.UUID(rawID)
 
 	_, db, err := ctxAccountDB(ctx)
 	if err != nil {
@@ -116,8 +116,8 @@ func (s *Session) setStatus(ctx context.Context, rawID string, newStatus string)
 
 func sessionToProto(record *models.Session) *session.Session {
 	return &session.Session{
-		Id:        record.ID.String(),
-		AccountId: record.ProfileID.String(),
+		Id:        record.ID[:],
+		AccountId: record.ProfileID[:],
 		Status:    record.Status,
 		CreatedAt: record.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: record.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),

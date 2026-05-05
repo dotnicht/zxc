@@ -31,7 +31,7 @@ func sessionGetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.session.Get(authContext, &session.GetRequest{Id: id})
+			resp, err := st.session.Get(authContext, &session.GetRequest{Id: parseUUID(id)})
 			if err != nil {
 				return err
 			}
@@ -63,7 +63,7 @@ func sessionListCmd() *cobra.Command {
 			w := newTabWriter()
 			fmt.Fprintf(w, "ID\tACCOUNT_ID\tSTATUS\tCREATED\n")
 			for _, record := range resp.Sessions {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", record.Id, record.AccountId, record.Status, record.CreatedAt)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", formatUUID(record.Id), formatUUID(record.AccountId), record.Status, record.CreatedAt)
 			}
 			w.Flush()
 			return nil
@@ -86,7 +86,7 @@ func sessionStartCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.session.Start(authContext, &session.StartRequest{Id: id})
+			resp, err := st.session.Start(authContext, &session.StartRequest{Id: parseUUID(id)})
 			if err != nil {
 				return err
 			}
@@ -111,7 +111,7 @@ func sessionStopCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.session.Stop(authContext, &session.StopRequest{Id: id})
+			resp, err := st.session.Stop(authContext, &session.StopRequest{Id: parseUUID(id)})
 			if err != nil {
 				return err
 			}
@@ -126,8 +126,8 @@ func sessionStopCmd() *cobra.Command {
 
 func printSession(record *session.Session) {
 	printKV([][2]string{
-		{"id", record.Id},
-		{"account_id", record.AccountId},
+		{"id", formatUUID(record.Id)},
+		{"account_id", formatUUID(record.AccountId)},
 		{"status", record.Status},
 		{"created_at", record.CreatedAt},
 		{"updated_at", record.UpdatedAt},

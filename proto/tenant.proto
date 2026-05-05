@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package tenant;
 
-import "buf/validate/validate.proto";
-
 option go_package = "zxc/api/tenant;tenant";
 
 service TenantService {
@@ -13,13 +11,13 @@ service TenantService {
 }
 
 message Tenant {
-  string id = 1;
+  bytes id = 1;
   string name = 2;
   string database = 3;
   string storage = 4;
   string created_at = 5;
   string updated_at = 6;
-  string owner_id = 7;
+  bytes owner_id = 7;
   string deploy = 8;
   string account = 9;
 }
@@ -37,7 +35,7 @@ message CreateResponse {
 }
 
 message GetRequest {
-  string id = 1 [(buf.validate.field).string.uuid = true];
+  bytes id = 1;
 }
 
 message GetResponse {

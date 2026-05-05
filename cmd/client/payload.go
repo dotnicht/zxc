@@ -39,7 +39,7 @@ func payloadAddCmd() *cobra.Command {
 				return fmt.Errorf("read file %s: %w", file, err)
 			}
 			resp, err := st.payload.Create(authContext, &payload.CreateRequest{
-				OwnerId: userID,
+				OwnerId: parseUUID(userID),
 				Content: content,
 				Name:    filepath.Base(file),
 				Config:  config,
@@ -76,7 +76,7 @@ func payloadGetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.payload.Get(authContext, &payload.GetRequest{Id: id})
+			resp, err := st.payload.Get(authContext, &payload.GetRequest{Id: parseUUID(id)})
 			if err != nil {
 				return err
 			}
@@ -108,7 +108,7 @@ func payloadListCmd() *cobra.Command {
 			w := newTabWriter()
 			fmt.Fprintf(w, "ID\tPATH\tCREATED\n")
 			for _, p := range resp.Payloads {
-				fmt.Fprintf(w, "%s\t%s\t%s\n", p.Id, p.Path, p.CreatedAt)
+				fmt.Fprintf(w, "%s\t%s\t%s\n", formatUUID(p.Id), p.Path, p.CreatedAt)
 			}
 			w.Flush()
 			return nil
@@ -132,7 +132,7 @@ func payloadUpdateCmd() *cobra.Command {
 				return err
 			}
 			resp, err := st.payload.Update(authContext, &payload.UpdateRequest{
-				Id:     id,
+				Id:     parseUUID(id),
 				Path:   path,
 				Config: config,
 				Start:  start,
@@ -154,19 +154,6 @@ func payloadUpdateCmd() *cobra.Command {
 	return cmd
 }
 
-func printPayload(p *payload.Payload) {
-	printKV([][2]string{
-		{"id", p.Id},
-		{"path", p.Path},
-		{"owner_id", p.OwnerId},
-		{"config", p.Config},
-		{"start", p.Start},
-		{"stop", p.Stop},
-		{"created_at", p.CreatedAt},
-		{"updated_at", p.UpdatedAt},
-	})
-}
-
 func payloadDeleteCmd() *cobra.Command {
 	var id string
 	cmd := &cobra.Command{
@@ -179,7 +166,7 @@ func payloadDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			_, err = st.payload.Delete(authContext, &payload.DeleteRequest{Id: id})
+			_, err = st.payload.Delete(authContext, &payload.DeleteRequest{Id: parseUUID(id)})
 			if err != nil {
 				return err
 			}
@@ -190,4 +177,17 @@ func payloadDeleteCmd() *cobra.Command {
 	cmd.Flags().StringVar(&id, "id", "", "payload ID")
 	_ = cmd.MarkFlagRequired("id")
 	return cmd
+}
+
+func printPayload(p *payload.Payload) {
+	printKV([][2]string{
+		{"id", formatUUID(p.Id)},
+		{"path", p.Path},
+		{"owner_id", formatUUID(p.OwnerId)},
+		{"config", p.Config},
+		{"start", p.Start},
+		{"stop", p.Stop},
+		{"created_at", p.CreatedAt},
+		{"updated_at", p.UpdatedAt},
+	})
 }

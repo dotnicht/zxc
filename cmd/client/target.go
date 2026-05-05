@@ -38,7 +38,7 @@ func targetAddCmd() *cobra.Command {
 				return fmt.Errorf("read key %s: %w", key, err)
 			}
 			resp, err := st.target.Create(authContext, &target.CreateRequest{
-				OwnerId: userID,
+				OwnerId: parseUUID(userID),
 				Address: address,
 				User:    user,
 				Key:     string(keyContent),
@@ -71,7 +71,7 @@ func targetGetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.target.Get(authContext, &target.GetRequest{Id: id})
+			resp, err := st.target.Get(authContext, &target.GetRequest{Id: parseUUID(id)})
 			if err != nil {
 				return err
 			}
@@ -103,7 +103,7 @@ func targetListCmd() *cobra.Command {
 			w := newTabWriter()
 			fmt.Fprintf(w, "ID\tADDRESS\tSTATUS\tCREATED\n")
 			for _, t := range resp.Targets {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", t.Id, t.Address, t.Status, t.CreatedAt)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", formatUUID(t.Id), t.Address, t.Status, t.CreatedAt)
 			}
 			w.Flush()
 			return nil
@@ -134,7 +134,7 @@ func targetUpdateCmd() *cobra.Command {
 				}
 				keyContent = string(kb)
 			}
-			resp, err := st.target.Update(authContext, &target.UpdateRequest{Id: id, Address: address, User: user, Key: keyContent})
+			resp, err := st.target.Update(authContext, &target.UpdateRequest{Id: parseUUID(id), Address: address, User: user, Key: keyContent})
 			if err != nil {
 				return err
 			}
@@ -151,18 +151,6 @@ func targetUpdateCmd() *cobra.Command {
 	return cmd
 }
 
-func printTarget(t *target.Target) {
-	printKV([][2]string{
-		{"id", t.Id},
-		{"address", t.Address},
-		{"user", t.User},
-		{"status", t.Status},
-		{"owner_id", t.OwnerId},
-		{"created_at", t.CreatedAt},
-		{"updated_at", t.UpdatedAt},
-	})
-}
-
 func targetDeleteCmd() *cobra.Command {
 	var id string
 	cmd := &cobra.Command{
@@ -175,7 +163,7 @@ func targetDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			_, err = st.target.Delete(authContext, &target.DeleteRequest{Id: id})
+			_, err = st.target.Delete(authContext, &target.DeleteRequest{Id: parseUUID(id)})
 			if err != nil {
 				return err
 			}
@@ -186,4 +174,16 @@ func targetDeleteCmd() *cobra.Command {
 	cmd.Flags().StringVar(&id, "id", "", "target ID")
 	_ = cmd.MarkFlagRequired("id")
 	return cmd
+}
+
+func printTarget(t *target.Target) {
+	printKV([][2]string{
+		{"id", formatUUID(t.Id)},
+		{"address", t.Address},
+		{"user", t.User},
+		{"status", t.Status},
+		{"owner_id", formatUUID(t.OwnerId)},
+		{"created_at", t.CreatedAt},
+		{"updated_at", t.UpdatedAt},
+	})
 }

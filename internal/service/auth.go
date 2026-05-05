@@ -5,38 +5,15 @@ import (
 	"errors"
 	"fmt"
 
-	"buf.build/go/protovalidate"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
 	"zxc/internal/infra"
 	"zxc/internal/models"
 )
-
-var validator protovalidate.Validator
-
-func init() {
-	var err error
-	validator, err = protovalidate.New()
-	if err != nil {
-		panic("failed to initialize protovalidate: " + err.Error())
-	}
-}
-
-func ValidateInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		if msg, ok := req.(proto.Message); ok {
-			if err := validator.Validate(msg); err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "%v", err)
-			}
-		}
-		return handler(ctx, req)
-	}
-}
 
 type userKey struct{}
 type tenantKey struct{}

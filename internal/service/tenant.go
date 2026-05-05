@@ -147,7 +147,7 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 }
 
 func (s *Tenant) Get(ctx context.Context, req *tenant.GetRequest) (*tenant.GetResponse, error) {
-	id := uuid.MustParse(req.Id)
+	id := uuid.UUID(req.Id)
 
 	var t models.Tenant
 	if err := s.db.First(&t, "id = ?", id).Error; err != nil {
@@ -258,13 +258,13 @@ func (s *Tenant) seedTenantOwner(dsn string, owner *models.User) error {
 
 func (s *Tenant) modelToProto(m *models.Tenant) *tenant.Tenant {
 	return &tenant.Tenant{
-		Id:       m.ID.String(),
-		Name:     m.Name,
-		Database: m.Main,
-		Deploy:   m.Deploy,
-		Account:  m.Account,
-		Storage:  m.Storage,
-		OwnerId:  m.OwnerID.String(),
+		Id:        m.ID[:],
+		Name:      m.Name,
+		Database:  m.Main,
+		Deploy:    m.Deploy,
+		Account:   m.Account,
+		Storage:   m.Storage,
+		OwnerId:   m.OwnerID[:],
 		CreatedAt: m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: m.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}

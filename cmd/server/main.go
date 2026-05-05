@@ -83,7 +83,6 @@ func main() {
 	grpcServer := grpc.NewServer(
 		grpc.Creds(creds),
 		grpc.ChainUnaryInterceptor(
-			service.ValidateInterceptor(),
 			service.UserInterceptor(database, root.ID),
 		),
 	)

@@ -32,15 +32,14 @@ func releaseAddCmd() *cobra.Command {
 				return err
 			}
 			resp, err := st.release.Create(authContext, &release.CreateRequest{
-				OwnerId:   userID,
-				TargetId:  targetID,
-				PayloadId: payloadID,
+				OwnerId:   parseUUID(userID),
+				TargetId:  parseUUID(targetID),
+				PayloadId: parseUUID(payloadID),
 			})
 			if err != nil {
 				return err
 			}
-			r := resp.Release
-			printRelease(r)
+			printRelease(resp.Release)
 			return nil
 		},
 	}
@@ -63,7 +62,7 @@ func releaseGetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.release.Get(authContext, &release.GetRequest{Id: id})
+			resp, err := st.release.Get(authContext, &release.GetRequest{Id: parseUUID(id)})
 			if err != nil {
 				return err
 			}
@@ -95,7 +94,7 @@ func releaseListCmd() *cobra.Command {
 			w := newTabWriter()
 			fmt.Fprintf(w, "ID\tSTATUS\tTARGET_ID\tPAYLOAD_ID\tCREATED\n")
 			for _, r := range resp.Releases {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", r.Id, r.Status, r.TargetId, r.PayloadId, r.CreatedAt)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", formatUUID(r.Id), r.Status, formatUUID(r.TargetId), formatUUID(r.PayloadId), r.CreatedAt)
 			}
 			w.Flush()
 			return nil
@@ -119,8 +118,8 @@ func releaseDeployCmd() *cobra.Command {
 				return err
 			}
 			resp, err := st.release.Deploy(authContext, &release.DeployRequest{
-				Id:     id,
-				UserId: userID,
+				Id:     parseUUID(id),
+				UserId: parseUUID(userID),
 			})
 			if err != nil {
 				return err
@@ -136,12 +135,12 @@ func releaseDeployCmd() *cobra.Command {
 
 func printRelease(r *release.Release) {
 	printKV([][2]string{
-		{"id", r.Id},
+		{"id", formatUUID(r.Id)},
 		{"status", r.Status},
-		{"owner_id", r.OwnerId},
-		{"target_id", r.TargetId},
-		{"payload_id", r.PayloadId},
-		{"changed_by_id", r.ChangedById},
+		{"owner_id", formatUUID(r.OwnerId)},
+		{"target_id", formatUUID(r.TargetId)},
+		{"payload_id", formatUUID(r.PayloadId)},
+		{"changed_by_id", formatUUID(r.ChangedById)},
 		{"created_at", r.CreatedAt},
 		{"updated_at", r.UpdatedAt},
 	})

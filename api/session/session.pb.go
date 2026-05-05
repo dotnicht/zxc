@@ -7,7 +7,6 @@
 package session
 
 import (
-	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -24,8 +23,8 @@ const (
 
 type Session struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	AccountId     string                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	AccountId     []byte                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
 	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
 	CreatedAt     string                 `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     string                 `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
@@ -63,18 +62,18 @@ func (*Session) Descriptor() ([]byte, []int) {
 	return file_session_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Session) GetId() string {
+func (x *Session) GetId() []byte {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return nil
 }
 
-func (x *Session) GetAccountId() string {
+func (x *Session) GetAccountId() []byte {
 	if x != nil {
 		return x.AccountId
 	}
-	return ""
+	return nil
 }
 
 func (x *Session) GetStatus() string {
@@ -100,7 +99,7 @@ func (x *Session) GetUpdatedAt() string {
 
 type GetRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -135,11 +134,11 @@ func (*GetRequest) Descriptor() ([]byte, []int) {
 	return file_session_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GetRequest) GetId() string {
+func (x *GetRequest) GetId() []byte {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return nil
 }
 
 type GetResponse struct {
@@ -188,7 +187,7 @@ func (x *GetResponse) GetSession() *Session {
 
 type StartRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -223,11 +222,11 @@ func (*StartRequest) Descriptor() ([]byte, []int) {
 	return file_session_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *StartRequest) GetId() string {
+func (x *StartRequest) GetId() []byte {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return nil
 }
 
 type StartResponse struct {
@@ -276,7 +275,7 @@ func (x *StartResponse) GetSession() *Session {
 
 type StopRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -311,11 +310,11 @@ func (*StopRequest) Descriptor() ([]byte, []int) {
 	return file_session_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *StopRequest) GetId() string {
+func (x *StopRequest) GetId() []byte {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return nil
 }
 
 type StopResponse struct {
@@ -470,27 +469,27 @@ var File_session_proto protoreflect.FileDescriptor
 
 const file_session_proto_rawDesc = "" +
 	"\n" +
-	"\rsession.proto\x12\asession\x1a\x1bbuf/validate/validate.proto\"\x8e\x01\n" +
+	"\rsession.proto\x12\asession\"\x8e\x01\n" +
 	"\aSession\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x12\x1d\n" +
 	"\n" +
-	"account_id\x18\x02 \x01(\tR\taccountId\x12\x16\n" +
+	"account_id\x18\x02 \x01(\fR\taccountId\x12\x16\n" +
 	"\x06status\x18\x03 \x01(\tR\x06status\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x04 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x05 \x01(\tR\tupdatedAt\"&\n" +
+	"updated_at\x18\x05 \x01(\tR\tupdatedAt\"\x1c\n" +
 	"\n" +
-	"GetRequest\x12\x18\n" +
-	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"9\n" +
+	"GetRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\"9\n" +
 	"\vGetResponse\x12*\n" +
-	"\asession\x18\x01 \x01(\v2\x10.session.SessionR\asession\"(\n" +
-	"\fStartRequest\x12\x18\n" +
-	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\";\n" +
+	"\asession\x18\x01 \x01(\v2\x10.session.SessionR\asession\"\x1e\n" +
+	"\fStartRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\";\n" +
 	"\rStartResponse\x12*\n" +
-	"\asession\x18\x01 \x01(\v2\x10.session.SessionR\asession\"'\n" +
-	"\vStopRequest\x12\x18\n" +
-	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\":\n" +
+	"\asession\x18\x01 \x01(\v2\x10.session.SessionR\asession\"\x1d\n" +
+	"\vStopRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\":\n" +
 	"\fStopResponse\x12*\n" +
 	"\asession\x18\x01 \x01(\v2\x10.session.SessionR\asession\">\n" +
 	"\vListRequest\x12\x12\n" +

@@ -117,7 +117,7 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 }
 
 func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.GetResponse, error) {
-	id := uuid.MustParse(req.Id)
+	id := uuid.UUID(req.Id)
 
 	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
@@ -136,7 +136,7 @@ func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.Ge
 }
 
 func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payload.UpdateResponse, error) {
-	id := uuid.MustParse(req.Id)
+	id := uuid.UUID(req.Id)
 
 	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
@@ -168,7 +168,7 @@ func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payl
 }
 
 func (s *Payload) Delete(ctx context.Context, req *payload.DeleteRequest) (*payload.DeleteResponse, error) {
-	id := uuid.MustParse(req.Id)
+	id := uuid.UUID(req.Id)
 
 	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
@@ -229,10 +229,10 @@ func (s *Payload) List(ctx context.Context, req *payload.ListRequest) (*payload.
 
 func payloadToProto(p *models.Payload) *payload.Payload {
 	return &payload.Payload{
-		Id:        p.ID.String(),
+		Id:        p.ID[:],
 		Path:      p.Path,
 		Name:      path.Base(p.Path),
-		OwnerId:   p.OwnerID.String(),
+		OwnerId:   p.OwnerID[:],
 		Config:    p.Config,
 		Start:     p.Start,
 		Stop:      p.Stop,

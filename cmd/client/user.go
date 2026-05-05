@@ -38,13 +38,7 @@ func userAddCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			u := resp.User
-			printKV([][2]string{
-				{"id", u.Id},
-				{"name", u.Name},
-				{"created_at", u.CreatedAt},
-				{"updated_at", u.UpdatedAt},
-			})
+			printUser(resp.User)
 			return nil
 		},
 	}
@@ -65,17 +59,11 @@ func userGetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.user.Get(authContext, &user.GetRequest{Id: id})
+			resp, err := st.user.Get(authContext, &user.GetRequest{Id: parseUUID(id)})
 			if err != nil {
 				return err
 			}
-			u := resp.User
-			printKV([][2]string{
-				{"id", u.Id},
-				{"name", u.Name},
-				{"created_at", u.CreatedAt},
-				{"updated_at", u.UpdatedAt},
-			})
+			printUser(resp.User)
 			return nil
 		},
 	}
@@ -103,7 +91,7 @@ func userListCmd() *cobra.Command {
 			w := newTabWriter()
 			fmt.Fprintf(w, "ID\tNAME\tCREATED\n")
 			for _, u := range resp.Users {
-				fmt.Fprintf(w, "%s\t%s\t%s\n", u.Id, u.Name, u.CreatedAt)
+				fmt.Fprintf(w, "%s\t%s\t%s\n", formatUUID(u.Id), u.Name, u.CreatedAt)
 			}
 			w.Flush()
 			return nil
@@ -126,17 +114,11 @@ func userUpdateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.user.Update(authContext, &user.UpdateRequest{Id: id, Name: name})
+			resp, err := st.user.Update(authContext, &user.UpdateRequest{Id: parseUUID(id), Name: name})
 			if err != nil {
 				return err
 			}
-			u := resp.User
-			printKV([][2]string{
-				{"id", u.Id},
-				{"name", u.Name},
-				{"created_at", u.CreatedAt},
-				{"updated_at", u.UpdatedAt},
-			})
+			printUser(resp.User)
 			return nil
 		},
 	}
@@ -159,7 +141,7 @@ func userDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			_, err = st.user.Delete(authContext, &user.DeleteRequest{Id: id})
+			_, err = st.user.Delete(authContext, &user.DeleteRequest{Id: parseUUID(id)})
 			if err != nil {
 				return err
 			}
@@ -170,4 +152,13 @@ func userDeleteCmd() *cobra.Command {
 	cmd.Flags().StringVar(&id, "id", "", "user ID")
 	_ = cmd.MarkFlagRequired("id")
 	return cmd
+}
+
+func printUser(u *user.User) {
+	printKV([][2]string{
+		{"id", formatUUID(u.Id)},
+		{"name", u.Name},
+		{"created_at", u.CreatedAt},
+		{"updated_at", u.UpdatedAt},
+	})
 }

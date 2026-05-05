@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package release;
 
-import "buf/validate/validate.proto";
-
 option go_package = "zxc/api/release;release";
 
 service ReleaseService {
@@ -14,18 +12,18 @@ service ReleaseService {
 }
 
 message Release {
-  string id = 1;
+  bytes id = 1;
   string status = 2;
-  string owner_id = 3;
+  bytes owner_id = 3;
   string created_at = 4;
   string updated_at = 5;
-  string target_id = 6;
-  string payload_id = 7;
-  string changed_by_id = 8;
+  bytes target_id = 6;
+  bytes payload_id = 7;
+  bytes changed_by_id = 8;
 }
 
 message GetRequest {
-  string id = 1 [(buf.validate.field).string.uuid = true];
+  bytes id = 1;
 }
 
 message GetResponse {
@@ -33,9 +31,9 @@ message GetResponse {
 }
 
 message CreateRequest {
-  string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
-  string target_id = 2 [(buf.validate.field).string.uuid = true];
-  string payload_id = 3 [(buf.validate.field).string.uuid = true];
+  bytes owner_id = 1;
+  bytes target_id = 2;
+  bytes payload_id = 3;
 }
 
 message CreateResponse {
@@ -43,8 +41,8 @@ message CreateResponse {
 }
 
 message DeployRequest {
-  string id = 1 [(buf.validate.field).string.uuid = true];
-  string user_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  bytes id = 1;
+  bytes user_id = 2;
 }
 
 message DeployResponse {

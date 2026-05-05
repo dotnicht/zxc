@@ -30,7 +30,7 @@ func accountGetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.account.Get(authContext, &account.GetRequest{Id: id})
+			resp, err := st.account.Get(authContext, &account.GetRequest{Id: parseUUID(id)})
 			if err != nil {
 				return err
 			}
@@ -62,7 +62,7 @@ func accountListCmd() *cobra.Command {
 			w := newTabWriter()
 			fmt.Fprintf(w, "ID\tNAME\tSTATUS\tCREATED\n")
 			for _, a := range resp.Accounts {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", a.Id, a.Name, a.Status, a.CreatedAt)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", formatUUID(a.Id), a.Name, a.Status, a.CreatedAt)
 			}
 			w.Flush()
 			return nil
@@ -85,7 +85,7 @@ func accountDisableCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.account.Disable(authContext, &account.DisableRequest{Id: id})
+			resp, err := st.account.Disable(authContext, &account.DisableRequest{Id: parseUUID(id)})
 			if err != nil {
 				return err
 			}
@@ -100,7 +100,7 @@ func accountDisableCmd() *cobra.Command {
 
 func printAccount(a *account.Account) {
 	printKV([][2]string{
-		{"id", a.Id},
+		{"id", formatUUID(a.Id)},
 		{"name", a.Name},
 		{"status", a.Status},
 		{"created_at", a.CreatedAt},

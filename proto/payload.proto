@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package payload;
 
-import "buf/validate/validate.proto";
-
 option go_package = "zxc/api/payload;payload";
 
 service PayloadService {
@@ -15,9 +13,9 @@ service PayloadService {
 }
 
 message Payload {
-  string id = 1;
+  bytes id = 1;
   string path = 2;
-  string owner_id = 3;
+  bytes owner_id = 3;
   string created_at = 4;
   string updated_at = 5;
   string start = 6;
@@ -27,7 +25,7 @@ message Payload {
 }
 
 message CreateRequest {
-  string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  bytes owner_id = 1;
   bytes content = 2;
   string start = 3;
   string stop = 4;
@@ -40,7 +38,7 @@ message CreateResponse {
 }
 
 message GetRequest {
-  string id = 1 [(buf.validate.field).string.uuid = true];
+  bytes id = 1;
 }
 
 message GetResponse {
@@ -48,7 +46,7 @@ message GetResponse {
 }
 
 message UpdateRequest {
-  string id = 1 [(buf.validate.field).string.uuid = true];
+  bytes id = 1;
   string path = 2;
   string start = 3;
   string stop = 4;
@@ -60,7 +58,7 @@ message UpdateResponse {
 }
 
 message DeleteRequest {
-  string id = 1 [(buf.validate.field).string.uuid = true];
+  bytes id = 1;
 }
 
 message DeleteResponse {

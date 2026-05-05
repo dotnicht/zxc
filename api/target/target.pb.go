@@ -7,7 +7,6 @@
 package target
 
 import (
-	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -24,9 +23,9 @@ const (
 
 type Target struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
-	OwnerId       string                 `protobuf:"bytes,3,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	OwnerId       []byte                 `protobuf:"bytes,3,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
 	CreatedAt     string                 `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     string                 `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	User          string                 `protobuf:"bytes,6,opt,name=user,proto3" json:"user,omitempty"`
@@ -66,11 +65,11 @@ func (*Target) Descriptor() ([]byte, []int) {
 	return file_target_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Target) GetId() string {
+func (x *Target) GetId() []byte {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return nil
 }
 
 func (x *Target) GetAddress() string {
@@ -80,11 +79,11 @@ func (x *Target) GetAddress() string {
 	return ""
 }
 
-func (x *Target) GetOwnerId() string {
+func (x *Target) GetOwnerId() []byte {
 	if x != nil {
 		return x.OwnerId
 	}
-	return ""
+	return nil
 }
 
 func (x *Target) GetCreatedAt() string {
@@ -124,7 +123,7 @@ func (x *Target) GetStatus() string {
 
 type CreateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	OwnerId       string                 `protobuf:"bytes,1,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	OwnerId       []byte                 `protobuf:"bytes,1,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
 	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
 	User          string                 `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
 	Key           string                 `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`
@@ -162,11 +161,11 @@ func (*CreateRequest) Descriptor() ([]byte, []int) {
 	return file_target_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *CreateRequest) GetOwnerId() string {
+func (x *CreateRequest) GetOwnerId() []byte {
 	if x != nil {
 		return x.OwnerId
 	}
-	return ""
+	return nil
 }
 
 func (x *CreateRequest) GetAddress() string {
@@ -236,7 +235,7 @@ func (x *CreateResponse) GetTarget() *Target {
 
 type GetRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -271,11 +270,11 @@ func (*GetRequest) Descriptor() ([]byte, []int) {
 	return file_target_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *GetRequest) GetId() string {
+func (x *GetRequest) GetId() []byte {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return nil
 }
 
 type GetResponse struct {
@@ -324,7 +323,7 @@ func (x *GetResponse) GetTarget() *Target {
 
 type UpdateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
 	User          string                 `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
 	Key           string                 `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`
@@ -362,11 +361,11 @@ func (*UpdateRequest) Descriptor() ([]byte, []int) {
 	return file_target_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *UpdateRequest) GetId() string {
+func (x *UpdateRequest) GetId() []byte {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return nil
 }
 
 func (x *UpdateRequest) GetAddress() string {
@@ -436,7 +435,7 @@ func (x *UpdateResponse) GetTarget() *Target {
 
 type DeleteRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -471,11 +470,11 @@ func (*DeleteRequest) Descriptor() ([]byte, []int) {
 	return file_target_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *DeleteRequest) GetId() string {
+func (x *DeleteRequest) GetId() []byte {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return nil
 }
 
 type DeleteResponse struct {
@@ -630,39 +629,39 @@ var File_target_proto protoreflect.FileDescriptor
 
 const file_target_proto_rawDesc = "" +
 	"\n" +
-	"\ftarget.proto\x12\x06target\x1a\x1bbuf/validate/validate.proto\"\xc9\x01\n" +
+	"\ftarget.proto\x12\x06target\"\xc9\x01\n" +
 	"\x06Target\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x19\n" +
-	"\bowner_id\x18\x03 \x01(\tR\aownerId\x12\x1d\n" +
+	"\bowner_id\x18\x03 \x01(\fR\aownerId\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x04 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\x05 \x01(\tR\tupdatedAt\x12\x12\n" +
 	"\x04user\x18\x06 \x01(\tR\x04user\x12\x10\n" +
 	"\x03key\x18\a \x01(\tR\x03key\x12\x16\n" +
-	"\x06status\x18\b \x01(\tR\x06status\"w\n" +
-	"\rCreateRequest\x12&\n" +
-	"\bowner_id\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\aownerId\x12\x18\n" +
+	"\x06status\x18\b \x01(\tR\x06status\"j\n" +
+	"\rCreateRequest\x12\x19\n" +
+	"\bowner_id\x18\x01 \x01(\fR\aownerId\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x12\n" +
 	"\x04user\x18\x03 \x01(\tR\x04user\x12\x10\n" +
 	"\x03key\x18\x04 \x01(\tR\x03key\"8\n" +
 	"\x0eCreateResponse\x12&\n" +
-	"\x06target\x18\x01 \x01(\v2\x0e.target.TargetR\x06target\"&\n" +
+	"\x06target\x18\x01 \x01(\v2\x0e.target.TargetR\x06target\"\x1c\n" +
 	"\n" +
-	"GetRequest\x12\x18\n" +
-	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"5\n" +
+	"GetRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\"5\n" +
 	"\vGetResponse\x12&\n" +
-	"\x06target\x18\x01 \x01(\v2\x0e.target.TargetR\x06target\"i\n" +
-	"\rUpdateRequest\x12\x18\n" +
-	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12\x18\n" +
+	"\x06target\x18\x01 \x01(\v2\x0e.target.TargetR\x06target\"_\n" +
+	"\rUpdateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x12\n" +
 	"\x04user\x18\x03 \x01(\tR\x04user\x12\x10\n" +
 	"\x03key\x18\x04 \x01(\tR\x03key\"8\n" +
 	"\x0eUpdateResponse\x12&\n" +
-	"\x06target\x18\x01 \x01(\v2\x0e.target.TargetR\x06target\")\n" +
-	"\rDeleteRequest\x12\x18\n" +
-	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"*\n" +
+	"\x06target\x18\x01 \x01(\v2\x0e.target.TargetR\x06target\"\x1f\n" +
+	"\rDeleteRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\"*\n" +
 	"\x0eDeleteResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\">\n" +
 	"\vListRequest\x12\x12\n" +

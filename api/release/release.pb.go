@@ -7,7 +7,6 @@
 package release
 
 import (
-	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -24,14 +23,14 @@ const (
 
 type Release struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	OwnerId       string                 `protobuf:"bytes,3,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	OwnerId       []byte                 `protobuf:"bytes,3,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
 	CreatedAt     string                 `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     string                 `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	TargetId      string                 `protobuf:"bytes,6,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
-	PayloadId     string                 `protobuf:"bytes,7,opt,name=payload_id,json=payloadId,proto3" json:"payload_id,omitempty"`
-	ChangedById   string                 `protobuf:"bytes,8,opt,name=changed_by_id,json=changedById,proto3" json:"changed_by_id,omitempty"`
+	TargetId      []byte                 `protobuf:"bytes,6,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
+	PayloadId     []byte                 `protobuf:"bytes,7,opt,name=payload_id,json=payloadId,proto3" json:"payload_id,omitempty"`
+	ChangedById   []byte                 `protobuf:"bytes,8,opt,name=changed_by_id,json=changedById,proto3" json:"changed_by_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -66,11 +65,11 @@ func (*Release) Descriptor() ([]byte, []int) {
 	return file_release_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Release) GetId() string {
+func (x *Release) GetId() []byte {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return nil
 }
 
 func (x *Release) GetStatus() string {
@@ -80,11 +79,11 @@ func (x *Release) GetStatus() string {
 	return ""
 }
 
-func (x *Release) GetOwnerId() string {
+func (x *Release) GetOwnerId() []byte {
 	if x != nil {
 		return x.OwnerId
 	}
-	return ""
+	return nil
 }
 
 func (x *Release) GetCreatedAt() string {
@@ -101,30 +100,30 @@ func (x *Release) GetUpdatedAt() string {
 	return ""
 }
 
-func (x *Release) GetTargetId() string {
+func (x *Release) GetTargetId() []byte {
 	if x != nil {
 		return x.TargetId
 	}
-	return ""
+	return nil
 }
 
-func (x *Release) GetPayloadId() string {
+func (x *Release) GetPayloadId() []byte {
 	if x != nil {
 		return x.PayloadId
 	}
-	return ""
+	return nil
 }
 
-func (x *Release) GetChangedById() string {
+func (x *Release) GetChangedById() []byte {
 	if x != nil {
 		return x.ChangedById
 	}
-	return ""
+	return nil
 }
 
 type GetRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -159,11 +158,11 @@ func (*GetRequest) Descriptor() ([]byte, []int) {
 	return file_release_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GetRequest) GetId() string {
+func (x *GetRequest) GetId() []byte {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return nil
 }
 
 type GetResponse struct {
@@ -212,9 +211,9 @@ func (x *GetResponse) GetRelease() *Release {
 
 type CreateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	OwnerId       string                 `protobuf:"bytes,1,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
-	TargetId      string                 `protobuf:"bytes,2,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
-	PayloadId     string                 `protobuf:"bytes,3,opt,name=payload_id,json=payloadId,proto3" json:"payload_id,omitempty"`
+	OwnerId       []byte                 `protobuf:"bytes,1,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	TargetId      []byte                 `protobuf:"bytes,2,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
+	PayloadId     []byte                 `protobuf:"bytes,3,opt,name=payload_id,json=payloadId,proto3" json:"payload_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -249,25 +248,25 @@ func (*CreateRequest) Descriptor() ([]byte, []int) {
 	return file_release_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *CreateRequest) GetOwnerId() string {
+func (x *CreateRequest) GetOwnerId() []byte {
 	if x != nil {
 		return x.OwnerId
 	}
-	return ""
+	return nil
 }
 
-func (x *CreateRequest) GetTargetId() string {
+func (x *CreateRequest) GetTargetId() []byte {
 	if x != nil {
 		return x.TargetId
 	}
-	return ""
+	return nil
 }
 
-func (x *CreateRequest) GetPayloadId() string {
+func (x *CreateRequest) GetPayloadId() []byte {
 	if x != nil {
 		return x.PayloadId
 	}
-	return ""
+	return nil
 }
 
 type CreateResponse struct {
@@ -316,8 +315,8 @@ func (x *CreateResponse) GetRelease() *Release {
 
 type DeployRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId        []byte                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -352,18 +351,18 @@ func (*DeployRequest) Descriptor() ([]byte, []int) {
 	return file_release_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *DeployRequest) GetId() string {
+func (x *DeployRequest) GetId() []byte {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return nil
 }
 
-func (x *DeployRequest) GetUserId() string {
+func (x *DeployRequest) GetUserId() []byte {
 	if x != nil {
 		return x.UserId
 	}
-	return ""
+	return nil
 }
 
 type DeployResponse struct {
@@ -518,34 +517,34 @@ var File_release_proto protoreflect.FileDescriptor
 
 const file_release_proto_rawDesc = "" +
 	"\n" +
-	"\rrelease.proto\x12\arelease\x1a\x1bbuf/validate/validate.proto\"\xea\x01\n" +
+	"\rrelease.proto\x12\arelease\"\xea\x01\n" +
 	"\aRelease\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x19\n" +
-	"\bowner_id\x18\x03 \x01(\tR\aownerId\x12\x1d\n" +
+	"\bowner_id\x18\x03 \x01(\fR\aownerId\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x04 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\x05 \x01(\tR\tupdatedAt\x12\x1b\n" +
-	"\ttarget_id\x18\x06 \x01(\tR\btargetId\x12\x1d\n" +
+	"\ttarget_id\x18\x06 \x01(\fR\btargetId\x12\x1d\n" +
 	"\n" +
-	"payload_id\x18\a \x01(\tR\tpayloadId\x12\"\n" +
-	"\rchanged_by_id\x18\b \x01(\tR\vchangedById\"&\n" +
+	"payload_id\x18\a \x01(\fR\tpayloadId\x12\"\n" +
+	"\rchanged_by_id\x18\b \x01(\fR\vchangedById\"\x1c\n" +
 	"\n" +
-	"GetRequest\x12\x18\n" +
-	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"9\n" +
+	"GetRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\"9\n" +
 	"\vGetResponse\x12*\n" +
-	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\"\x87\x01\n" +
-	"\rCreateRequest\x12&\n" +
-	"\bowner_id\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\aownerId\x12%\n" +
-	"\ttarget_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btargetId\x12'\n" +
+	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\"f\n" +
+	"\rCreateRequest\x12\x19\n" +
+	"\bowner_id\x18\x01 \x01(\fR\aownerId\x12\x1b\n" +
+	"\ttarget_id\x18\x02 \x01(\fR\btargetId\x12\x1d\n" +
 	"\n" +
-	"payload_id\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tpayloadId\"<\n" +
+	"payload_id\x18\x03 \x01(\fR\tpayloadId\"<\n" +
 	"\x0eCreateResponse\x12*\n" +
-	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\"O\n" +
-	"\rDeployRequest\x12\x18\n" +
-	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12$\n" +
-	"\auser_id\x18\x02 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\x06userId\"<\n" +
+	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\"8\n" +
+	"\rDeployRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\fR\x06userId\"<\n" +
 	"\x0eDeployResponse\x12*\n" +
 	"\arelease\x18\x01 \x01(\v2\x10.release.ReleaseR\arelease\">\n" +
 	"\vListRequest\x12\x12\n" +

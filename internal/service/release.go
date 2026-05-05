@@ -30,8 +30,8 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 		return nil, err
 	}
 
-	targetID := uuid.MustParse(req.TargetId)
-	payloadID := uuid.MustParse(req.PayloadId)
+	targetID := uuid.UUID(req.TargetId)
+	payloadID := uuid.UUID(req.PayloadId)
 
 	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
@@ -63,7 +63,7 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 }
 
 func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.GetResponse, error) {
-	id := uuid.MustParse(req.Id)
+	id := uuid.UUID(req.Id)
 
 	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
@@ -82,7 +82,7 @@ func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.Ge
 }
 
 func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*release.DeployResponse, error) {
-	id := uuid.MustParse(req.Id)
+	id := uuid.UUID(req.Id)
 
 	authUserID, err := ctxUserID(ctx)
 	if err != nil {
@@ -176,18 +176,18 @@ func (s *Release) List(ctx context.Context, req *release.ListRequest) (*release.
 
 func releaseToProto(r *models.Release) *release.Release {
 	p := &release.Release{
-		Id:          r.ID.String(),
+		Id:          r.ID[:],
 		Status:      r.Status,
-		OwnerId:     r.OwnerID.String(),
-		ChangedById: r.ChangedByID.String(),
+		OwnerId:     r.OwnerID[:],
+		ChangedById: r.ChangedByID[:],
 		CreatedAt:   r.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:   r.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 	if r.TargetID != nil {
-		p.TargetId = r.TargetID.String()
+		p.TargetId = r.TargetID[:]
 	}
 	if r.PayloadID != nil {
-		p.PayloadId = r.PayloadID.String()
+		p.PayloadId = r.PayloadID[:]
 	}
 	return p
 }

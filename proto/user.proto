@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package user;
 
-import "buf/validate/validate.proto";
-
 option go_package = "zxc/api/user;user";
 
 service UserService {
@@ -15,7 +13,7 @@ service UserService {
 }
 
 message User {
-  string id = 1;
+  bytes id = 1;
   string name = 2;
   string created_at = 3;
   string updated_at = 4;
@@ -30,7 +28,7 @@ message CreateResponse {
 }
 
 message GetRequest {
-  string id = 1 [(buf.validate.field).string.uuid = true];
+  bytes id = 1;
 }
 
 message GetResponse {
@@ -38,7 +36,7 @@ message GetResponse {
 }
 
 message UpdateRequest {
-  string id = 1 [(buf.validate.field).string.uuid = true];
+  bytes id = 1;
   string name = 2;
 }
 
@@ -47,7 +45,7 @@ message UpdateResponse {
 }
 
 message DeleteRequest {
-  string id = 1 [(buf.validate.field).string.uuid = true];
+  bytes id = 1;
 }
 
 message DeleteResponse {

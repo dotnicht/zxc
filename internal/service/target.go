@@ -51,7 +51,7 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 }
 
 func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetResponse, error) {
-	id := uuid.MustParse(req.Id)
+	id := uuid.UUID(req.Id)
 
 	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetRe
 }
 
 func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target.UpdateResponse, error) {
-	id := uuid.MustParse(req.Id)
+	id := uuid.UUID(req.Id)
 
 	if req.Address == "" {
 		return nil, status.Error(codes.InvalidArgument, "address is required")
@@ -118,7 +118,7 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 }
 
 func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target.DeleteResponse, error) {
-	id := uuid.MustParse(req.Id)
+	id := uuid.UUID(req.Id)
 
 	_, db, err := ctxDeployDB(ctx)
 	if err != nil {
@@ -179,12 +179,12 @@ func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.Lis
 
 func targetToProto(t *models.Target) *target.Target {
 	return &target.Target{
-		Id:        t.ID.String(),
+		Id:        t.ID[:],
 		Address:   t.Address,
 		User:      t.User,
 		Key:       t.Key,
 		Status:    t.Status,
-		OwnerId:   t.OwnerID.String(),
+		OwnerId:   t.OwnerID[:],
 		CreatedAt: t.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: t.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}

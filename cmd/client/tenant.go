@@ -34,16 +34,7 @@ func tenantAddCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			t := resp.Tenant
-			printKV([][2]string{
-				{"id", t.Id},
-				{"name", t.Name},
-				{"database", t.Database},
-				{"storage", t.Storage},
-				{"owner_id", t.OwnerId},
-				{"created_at", t.CreatedAt},
-				{"updated_at", t.UpdatedAt},
-			})
+			printTenant(resp.Tenant)
 			return nil
 		},
 	}
@@ -64,20 +55,11 @@ func tenantGetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.tenant.Get(authContext, &tenant.GetRequest{Id: id})
+			resp, err := st.tenant.Get(authContext, &tenant.GetRequest{Id: parseUUID(id)})
 			if err != nil {
 				return err
 			}
-			t := resp.Tenant
-			printKV([][2]string{
-				{"id", t.Id},
-				{"name", t.Name},
-				{"database", t.Database},
-				{"storage", t.Storage},
-				{"owner_id", t.OwnerId},
-				{"created_at", t.CreatedAt},
-				{"updated_at", t.UpdatedAt},
-			})
+			printTenant(resp.Tenant)
 			return nil
 		},
 	}
@@ -105,7 +87,7 @@ func tenantListCmd() *cobra.Command {
 			w := newTabWriter()
 			fmt.Fprintf(w, "ID\tNAME\tCREATED\n")
 			for _, t := range resp.Tenants {
-				fmt.Fprintf(w, "%s\t%s\t%s\n", t.Id, t.Name, t.CreatedAt)
+				fmt.Fprintf(w, "%s\t%s\t%s\n", formatUUID(t.Id), t.Name, t.CreatedAt)
 			}
 			w.Flush()
 			return nil
@@ -114,4 +96,16 @@ func tenantListCmd() *cobra.Command {
 	cmd.Flags().Int32Var(&page, "page", 1, "page number")
 	cmd.Flags().Int32Var(&size, "size", 20, "page size")
 	return cmd
+}
+
+func printTenant(t *tenant.Tenant) {
+	printKV([][2]string{
+		{"id", formatUUID(t.Id)},
+		{"name", t.Name},
+		{"database", t.Database},
+		{"storage", t.Storage},
+		{"owner_id", formatUUID(t.OwnerId)},
+		{"created_at", t.CreatedAt},
+		{"updated_at", t.UpdatedAt},
+	})
 }

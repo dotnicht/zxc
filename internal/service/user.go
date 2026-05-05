@@ -40,7 +40,7 @@ func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.Creat
 }
 
 func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse, error) {
-	uid := uuid.MustParse(req.Id)
+	uid := uuid.UUID(req.Id)
 
 	_, db, err := ctxUsersDB(ctx)
 	if err != nil {
@@ -59,7 +59,7 @@ func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse
 }
 
 func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.UpdateResponse, error) {
-	uid := uuid.MustParse(req.Id)
+	uid := uuid.UUID(req.Id)
 
 	if req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, "name is required")
@@ -95,7 +95,7 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 }
 
 func (s *User) Delete(ctx context.Context, req *user.DeleteRequest) (*user.DeleteResponse, error) {
-	uid := uuid.MustParse(req.Id)
+	uid := uuid.UUID(req.Id)
 
 	_, db, err := ctxUsersDB(ctx)
 	if err != nil {
@@ -148,7 +148,7 @@ func (s *User) List(ctx context.Context, req *user.ListRequest) (*user.ListRespo
 
 func userToProto(m *models.User) *user.User {
 	return &user.User{
-		Id:        m.ID.String(),
+		Id:        m.ID[:],
 		Name:      m.Name,
 		CreatedAt: m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: m.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
