@@ -1,5 +1,5 @@
 database = "postgres://postgres:postgres@postgres:5432/zxc?sslmode=disable"
-storage = "http://minioadmin:minioadmin@storage:9000/tenants"
+storage = "http://minioadmin:minioadmin@storage:9000/zxc"
 webhook = "http://webhook:8080/webhooks"
 secret = "docker-secret"
 root = "00000000-0000-0000-0000-000000000001"

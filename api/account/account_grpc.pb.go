@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AccountService_Get_FullMethodName     = "/account.AccountService/Get"
-	AccountService_List_FullMethodName    = "/account.AccountService/List"
-	AccountService_Disable_FullMethodName = "/account.AccountService/Disable"
+	AccountService_Get_FullMethodName      = "/account.AccountService/Get"
+	AccountService_List_FullMethodName     = "/account.AccountService/List"
+	AccountService_Disable_FullMethodName  = "/account.AccountService/Disable"
+	AccountService_GetTalks_FullMethodName = "/account.AccountService/GetTalks"
 )
 
 // AccountServiceClient is the client API for AccountService service.
@@ -31,6 +32,7 @@ type AccountServiceClient interface {
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
 	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
 	Disable(ctx context.Context, in *DisableRequest, opts ...grpc.CallOption) (*DisableResponse, error)
+	GetTalks(ctx context.Context, in *GetTalksRequest, opts ...grpc.CallOption) (*GetTalksResponse, error)
 }
 
 type accountServiceClient struct {
@@ -71,6 +73,16 @@ func (c *accountServiceClient) Disable(ctx context.Context, in *DisableRequest, 
 	return out, nil
 }
 
+func (c *accountServiceClient) GetTalks(ctx context.Context, in *GetTalksRequest, opts ...grpc.CallOption) (*GetTalksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTalksResponse)
+	err := c.cc.Invoke(ctx, AccountService_GetTalks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AccountServiceServer is the server API for AccountService service.
 // All implementations must embed UnimplementedAccountServiceServer
 // for forward compatibility.
@@ -78,6 +90,7 @@ type AccountServiceServer interface {
 	Get(context.Context, *GetRequest) (*GetResponse, error)
 	List(context.Context, *ListRequest) (*ListResponse, error)
 	Disable(context.Context, *DisableRequest) (*DisableResponse, error)
+	GetTalks(context.Context, *GetTalksRequest) (*GetTalksResponse, error)
 	mustEmbedUnimplementedAccountServiceServer()
 }
 
@@ -96,6 +109,9 @@ func (UnimplementedAccountServiceServer) List(context.Context, *ListRequest) (*L
 }
 func (UnimplementedAccountServiceServer) Disable(context.Context, *DisableRequest) (*DisableResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Disable not implemented")
+}
+func (UnimplementedAccountServiceServer) GetTalks(context.Context, *GetTalksRequest) (*GetTalksResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTalks not implemented")
 }
 func (UnimplementedAccountServiceServer) mustEmbedUnimplementedAccountServiceServer() {}
 func (UnimplementedAccountServiceServer) testEmbeddedByValue()                        {}
@@ -172,6 +188,24 @@ func _AccountService_Disable_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AccountService_GetTalks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTalksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountServiceServer).GetTalks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountService_GetTalks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountServiceServer).GetTalks(ctx, req.(*GetTalksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AccountService_ServiceDesc is the grpc.ServiceDesc for AccountService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +224,10 @@ var AccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Disable",
 			Handler:    _AccountService_Disable_Handler,
+		},
+		{
+			MethodName: "GetTalks",
+			Handler:    _AccountService_GetTalks_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

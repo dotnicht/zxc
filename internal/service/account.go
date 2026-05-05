@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -100,6 +101,55 @@ func (s *Account) Disable(ctx context.Context, req *account.DisableRequest) (*ac
 
 	current.Status = models.ProfileDisabled
 	return &account.DisableResponse{Account: profileToProto(&current)}, nil
+}
+
+func (s *Account) GetTalks(ctx context.Context, req *account.GetTalksRequest) (*account.GetTalksResponse, error) {
+	profileID := uuid.UUID(req.ProfileId)
+
+	_, db, err := ctxAccountDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var talks []*models.Talk
+	if err := db.Where("profile_id = ?", profileID).Find(&talks).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get talks: %v", err)
+	}
+
+	out := make([]*account.Talk, len(talks))
+	for i, t := range talks {
+		var posts []*models.Post
+		if err := db.Where("talk_id = ?", t.ID).Find(&posts).Error; err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to get posts: %v", err)
+		}
+
+		var files []*models.File
+		if err := db.Where("talk_id = ?", t.ID).Find(&files).Error; err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to get files: %v", err)
+		}
+
+		items := make([]*account.TalkItem, 0, len(posts)+len(files))
+		for _, p := range posts {
+			items = append(items, &account.TalkItem{
+				CreatedAt: p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+				Content:   &account.TalkItem_Post{Post: &account.Post{Id: p.ID[:], ContactId: p.ContactID[:], Text: p.Text, CreatedAt: p.CreatedAt.Format("2006-01-02T15:04:05Z07:00")}},
+			})
+		}
+		for _, f := range files {
+			items = append(items, &account.TalkItem{
+				CreatedAt: f.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+				Content:   &account.TalkItem_File{File: &account.File{Id: f.ID[:], ContactId: f.ContactID[:], Name: f.Name, CreatedAt: f.CreatedAt.Format("2006-01-02T15:04:05Z07:00")}},
+			})
+		}
+
+		sort.Slice(items, func(a, b int) bool {
+			return items[a].CreatedAt < items[b].CreatedAt
+		})
+
+		out[i] = &account.Talk{Id: t.ID[:], Items: items}
+	}
+
+	return &account.GetTalksResponse{Talks: out}, nil
 }
 
 func profileToProto(a *models.Profile) *account.Account {

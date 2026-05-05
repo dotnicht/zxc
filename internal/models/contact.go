@@ -7,17 +7,15 @@ import (
 	"gorm.io/gorm"
 )
 
-type File struct {
+type Contact struct {
 	ID        uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	TalkID    uuid.UUID      `gorm:"type:uuid;not null"`
-	ProfileID uuid.UUID      `gorm:"type:uuid;not null"`
-	ContactID uuid.UUID      `gorm:"type:uuid;not null"`
-	Name      string         `gorm:"type:varchar(255);not null;default:''"`
+	ProfileID uuid.UUID      `gorm:"type:uuid;not null;index"`
+	Name      string         `gorm:"type:varchar(255);not null"`
 	CreatedAt time.Time      `gorm:"not null;default:now()"`
 	UpdatedAt time.Time      `gorm:"not null;default:now()"`
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
-func (File) TableName() string {
-	return "files"
+func (Contact) TableName() string {
+	return "contacts"
 }

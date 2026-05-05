@@ -88,7 +88,7 @@ func RunDeployMigrations(db *gorm.DB) error {
 
 func RunAccountMigrations(db *gorm.DB) error {
 	slog.Info("Running account database migrations")
-	if err := db.AutoMigrate(&models.Profile{}, &models.Session{}, &models.Talk{}, &models.File{}, &models.Message{}); err != nil {
+	if err := db.AutoMigrate(&models.Profile{}, &models.Session{}, &models.Talk{}, &models.File{}, &models.Contact{}, &models.Post{}); err != nil {
 		return fmt.Errorf("failed to run account migrations: %w", err)
 	}
 	slog.Info("Account migrations completed")

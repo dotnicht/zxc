@@ -377,6 +377,372 @@ func (x *DisableResponse) GetAccount() *Account {
 	return nil
 }
 
+type Post struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ContactId     []byte                 `protobuf:"bytes,2,opt,name=contact_id,json=contactId,proto3" json:"contact_id,omitempty"`
+	Text          string                 `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Post) Reset() {
+	*x = Post{}
+	mi := &file_account_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Post) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Post) ProtoMessage() {}
+
+func (x *Post) ProtoReflect() protoreflect.Message {
+	mi := &file_account_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Post.ProtoReflect.Descriptor instead.
+func (*Post) Descriptor() ([]byte, []int) {
+	return file_account_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *Post) GetId() []byte {
+	if x != nil {
+		return x.Id
+	}
+	return nil
+}
+
+func (x *Post) GetContactId() []byte {
+	if x != nil {
+		return x.ContactId
+	}
+	return nil
+}
+
+func (x *Post) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *Post) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+type File struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ContactId     []byte                 `protobuf:"bytes,2,opt,name=contact_id,json=contactId,proto3" json:"contact_id,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *File) Reset() {
+	*x = File{}
+	mi := &file_account_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *File) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*File) ProtoMessage() {}
+
+func (x *File) ProtoReflect() protoreflect.Message {
+	mi := &file_account_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use File.ProtoReflect.Descriptor instead.
+func (*File) Descriptor() ([]byte, []int) {
+	return file_account_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *File) GetId() []byte {
+	if x != nil {
+		return x.Id
+	}
+	return nil
+}
+
+func (x *File) GetContactId() []byte {
+	if x != nil {
+		return x.ContactId
+	}
+	return nil
+}
+
+func (x *File) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *File) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+type TalkItem struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	CreatedAt string                 `protobuf:"bytes,1,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Types that are valid to be assigned to Content:
+	//
+	//	*TalkItem_Post
+	//	*TalkItem_File
+	Content       isTalkItem_Content `protobuf_oneof:"content"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TalkItem) Reset() {
+	*x = TalkItem{}
+	mi := &file_account_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TalkItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TalkItem) ProtoMessage() {}
+
+func (x *TalkItem) ProtoReflect() protoreflect.Message {
+	mi := &file_account_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TalkItem.ProtoReflect.Descriptor instead.
+func (*TalkItem) Descriptor() ([]byte, []int) {
+	return file_account_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *TalkItem) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *TalkItem) GetContent() isTalkItem_Content {
+	if x != nil {
+		return x.Content
+	}
+	return nil
+}
+
+func (x *TalkItem) GetPost() *Post {
+	if x != nil {
+		if x, ok := x.Content.(*TalkItem_Post); ok {
+			return x.Post
+		}
+	}
+	return nil
+}
+
+func (x *TalkItem) GetFile() *File {
+	if x != nil {
+		if x, ok := x.Content.(*TalkItem_File); ok {
+			return x.File
+		}
+	}
+	return nil
+}
+
+type isTalkItem_Content interface {
+	isTalkItem_Content()
+}
+
+type TalkItem_Post struct {
+	Post *Post `protobuf:"bytes,2,opt,name=post,proto3,oneof"`
+}
+
+type TalkItem_File struct {
+	File *File `protobuf:"bytes,3,opt,name=file,proto3,oneof"`
+}
+
+func (*TalkItem_Post) isTalkItem_Content() {}
+
+func (*TalkItem_File) isTalkItem_Content() {}
+
+type Talk struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Items         []*TalkItem            `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Talk) Reset() {
+	*x = Talk{}
+	mi := &file_account_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Talk) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Talk) ProtoMessage() {}
+
+func (x *Talk) ProtoReflect() protoreflect.Message {
+	mi := &file_account_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Talk.ProtoReflect.Descriptor instead.
+func (*Talk) Descriptor() ([]byte, []int) {
+	return file_account_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *Talk) GetId() []byte {
+	if x != nil {
+		return x.Id
+	}
+	return nil
+}
+
+func (x *Talk) GetItems() []*TalkItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+type GetTalksRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProfileId     []byte                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTalksRequest) Reset() {
+	*x = GetTalksRequest{}
+	mi := &file_account_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTalksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTalksRequest) ProtoMessage() {}
+
+func (x *GetTalksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_account_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTalksRequest.ProtoReflect.Descriptor instead.
+func (*GetTalksRequest) Descriptor() ([]byte, []int) {
+	return file_account_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetTalksRequest) GetProfileId() []byte {
+	if x != nil {
+		return x.ProfileId
+	}
+	return nil
+}
+
+type GetTalksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Talks         []*Talk                `protobuf:"bytes,1,rep,name=talks,proto3" json:"talks,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTalksResponse) Reset() {
+	*x = GetTalksResponse{}
+	mi := &file_account_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTalksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTalksResponse) ProtoMessage() {}
+
+func (x *GetTalksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_account_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTalksResponse.ProtoReflect.Descriptor instead.
+func (*GetTalksResponse) Descriptor() ([]byte, []int) {
+	return file_account_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetTalksResponse) GetTalks() []*Talk {
+	if x != nil {
+		return x.Talks
+	}
+	return nil
+}
+
 var File_account_proto protoreflect.FileDescriptor
 
 const file_account_proto_rawDesc = "" +
@@ -404,11 +770,40 @@ const file_account_proto_rawDesc = "" +
 	"\x0eDisableRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\"=\n" +
 	"\x0fDisableResponse\x12*\n" +
-	"\aaccount\x18\x01 \x01(\v2\x10.account.AccountR\aaccount2\xb5\x01\n" +
+	"\aaccount\x18\x01 \x01(\v2\x10.account.AccountR\aaccount\"h\n" +
+	"\x04Post\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x12\x1d\n" +
+	"\n" +
+	"contact_id\x18\x02 \x01(\fR\tcontactId\x12\x12\n" +
+	"\x04text\x18\x03 \x01(\tR\x04text\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x04 \x01(\tR\tcreatedAt\"h\n" +
+	"\x04File\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x12\x1d\n" +
+	"\n" +
+	"contact_id\x18\x02 \x01(\fR\tcontactId\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x04 \x01(\tR\tcreatedAt\"~\n" +
+	"\bTalkItem\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x01 \x01(\tR\tcreatedAt\x12#\n" +
+	"\x04post\x18\x02 \x01(\v2\r.account.PostH\x00R\x04post\x12#\n" +
+	"\x04file\x18\x03 \x01(\v2\r.account.FileH\x00R\x04fileB\t\n" +
+	"\acontent\"?\n" +
+	"\x04Talk\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x12'\n" +
+	"\x05items\x18\x02 \x03(\v2\x11.account.TalkItemR\x05items\"0\n" +
+	"\x0fGetTalksRequest\x12\x1d\n" +
+	"\n" +
+	"profile_id\x18\x01 \x01(\fR\tprofileId\"7\n" +
+	"\x10GetTalksResponse\x12#\n" +
+	"\x05talks\x18\x01 \x03(\v2\r.account.TalkR\x05talks2\xf6\x01\n" +
 	"\x0eAccountService\x120\n" +
 	"\x03Get\x12\x13.account.GetRequest\x1a\x14.account.GetResponse\x123\n" +
 	"\x04List\x12\x14.account.ListRequest\x1a\x15.account.ListResponse\x12<\n" +
-	"\aDisable\x12\x17.account.DisableRequest\x1a\x18.account.DisableResponseB\x19Z\x17zxc/api/account;accountb\x06proto3"
+	"\aDisable\x12\x17.account.DisableRequest\x1a\x18.account.DisableResponse\x12?\n" +
+	"\bGetTalks\x12\x18.account.GetTalksRequest\x1a\x19.account.GetTalksResponseB\x19Z\x17zxc/api/account;accountb\x06proto3"
 
 var (
 	file_account_proto_rawDescOnce sync.Once
@@ -422,31 +817,43 @@ func file_account_proto_rawDescGZIP() []byte {
 	return file_account_proto_rawDescData
 }
 
-var file_account_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_account_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_account_proto_goTypes = []any{
-	(*Account)(nil),         // 0: account.Account
-	(*GetRequest)(nil),      // 1: account.GetRequest
-	(*GetResponse)(nil),     // 2: account.GetResponse
-	(*ListRequest)(nil),     // 3: account.ListRequest
-	(*ListResponse)(nil),    // 4: account.ListResponse
-	(*DisableRequest)(nil),  // 5: account.DisableRequest
-	(*DisableResponse)(nil), // 6: account.DisableResponse
+	(*Account)(nil),          // 0: account.Account
+	(*GetRequest)(nil),       // 1: account.GetRequest
+	(*GetResponse)(nil),      // 2: account.GetResponse
+	(*ListRequest)(nil),      // 3: account.ListRequest
+	(*ListResponse)(nil),     // 4: account.ListResponse
+	(*DisableRequest)(nil),   // 5: account.DisableRequest
+	(*DisableResponse)(nil),  // 6: account.DisableResponse
+	(*Post)(nil),             // 7: account.Post
+	(*File)(nil),             // 8: account.File
+	(*TalkItem)(nil),         // 9: account.TalkItem
+	(*Talk)(nil),             // 10: account.Talk
+	(*GetTalksRequest)(nil),  // 11: account.GetTalksRequest
+	(*GetTalksResponse)(nil), // 12: account.GetTalksResponse
 }
 var file_account_proto_depIdxs = []int32{
-	0, // 0: account.GetResponse.account:type_name -> account.Account
-	0, // 1: account.ListResponse.accounts:type_name -> account.Account
-	0, // 2: account.DisableResponse.account:type_name -> account.Account
-	1, // 3: account.AccountService.Get:input_type -> account.GetRequest
-	3, // 4: account.AccountService.List:input_type -> account.ListRequest
-	5, // 5: account.AccountService.Disable:input_type -> account.DisableRequest
-	2, // 6: account.AccountService.Get:output_type -> account.GetResponse
-	4, // 7: account.AccountService.List:output_type -> account.ListResponse
-	6, // 8: account.AccountService.Disable:output_type -> account.DisableResponse
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0,  // 0: account.GetResponse.account:type_name -> account.Account
+	0,  // 1: account.ListResponse.accounts:type_name -> account.Account
+	0,  // 2: account.DisableResponse.account:type_name -> account.Account
+	7,  // 3: account.TalkItem.post:type_name -> account.Post
+	8,  // 4: account.TalkItem.file:type_name -> account.File
+	9,  // 5: account.Talk.items:type_name -> account.TalkItem
+	10, // 6: account.GetTalksResponse.talks:type_name -> account.Talk
+	1,  // 7: account.AccountService.Get:input_type -> account.GetRequest
+	3,  // 8: account.AccountService.List:input_type -> account.ListRequest
+	5,  // 9: account.AccountService.Disable:input_type -> account.DisableRequest
+	11, // 10: account.AccountService.GetTalks:input_type -> account.GetTalksRequest
+	2,  // 11: account.AccountService.Get:output_type -> account.GetResponse
+	4,  // 12: account.AccountService.List:output_type -> account.ListResponse
+	6,  // 13: account.AccountService.Disable:output_type -> account.DisableResponse
+	12, // 14: account.AccountService.GetTalks:output_type -> account.GetTalksResponse
+	11, // [11:15] is the sub-list for method output_type
+	7,  // [7:11] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_account_proto_init() }
@@ -454,13 +861,17 @@ func file_account_proto_init() {
 	if File_account_proto != nil {
 		return
 	}
+	file_account_proto_msgTypes[9].OneofWrappers = []any{
+		(*TalkItem_Post)(nil),
+		(*TalkItem_File)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_account_proto_rawDesc), len(file_account_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

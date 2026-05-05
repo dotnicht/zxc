@@ -8,6 +8,7 @@ service AccountService {
   rpc Get(GetRequest) returns (GetResponse);
   rpc List(ListRequest) returns (ListResponse);
   rpc Disable(DisableRequest) returns (DisableResponse);
+  rpc GetTalks(GetTalksRequest) returns (GetTalksResponse);
 }
 
 message Account {
@@ -42,4 +43,39 @@ message DisableRequest {
 
 message DisableResponse {
   Account account = 1;
+}
+
+message Post {
+  bytes id = 1;
+  bytes contact_id = 2;
+  string text = 3;
+  string created_at = 4;
+}
+
+message File {
+  bytes id = 1;
+  bytes contact_id = 2;
+  string name = 3;
+  string created_at = 4;
+}
+
+message TalkItem {
+  string created_at = 1;
+  oneof content {
+    Post post = 2;
+    File file = 3;
+  }
+}
+
+message Talk {
+  bytes id = 1;
+  repeated TalkItem items = 2;
+}
+
+message GetTalksRequest {
+  bytes profile_id = 1;
+}
+
+message GetTalksResponse {
+  repeated Talk talks = 1;
 }
