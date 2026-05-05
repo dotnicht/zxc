@@ -1,14 +1,15 @@
 package test
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
 
 func TestReleaseAdd(t *testing.T) {
+	t.Parallel()
 	ts := time.Now().UnixNano()
-	tenantID, _, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 0)
-	_ = tenantID
+	_, _, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 0)
 
 	out := parseKVOutput(t, runTenantClient(t, tenantName,
 		"release", "add",
@@ -31,8 +32,9 @@ func TestReleaseAdd(t *testing.T) {
 }
 
 func TestReleaseGet(t *testing.T) {
+	t.Parallel()
 	ts := time.Now().UnixNano()
-	_, _, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 1)
+	_, _, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 0)
 
 	created := parseKVOutput(t, runTenantClient(t, tenantName,
 		"release", "add", "--target", targetID, "--payload", payloadID,
@@ -49,9 +51,9 @@ func TestReleaseGet(t *testing.T) {
 }
 
 func TestReleaseDeploy(t *testing.T) {
+	t.Parallel()
 	ts := time.Now().UnixNano()
-	tenantID, _, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 2)
-	_ = tenantID
+	_, _, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 0)
 
 	releaseAdd := parseKVOutput(t, runTenantClient(t, tenantName,
 		"release", "add", "--target", targetID, "--payload", payloadID,
@@ -103,8 +105,9 @@ func TestReleaseDeploy(t *testing.T) {
 }
 
 func TestReleaseList(t *testing.T) {
+	t.Parallel()
 	ts := time.Now().UnixNano()
-	_, _, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 3)
+	_, _, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 0)
 
 	r1 := parseKVOutput(t, runTenantClient(t, tenantName,
 		"release", "add", "--target", targetID, "--payload", payloadID,
@@ -115,71 +118,8 @@ func TestReleaseList(t *testing.T) {
 
 	out := runTenantClient(t, tenantName, "release", "list")
 	for _, id := range []string{r1["id"], r2["id"]} {
-		found := false
-		for _, line := range splitLines(out) {
-			if containsField(line, id) {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !strings.Contains(out, id) {
 			t.Fatalf("release %s not found in list output:\n%s", id, out)
 		}
 	}
 }
-
-func splitLines(s string) []string {
-	var lines []string
-	for _, l := range splitNewlines(s) {
-		if l != "" {
-			lines = append(lines, l)
-		}
-	}
-	return lines
-}
-
-func splitNewlines(s string) []string {
-	var lines []string
-	cur := ""
-	for _, c := range s {
-		if c == '\n' {
-			lines = append(lines, cur)
-			cur = ""
-		} else {
-			cur += string(c)
-		}
-	}
-	if cur != "" {
-		lines = append(lines, cur)
-	}
-	return lines
-}
-
-func containsField(line, val string) bool {
-	for _, f := range splitFields(line) {
-		if f == val {
-			return true
-		}
-	}
-	return false
-}
-
-func splitFields(s string) []string {
-	var fields []string
-	cur := ""
-	for _, c := range s {
-		if c == ' ' || c == '\t' {
-			if cur != "" {
-				fields = append(fields, cur)
-				cur = ""
-			}
-		} else {
-			cur += string(c)
-		}
-	}
-	if cur != "" {
-		fields = append(fields, cur)
-	}
-	return fields
-}
-

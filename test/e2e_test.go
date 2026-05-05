@@ -33,6 +33,12 @@ var (
 	absCertsDir    string
 	absProjectRoot string
 	composeCmd     []string
+
+	// sharedTenantName and sharedProfileID are set once by TestMain after a full
+	// deploy cycle. Tests that need a deployed tenant with at least one profile
+	// use these instead of running their own deploy.
+	sharedTenantName string
+	sharedProfileID  string
 )
 
 func log(format string, args ...any) {
@@ -83,7 +89,7 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	log("integration environment is ready; starting tests")
+	log("integration environment is ready; building shared fixture")
 	tmpDir, err := os.MkdirTemp("", "zxc-client-e2e-*")
 	if err != nil {
 		fmt.Printf("create temp dir failed: %v\n", err)
@@ -115,6 +121,9 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
+	sharedTenantName, sharedProfileID = setupSharedFixture(tmpDir)
+
+	log("starting tests")
 	code := m.Run()
 	_ = os.RemoveAll(tmpDir)
 	os.Exit(code)
@@ -202,17 +211,34 @@ func clientConfigBaseDir() string {
 
 func runClient(t *testing.T, args ...string) string {
 	t.Helper()
-	cmd := exec.Command(clientBinPath, args...)
-	cmd.Dir = projectRoot
-	cmd.Env = append(os.Environ(),
+	env := append(os.Environ(),
 		"HOME="+clientCfgRoot,
 		"XDG_CONFIG_HOME="+filepath.Join(clientCfgRoot, ".config"),
 	)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("client %s failed:\n%s\n%v", strings.Join(args, " "), out, err)
+	// Retry on transient gRPC Unavailable errors (connection refused / EOF under load)
+	var (
+		out []byte
+		err error
+	)
+	for attempt := 0; attempt < 5; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(attempt*2) * time.Second)
+		}
+		cmd := exec.Command(clientBinPath, args...)
+		cmd.Dir = projectRoot
+		cmd.Env = env
+		out, err = cmd.CombinedOutput()
+		if err == nil {
+			return string(out)
+		}
+		s := string(out)
+		// Only retry transient transport errors, not server-side errors like AlreadyExists or too-many-clients
+		if !strings.Contains(s, "code = Unavailable") && !strings.Contains(s, "connection refused") {
+			break
+		}
 	}
-	return string(out)
+	t.Fatalf("client %s failed:\n%s\n%v", strings.Join(args, " "), out, err)
+	return ""
 }
 
 func runTenantClient(t *testing.T, name string, args ...string) string {
@@ -297,7 +323,143 @@ func setupTenantWithDeps(t *testing.T, ts int64, idx int) (tenantID, ownerID, ta
 	return
 }
 
+// setupSharedFixture creates one deployed tenant and waits for a profile, then
+// returns the tenant name and profile ID for use by all profile-dependent tests.
+func setupSharedFixture(tmpDir string) (tenantName, profileID string) {
+	ts := time.Now().UnixNano()
+	tenantName = fmt.Sprintf("shared%d", ts)
+	log("creating shared fixture tenant %q", tenantName)
+
+	// We need a *testing.T to call helpers; use a fake one via a helper test runner.
+	// Instead, inline the minimal setup directly.
+	addOut, err := runClientDirect("tenant", "add", "--name", tenantName)
+	if err != nil {
+		fmt.Printf("shared fixture: create tenant failed: %v\n%s\n", err, addOut)
+		os.Exit(1)
+	}
+
+	// Resolve owner
+	userOut, err := runClientDirect("--tenant", tenantName, "user", "list", "--size", "10")
+	if err != nil {
+		fmt.Printf("shared fixture: list users failed: %v\n%s\n", err, userOut)
+		os.Exit(1)
+	}
+	ownerID := firstDataIDRaw(string(userOut))
+
+	// Add target
+	keyPath := filepath.Join(absProjectRoot, "test/fixtures/id_ed25519")
+	targetOut, err := runClientDirect("--tenant", tenantName,
+		"target", "add", "--address", "zxc-target", "--user", "deploy", "--key", keyPath)
+	if err != nil {
+		fmt.Printf("shared fixture: add target failed: %v\n%s\n", err, targetOut)
+		os.Exit(1)
+	}
+	targetID := parseKVRaw(string(targetOut))["id"]
+
+	// Build and upload payload
+	scriptContent, _ := os.ReadFile(projectRoot + "/test/fixtures/script.sh")
+	var buf bytes.Buffer
+	w := zip.NewWriter(&buf)
+	sh, _ := w.Create("script.sh")
+	sh.Write(scriptContent)
+	conf, _ := w.Create("script.conf")
+	conf.Write([]byte("{ZXC_URL}\n{ZXC_AUTH}\n"))
+	w.Close()
+	zipBytes := buf.Bytes()
+
+	zipPath := filepath.Join(tmpDir, "shared_payload.zip")
+	if err := os.WriteFile(zipPath, zipBytes, 0o644); err != nil {
+		fmt.Printf("shared fixture: write zip: %v\n", err)
+		os.Exit(1)
+	}
+	payloadOut, err := runClientDirect("--tenant", tenantName,
+		"payload", "add", "--file", zipPath,
+		"--config", "script.conf", "--start", "bash ~/script.sh", "--stop", "true")
+	if err != nil {
+		fmt.Printf("shared fixture: add payload failed: %v\n%s\n", err, payloadOut)
+		os.Exit(1)
+	}
+	payloadID := parseKVRaw(string(payloadOut))["id"]
+
+	// Create and deploy release
+	releaseOut, err := runClientDirect("--tenant", tenantName,
+		"release", "add", "--target", targetID, "--payload", payloadID)
+	if err != nil {
+		fmt.Printf("shared fixture: add release failed: %v\n%s\n", err, releaseOut)
+		os.Exit(1)
+	}
+	releaseID := parseKVRaw(string(releaseOut))["id"]
+
+	if _, err := runClientDirect("--tenant", tenantName, "release", "deploy", "--id", releaseID); err != nil {
+		fmt.Printf("shared fixture: deploy release failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	log("shared fixture: tenant=%s owner=%s target=%s payload=%s release=%s", tenantName, ownerID, targetID, payloadID, releaseID)
+	log("shared fixture: waiting for profile in account DB (up to 90s)")
+
+	adb, err := sql.Open("postgres", accountDSN(tenantName))
+	if err != nil {
+		fmt.Printf("shared fixture: open account DB: %v\n", err)
+		os.Exit(1)
+	}
+	defer adb.Close()
+
+	deadline := time.Now().Add(90 * time.Second)
+	for time.Now().Before(deadline) {
+		_ = adb.QueryRow(`SELECT id::text FROM profiles WHERE deleted_at IS NULL LIMIT 1`).Scan(&profileID)
+		if profileID != "" {
+			log("shared fixture ready: tenant=%s profile=%s", tenantName, profileID)
+			return tenantName, profileID
+		}
+		time.Sleep(2 * time.Second)
+	}
+
+	fmt.Printf("shared fixture: no profile appeared within 90s\n")
+	os.Exit(1)
+	return
+}
+
+func runClientDirect(args ...string) ([]byte, error) {
+	cmd := exec.Command(clientBinPath, args...)
+	cmd.Dir = projectRoot
+	cmd.Env = append(os.Environ(),
+		"HOME="+clientCfgRoot,
+		"XDG_CONFIG_HOME="+filepath.Join(clientCfgRoot, ".config"),
+	)
+	return cmd.CombinedOutput()
+}
+
+func parseKVRaw(out string) map[string]string {
+	parsed := make(map[string]string)
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			continue
+		}
+		parsed[fields[0]] = strings.Join(fields[1:], " ")
+	}
+	return parsed
+}
+
+func firstDataIDRaw(out string) string {
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	if len(lines) < 2 {
+		return ""
+	}
+	fields := strings.Fields(lines[1])
+	if len(fields) == 0 {
+		return ""
+	}
+	return fields[0]
+}
+
 func TestE2E(t *testing.T) {
+	t.Parallel()
 	started := time.Now()
 	ts := time.Now().UnixNano()
 

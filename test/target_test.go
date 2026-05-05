@@ -9,6 +9,7 @@ import (
 )
 
 func TestTargetAdd(t *testing.T) {
+	t.Parallel()
 	ts := time.Now().UnixNano()
 	name := fmt.Sprintf("tgtadd%d", ts)
 	runClient(t, "tenant", "add", "--name", name)
@@ -32,6 +33,7 @@ func TestTargetAdd(t *testing.T) {
 }
 
 func TestTargetList(t *testing.T) {
+	t.Parallel()
 	ts := time.Now().UnixNano()
 	name := fmt.Sprintf("tgtlist%d", ts)
 	runClient(t, "tenant", "add", "--name", name)

@@ -7,6 +7,7 @@ import (
 )
 
 func TestUserList(t *testing.T) {
+	t.Parallel()
 	name := fmt.Sprintf("utest%d", time.Now().UnixNano())
 	runClient(t, "tenant", "add", "--name", name)
 

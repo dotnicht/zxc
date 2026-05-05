@@ -10,6 +10,7 @@ import (
 )
 
 func TestPayloadAdd(t *testing.T) {
+	t.Parallel()
 	ts := time.Now().UnixNano()
 	name := fmt.Sprintf("pldadd%d", ts)
 	runClient(t, "tenant", "add", "--name", name)
@@ -40,6 +41,7 @@ func TestPayloadAdd(t *testing.T) {
 }
 
 func TestPayloadList(t *testing.T) {
+	t.Parallel()
 	ts := time.Now().UnixNano()
 	name := fmt.Sprintf("pldlist%d", ts)
 	runClient(t, "tenant", "add", "--name", name)

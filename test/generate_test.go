@@ -7,12 +7,11 @@ import (
 )
 
 func TestGenerateJob(t *testing.T) {
+	t.Parallel()
 	name := fmt.Sprintf("gentest%d", time.Now().UnixNano())
 	log("creating tenant %q for generate job test", name)
 	runClient(t, "tenant", "add", "--name", name)
 
-	// The generate workflow starts immediately on tenant creation but needs at least
-	// one profile to produce posts. Insert one directly.
 	adb := tenantAccountDB(t, name)
 	var profileID string
 	if err := adb.QueryRow(
@@ -22,7 +21,6 @@ func TestGenerateJob(t *testing.T) {
 	}
 	log("inserted profile %s", profileID)
 
-	// Wait for the generate job to create a post for this profile
 	deadline := time.Now().Add(120 * time.Second)
 	var postID, talkID, contactID string
 	for time.Now().Before(deadline) {
@@ -49,7 +47,6 @@ func TestGenerateJob(t *testing.T) {
 	}
 	log("generate job created post=%s talk=%s contact=%s", postID, talkID, contactID)
 
-	// Verify the talk and contact exist
 	var talkProfileID string
 	if err := adb.QueryRow(`SELECT profile_id::text FROM talks WHERE id = $1`, talkID).Scan(&talkProfileID); err != nil {
 		t.Fatalf("talk not found: %v", err)

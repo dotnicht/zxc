@@ -8,6 +8,7 @@ import (
 )
 
 func TestTenantCreate(t *testing.T) {
+	t.Parallel()
 	name := fmt.Sprintf("ttest%d", time.Now().UnixNano())
 	out := parseKVOutput(t, runClient(t, "tenant", "add", "--name", name))
 	if out["id"] == "" {
@@ -28,6 +29,7 @@ func TestTenantCreate(t *testing.T) {
 }
 
 func TestTenantList(t *testing.T) {
+	t.Parallel()
 	ts := time.Now().UnixNano()
 	n1 := fmt.Sprintf("tlist%da", ts)
 	n2 := fmt.Sprintf("tlist%db", ts)
@@ -44,6 +46,7 @@ func TestTenantList(t *testing.T) {
 }
 
 func TestTenantGet(t *testing.T) {
+	t.Parallel()
 	name := fmt.Sprintf("tget%d", time.Now().UnixNano())
 	created := parseKVOutput(t, runClient(t, "tenant", "add", "--name", name))
 	id := created["id"]

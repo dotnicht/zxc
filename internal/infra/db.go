@@ -52,7 +52,7 @@ func WorkflowBackend(dsn string) backend.Backend {
 		wfpostgres.WithApplyMigrations(true),
 		wfpostgres.WithPostgresOptions(func(db *sql.DB) {
 			db.SetMaxIdleConns(1)
-			db.SetMaxOpenConns(3)
+			db.SetMaxOpenConns(1)
 			db.SetConnMaxLifetime(time.Hour)
 		}),
 	)
@@ -84,7 +84,7 @@ func NewConnection(dsn string) (*gorm.DB, error) {
 	}
 
 	sqlDB.SetMaxIdleConns(1)
-	sqlDB.SetMaxOpenConns(3)
+	sqlDB.SetMaxOpenConns(1)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	connCache[dsn] = db
