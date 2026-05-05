@@ -462,11 +462,11 @@ func verifyAccountFromRequest(t *testing.T, name, id string) {
 }
 
 func deployDSN(name string) string {
-	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s_deploy?sslmode=disable", sanitizeTenantDBName(name))
+	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/zxc?sslmode=disable&search_path=%s_deploy", sanitizeTenantDBName(name))
 }
 
 func accountDSN(name string) string {
-	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s_account?sslmode=disable", sanitizeTenantDBName(name))
+	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/zxc?sslmode=disable&search_path=%s_account", sanitizeTenantDBName(name))
 }
 
 func sanitizeTenantDBName(name string) string {

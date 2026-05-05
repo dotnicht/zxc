@@ -59,6 +59,10 @@ func NewConnection(dsn string) (*gorm.DB, error) {
 	return db, nil
 }
 
+func EnsureSchema(db *gorm.DB, schema string) error {
+	return db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %q", schema)).Error
+}
+
 func RunRootMigrations(db *gorm.DB) error {
 	slog.Info("Running root database migrations")
 	if err := db.AutoMigrate(&models.Tenant{}, &models.User{}); err != nil {

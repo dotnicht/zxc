@@ -106,33 +106,17 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 	}
 
 	dbName := sanitizeDatabaseName(req.Name)
-	for _, entry := range []struct {
-		customDSN string
-		suffix    string
-	}{
-		{req.Database, "_main"},
-		{req.Deploy, "_deploy"},
-		{req.Account, "_account"},
-	} {
-		if entry.customDSN != "" {
-			continue
-		}
-		if err := s.createTenantDatabase(dbName + entry.suffix); err != nil {
-			s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
-			return nil, status.Errorf(codes.Internal, "failed to create %s database: %v", entry.suffix, err)
-		}
-	}
-
 	for _, m := range []struct {
-		dsn   string
-		fn    func(*gorm.DB) error
-		label string
+		dsn    string
+		schema string
+		fn     func(*gorm.DB) error
+		label  string
 	}{
-		{mainDSN, infra.RunMainMigrations, "main"},
-		{deployDSN, infra.RunDeployMigrations, "deploy"},
-		{accountDSN, infra.RunAccountMigrations, "account"},
+		{mainDSN, dbName + "_main", infra.RunMainMigrations, "main"},
+		{deployDSN, dbName + "_deploy", infra.RunDeployMigrations, "deploy"},
+		{accountDSN, dbName + "_account", infra.RunAccountMigrations, "account"},
 	} {
-		if err := s.runMigrationsOn(m.dsn, m.fn); err != nil {
+		if err := s.runMigrationsOn(m.dsn, m.schema, m.fn); err != nil {
 			s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
 			return nil, status.Errorf(codes.Internal, "failed to run %s migrations: %v", m.label, err)
 		}
@@ -190,57 +174,35 @@ func (s *Tenant) List(ctx context.Context, req *tenant.ListRequest) (*tenant.Lis
 }
 
 func (s *Tenant) mainDSN(name string) string {
-	return s.dsnWithSuffix(name, "_main")
+	return s.dsnWithSchema(sanitizeDatabaseName(name) + "_main")
 }
 
 func (s *Tenant) deployDSN(name string) string {
-	return s.dsnWithSuffix(name, "_deploy")
+	return s.dsnWithSchema(sanitizeDatabaseName(name) + "_deploy")
 }
 
 func (s *Tenant) accountDSN(name string) string {
-	return s.dsnWithSuffix(name, "_account")
+	return s.dsnWithSchema(sanitizeDatabaseName(name) + "_account")
 }
 
-func (s *Tenant) dsnWithSuffix(name, suffix string) string {
+func (s *Tenant) dsnWithSchema(schema string) string {
 	u, err := url.Parse(s.cfg.Database)
 	if err != nil {
 		return s.cfg.Database
 	}
-	u.Path = "/" + sanitizeDatabaseName(name) + suffix
+	q := u.Query()
+	q.Set("search_path", schema)
+	u.RawQuery = q.Encode()
 	return u.String()
 }
 
-func (s *Tenant) adminDSN() string {
-	u, err := url.Parse(s.cfg.Database)
-	if err != nil {
-		return s.cfg.Database
-	}
-	u.Path = "/postgres"
-	return u.String()
-}
-
-func (s *Tenant) createTenantDatabase(dbName string) error {
-	sqlDB, err := gosql.Open("postgres", s.adminDSN())
-	if err != nil {
-		return fmt.Errorf("failed to connect to postgres: %w", err)
-	}
-	defer sqlDB.Close()
-
-	name := sanitizeDatabaseName(dbName)
-	_, err = sqlDB.Exec(fmt.Sprintf(`CREATE DATABASE "%s"`, name))
-	if err != nil {
-		if strings.Contains(err.Error(), "already exists") {
-			return fmt.Errorf("database %s already exists", name)
-		}
-		return fmt.Errorf("failed to create database: %w", err)
-	}
-	return nil
-}
-
-func (s *Tenant) runMigrationsOn(dsn string, migrate func(*gorm.DB) error) error {
+func (s *Tenant) runMigrationsOn(dsn, schema string, migrate func(*gorm.DB) error) error {
 	db, err := infra.NewConnection(dsn)
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
+	}
+	if err := infra.EnsureSchema(db, schema); err != nil {
+		return fmt.Errorf("failed to create schema: %w", err)
 	}
 	return migrate(db)
 }
