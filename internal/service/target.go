@@ -10,17 +10,17 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"zxc/api/target"
+	"zxc/internal/infra"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
 )
 
 type Target struct {
 	target.UnimplementedTargetServiceServer
-	wfclient *client.Client
 }
 
-func NewTarget(wfclient *client.Client) *Target {
-	return &Target{wfclient: wfclient}
+func NewTarget() *Target {
+	return &Target{}
 }
 
 func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target.CreateResponse, error) {
@@ -42,7 +42,7 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 	if err := db.Create(t).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create target: %v", err)
 	}
-	if err := s.enqueueProbe(ctx, tenant.ID, t.ID); err != nil {
+	if err := s.enqueueProbe(ctx, tenant, t.ID); err != nil {
 		cleanupErr := db.Unscoped().Delete(&models.Target{}, "id = ?", t.ID).Error
 		return nil, status.Errorf(codes.Internal, "failed to persist target creation: %v", errors.Join(err, cleanupErr))
 	}
@@ -101,7 +101,7 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 	if err := db.First(&updated, "id = ?", id).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated target: %v", err)
 	}
-	if err := s.enqueueProbe(ctx, tenant.ID, updated.ID); err != nil {
+	if err := s.enqueueProbe(ctx, tenant, updated.ID); err != nil {
 		revertErr := db.Model(&models.Target{}).Where("id = ?", id).Updates(map[string]any{
 			"address":      previous.Address,
 			"user":         previous.User,
@@ -190,9 +190,10 @@ func targetToProto(t *models.Target) *target.Target {
 	}
 }
 
-func (s *Target) enqueueProbe(ctx context.Context, tenantID uuid.UUID, targetID uuid.UUID) error {
-	_, err := s.wfclient.CreateWorkflowInstance(ctx, client.WorkflowInstanceOptions{
+func (s *Target) enqueueProbe(ctx context.Context, t *models.Tenant, targetID uuid.UUID) error {
+	wfc := client.New(infra.WorkflowBackend(t.Jobs))
+	_, err := wfc.CreateWorkflowInstance(ctx, client.WorkflowInstanceOptions{
 		InstanceID: "probe:" + targetID.String(),
-	}, jobs.Probe, jobs.ProbeArgs{TenantID: tenantID, TargetID: targetID})
+	}, jobs.Probe, jobs.ProbeArgs{TenantID: t.ID, TargetID: targetID})
 	return err
 }

@@ -15,6 +15,7 @@ type Tenant struct {
 	Main    string         `gorm:"type:text"`
 	Deploy  string         `gorm:"type:text"`
 	Account string         `gorm:"type:text"`
+	Jobs    string         `gorm:"type:text"`
 	Storage         string         `gorm:"type:text"`
 	CreatedAt       time.Time      `gorm:"not null;default:now()"`
 	UpdatedAt       time.Time      `gorm:"not null;default:now()"`

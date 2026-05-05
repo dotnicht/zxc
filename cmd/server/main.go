@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cschleiden/go-workflows/client"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -70,14 +69,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	wfbackend := infra.NewWorkflowBackend(cfg.Database, false)
-	wfclient := client.New(wfbackend)
 	user := service.NewUser()
 	account := service.NewAccount()
 	session := service.NewSession()
 	tenant := service.NewTenant(database, cfg, &root)
-	release := service.NewRelease(wfclient)
-	target := service.NewTarget(wfclient)
+	release := service.NewRelease()
+	target := service.NewTarget()
 	payload := service.NewPayload()
 
 	grpcServer := grpc.NewServer(

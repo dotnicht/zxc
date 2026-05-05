@@ -11,17 +11,17 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"zxc/api/release"
+	"zxc/internal/infra"
 	"zxc/internal/jobs"
 	"zxc/internal/models"
 )
 
 type Release struct {
 	release.UnimplementedReleaseServiceServer
-	wfclient *client.Client
 }
 
-func NewRelease(wfclient *client.Client) *Release {
-	return &Release{wfclient: wfclient}
+func NewRelease() *Release {
+	return &Release{}
 }
 
 func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*release.CreateResponse, error) {
@@ -116,7 +116,8 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 		return nil, status.Error(codes.NotFound, "release not found")
 	}
 
-	if _, err := s.wfclient.CreateWorkflowInstance(ctx, client.WorkflowInstanceOptions{
+	wfc := client.New(infra.WorkflowBackend(tenant.Jobs))
+	if _, err := wfc.CreateWorkflowInstance(ctx, client.WorkflowInstanceOptions{
 		InstanceID: "deploy:" + id.String(),
 	}, jobs.Deploy, jobs.DeployArgs{
 		TenantID:    tenant.ID,

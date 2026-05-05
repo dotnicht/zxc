@@ -18,13 +18,12 @@ import (
 )
 
 type Handler struct {
-	secret   []byte
-	rootDB   *gorm.DB
-	wfclient *client.Client
+	secret []byte
+	rootDB *gorm.DB
 }
 
-func NewHandler(secret []byte, rootDB *gorm.DB, wfclient *client.Client) *Handler {
-	return &Handler{secret: secret, rootDB: rootDB, wfclient: wfclient}
+func NewHandler(secret []byte, rootDB *gorm.DB) *Handler {
+	return &Handler{secret: secret, rootDB: rootDB}
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +99,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := h.wfclient.CreateWorkflowInstance(r.Context(), client.WorkflowInstanceOptions{
+	wfc := client.New(infra.WorkflowBackend(tenant.Jobs))
+	if _, err := wfc.CreateWorkflowInstance(r.Context(), client.WorkflowInstanceOptions{
 		InstanceID: "account:" + record.ID.String(),
 	}, jobs.Account, jobs.AccountArgs{
 		TenantID:  tenantID,

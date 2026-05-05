@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
 	_ "github.com/lib/pq"
+	wfclient "github.com/cschleiden/go-workflows/client"
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -18,13 +20,14 @@ import (
 	"zxc/api/tenant"
 	"zxc/internal/config"
 	"zxc/internal/infra"
+	"zxc/internal/jobs"
 	"zxc/internal/models"
 )
 
 type Tenant struct {
 	tenant.UnimplementedTenantServiceServer
-	db   *gorm.DB
-	cfg  *config.Config
+	db  *gorm.DB
+	cfg *config.Config
 	root *models.User
 }
 
@@ -66,6 +69,7 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 	mainDSN := s.mainDSN(req.Name)
 	deployDSN := s.deployDSN(req.Name)
 	accountDSN := s.accountDSN(req.Name)
+	jobsDSN := s.jobsDSN(req.Name)
 
 	if req.Database != "" {
 		mainDSN = req.Database
@@ -76,26 +80,30 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 	if req.Account != "" {
 		accountDSN = req.Account
 	}
+	if req.Jobs != "" {
+		jobsDSN = req.Jobs
+	}
 
 	storageStr := req.Storage
 	if storageStr == "" && s.cfg.Storage != "" {
-		client, bucket, err := infra.StorageClientFromConnectionString(s.cfg.Storage)
+		sc, bucket, err := infra.StorageClientFromConnectionString(s.cfg.Storage)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to parse storage config: %v", err)
 		}
-		if err := client.CreateFolder(ctx, bucket, req.Name); err != nil {
+		if err := sc.CreateFolder(ctx, bucket, req.Name); err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to create tenant storage folder: %v", err)
 		}
 		storageStr = strings.TrimRight(s.cfg.Storage, "/") + "/" + req.Name
 	}
 
 	t := &models.Tenant{
-		Name:            req.Name,
+		Name:    req.Name,
 		Main:    mainDSN,
 		Deploy:  deployDSN,
 		Account: accountDSN,
-		Storage:         storageStr,
-		OwnerID:         s.root.ID,
+		Jobs:    jobsDSN,
+		Storage: storageStr,
+		OwnerID: s.root.ID,
 	}
 
 	if err := s.db.Create(t).Error; err != nil {
@@ -106,15 +114,28 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 	}
 
 	dbName := sanitizeDatabaseName(req.Name)
+	if req.Database == "" && req.Deploy == "" && req.Account == "" {
+		if err := s.createTenantDatabase(dbName); err != nil {
+			s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
+			return nil, status.Errorf(codes.Internal, "failed to create tenant database: %v", err)
+		}
+	}
+	if req.Jobs == "" {
+		if err := s.createTenantDatabase(dbName + "_jobs"); err != nil {
+			s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
+			return nil, status.Errorf(codes.Internal, "failed to create tenant jobs database: %v", err)
+		}
+	}
+
 	for _, m := range []struct {
 		dsn    string
 		schema string
 		fn     func(*gorm.DB) error
 		label  string
 	}{
-		{mainDSN, dbName + "_main", infra.RunMainMigrations, "main"},
-		{deployDSN, dbName + "_deploy", infra.RunDeployMigrations, "deploy"},
-		{accountDSN, dbName + "_account", infra.RunAccountMigrations, "account"},
+		{mainDSN, "main", infra.RunMainMigrations, "main"},
+		{deployDSN, "deploy", infra.RunDeployMigrations, "deploy"},
+		{accountDSN, "account", infra.RunAccountMigrations, "account"},
 	} {
 		if err := s.runMigrationsOn(m.dsn, m.schema, m.fn); err != nil {
 			s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
@@ -122,10 +143,19 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 		}
 	}
 
+	// Initialise the jobs backend (runs migrations on first call, then cached).
+	infra.WorkflowBackend(jobsDSN)
+
 	if err := s.seedTenantOwner(mainDSN, s.root); err != nil {
 		s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
 		return nil, status.Errorf(codes.Internal, "failed to seed tenant owner: %v", err)
 	}
+
+	wfc := wfclient.New(infra.WorkflowBackend(jobsDSN))
+	_, _ = wfc.CreateWorkflowInstance(ctx,
+		wfclient.WorkflowInstanceOptions{InstanceID: "generate:" + t.ID.String()},
+		jobs.Generate, jobs.GenerateArgs{TenantID: t.ID},
+	)
 
 	return &tenant.CreateResponse{Tenant: s.modelToProto(t)}, nil
 }
@@ -174,26 +204,64 @@ func (s *Tenant) List(ctx context.Context, req *tenant.ListRequest) (*tenant.Lis
 }
 
 func (s *Tenant) mainDSN(name string) string {
-	return s.dsnWithSchema(sanitizeDatabaseName(name) + "_main")
+	return s.dsnWithSchema(name, "main")
 }
 
 func (s *Tenant) deployDSN(name string) string {
-	return s.dsnWithSchema(sanitizeDatabaseName(name) + "_deploy")
+	return s.dsnWithSchema(name, "deploy")
 }
 
 func (s *Tenant) accountDSN(name string) string {
-	return s.dsnWithSchema(sanitizeDatabaseName(name) + "_account")
+	return s.dsnWithSchema(name, "account")
 }
 
-func (s *Tenant) dsnWithSchema(schema string) string {
+func (s *Tenant) jobsDSN(name string) string {
 	u, err := url.Parse(s.cfg.Database)
 	if err != nil {
 		return s.cfg.Database
 	}
+	u.Path = "/" + sanitizeDatabaseName(name) + "_jobs"
+	u.RawQuery = ""
+	return u.String()
+}
+
+func (s *Tenant) dsnWithSchema(tenantName, schema string) string {
+	u, err := url.Parse(s.cfg.Database)
+	if err != nil {
+		return s.cfg.Database
+	}
+	u.Path = "/" + sanitizeDatabaseName(tenantName)
 	q := u.Query()
 	q.Set("search_path", schema)
 	u.RawQuery = q.Encode()
 	return u.String()
+}
+
+func (s *Tenant) adminDSN() string {
+	u, err := url.Parse(s.cfg.Database)
+	if err != nil {
+		return s.cfg.Database
+	}
+	u.Path = "/postgres"
+	return u.String()
+}
+
+func (s *Tenant) createTenantDatabase(dbName string) error {
+	sqlDB, err := gosql.Open("postgres", s.adminDSN())
+	if err != nil {
+		return fmt.Errorf("failed to connect to postgres: %w", err)
+	}
+	defer sqlDB.Close()
+
+	name := sanitizeDatabaseName(dbName)
+	_, err = sqlDB.Exec(fmt.Sprintf(`CREATE DATABASE "%s"`, name))
+	if err != nil {
+		if strings.Contains(err.Error(), "already exists") {
+			return fmt.Errorf("database %s already exists", name)
+		}
+		return fmt.Errorf("failed to create database: %w", err)
+	}
+	return nil
 }
 
 func (s *Tenant) runMigrationsOn(dsn, schema string, migrate func(*gorm.DB) error) error {
@@ -225,6 +293,7 @@ func (s *Tenant) modelToProto(m *models.Tenant) *tenant.Tenant {
 		Database:  m.Main,
 		Deploy:    m.Deploy,
 		Account:   m.Account,
+		Jobs:      m.Jobs,
 		Storage:   m.Storage,
 		OwnerId:   m.OwnerID[:],
 		CreatedAt: m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),

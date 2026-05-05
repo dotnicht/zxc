@@ -32,6 +32,7 @@ type Tenant struct {
 	OwnerId       []byte                 `protobuf:"bytes,7,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
 	Deploy        string                 `protobuf:"bytes,8,opt,name=deploy,proto3" json:"deploy,omitempty"`
 	Account       string                 `protobuf:"bytes,9,opt,name=account,proto3" json:"account,omitempty"`
+	Jobs          string                 `protobuf:"bytes,10,opt,name=jobs,proto3" json:"jobs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -129,6 +130,13 @@ func (x *Tenant) GetAccount() string {
 	return ""
 }
 
+func (x *Tenant) GetJobs() string {
+	if x != nil {
+		return x.Jobs
+	}
+	return ""
+}
+
 type CreateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -136,6 +144,7 @@ type CreateRequest struct {
 	Storage       string                 `protobuf:"bytes,3,opt,name=storage,proto3" json:"storage,omitempty"`
 	Deploy        string                 `protobuf:"bytes,4,opt,name=deploy,proto3" json:"deploy,omitempty"`
 	Account       string                 `protobuf:"bytes,5,opt,name=account,proto3" json:"account,omitempty"`
+	Jobs          string                 `protobuf:"bytes,6,opt,name=jobs,proto3" json:"jobs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -201,6 +210,13 @@ func (x *CreateRequest) GetDeploy() string {
 func (x *CreateRequest) GetAccount() string {
 	if x != nil {
 		return x.Account
+	}
+	return ""
+}
+
+func (x *CreateRequest) GetJobs() string {
+	if x != nil {
+		return x.Jobs
 	}
 	return ""
 }
@@ -445,7 +461,7 @@ var File_tenant_proto protoreflect.FileDescriptor
 
 const file_tenant_proto_rawDesc = "" +
 	"\n" +
-	"\ftenant.proto\x12\x06tenant\"\xed\x01\n" +
+	"\ftenant.proto\x12\x06tenant\"\x81\x02\n" +
 	"\x06Tenant\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
@@ -457,13 +473,16 @@ const file_tenant_proto_rawDesc = "" +
 	"updated_at\x18\x06 \x01(\tR\tupdatedAt\x12\x19\n" +
 	"\bowner_id\x18\a \x01(\fR\aownerId\x12\x16\n" +
 	"\x06deploy\x18\b \x01(\tR\x06deploy\x12\x18\n" +
-	"\aaccount\x18\t \x01(\tR\aaccount\"\x8b\x01\n" +
+	"\aaccount\x18\t \x01(\tR\aaccount\x12\x12\n" +
+	"\x04jobs\x18\n" +
+	" \x01(\tR\x04jobs\"\x9f\x01\n" +
 	"\rCreateRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
 	"\bdatabase\x18\x02 \x01(\tR\bdatabase\x12\x18\n" +
 	"\astorage\x18\x03 \x01(\tR\astorage\x12\x16\n" +
 	"\x06deploy\x18\x04 \x01(\tR\x06deploy\x12\x18\n" +
-	"\aaccount\x18\x05 \x01(\tR\aaccount\"8\n" +
+	"\aaccount\x18\x05 \x01(\tR\aaccount\x12\x12\n" +
+	"\x04jobs\x18\x06 \x01(\tR\x04jobs\"8\n" +
 	"\x0eCreateResponse\x12&\n" +
 	"\x06tenant\x18\x01 \x01(\v2\x0e.tenant.TenantR\x06tenant\"\x1c\n" +
 	"\n" +

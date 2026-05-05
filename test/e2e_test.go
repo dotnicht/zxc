@@ -54,7 +54,7 @@ func TestMain(m *testing.M) {
 	}
 
 	log("stopping any previous docker-compose stack")
-	runCompose(projectRoot, "down", "-v", "--remove-orphans")
+	runCompose(projectRoot, "down", "--remove-orphans")
 
 	log("starting docker-compose stack")
 	if out, err := runCompose(projectRoot, "up", "-d", "--build"); err != nil {
@@ -116,7 +116,6 @@ func TestMain(m *testing.M) {
 	}
 
 	code := m.Run()
-	runCompose(projectRoot, "down", "-v", "--remove-orphans")
 	_ = os.RemoveAll(tmpDir)
 	os.Exit(code)
 }
@@ -462,11 +461,11 @@ func verifyAccountFromRequest(t *testing.T, name, id string) {
 }
 
 func deployDSN(name string) string {
-	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/zxc?sslmode=disable&search_path=%s_deploy", sanitizeTenantDBName(name))
+	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s?sslmode=disable&search_path=deploy", sanitizeTenantDBName(name))
 }
 
 func accountDSN(name string) string {
-	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/zxc?sslmode=disable&search_path=%s_account", sanitizeTenantDBName(name))
+	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s?sslmode=disable&search_path=account", sanitizeTenantDBName(name))
 }
 
 func sanitizeTenantDBName(name string) string {

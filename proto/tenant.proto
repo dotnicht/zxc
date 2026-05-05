@@ -20,6 +20,7 @@ message Tenant {
   bytes owner_id = 7;
   string deploy = 8;
   string account = 9;
+  string jobs = 10;
 }
 
 message CreateRequest {
@@ -28,6 +29,7 @@ message CreateRequest {
   string storage = 3;
   string deploy = 4;
   string account = 5;
+  string jobs = 6;
 }
 
 message CreateResponse {

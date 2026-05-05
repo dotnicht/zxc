@@ -1,10 +1,12 @@
 package infra
 
 import (
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/cschleiden/go-workflows/backend"
@@ -15,7 +17,22 @@ import (
 	"zxc/internal/models"
 )
 
-func NewWorkflowBackend(dsn string, migrate bool) backend.Backend {
+var (
+	connCache   = map[string]*gorm.DB{}
+	connCacheMu sync.Mutex
+
+	wfBackendCache   = map[string]backend.Backend{}
+	wfBackendCacheMu sync.Mutex
+)
+
+// WorkflowBackend returns a cached workflow backend for the given DSN.
+// On first call it runs migrations; subsequent calls reuse the same instance.
+func WorkflowBackend(dsn string) backend.Backend {
+	wfBackendCacheMu.Lock()
+	defer wfBackendCacheMu.Unlock()
+	if b, ok := wfBackendCache[dsn]; ok {
+		return b
+	}
 	u, err := url.Parse(dsn)
 	if err != nil {
 		panic(fmt.Sprintf("parse dsn: %v", err))
@@ -31,12 +48,26 @@ func NewWorkflowBackend(dsn string, migrate bool) backend.Backend {
 	if len(dbname) > 0 && dbname[0] == '/' {
 		dbname = dbname[1:]
 	}
-	return wfpostgres.NewPostgresBackend(host, port, u.User.Username(), password, dbname,
-		wfpostgres.WithApplyMigrations(migrate),
+	b := wfpostgres.NewPostgresBackend(host, port, u.User.Username(), password, dbname,
+		wfpostgres.WithApplyMigrations(true),
+		wfpostgres.WithPostgresOptions(func(db *sql.DB) {
+			db.SetMaxIdleConns(1)
+			db.SetMaxOpenConns(3)
+			db.SetConnMaxLifetime(time.Hour)
+		}),
 	)
+	wfBackendCache[dsn] = b
+	return b
 }
 
 func NewConnection(dsn string) (*gorm.DB, error) {
+	connCacheMu.Lock()
+	defer connCacheMu.Unlock()
+
+	if db, ok := connCache[dsn]; ok {
+		return db, nil
+	}
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 		NowFunc: func() time.Time {
@@ -52,10 +83,11 @@ func NewConnection(dsn string) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to get database instance: %w", err)
 	}
 
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetMaxIdleConns(1)
+	sqlDB.SetMaxOpenConns(3)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
+	connCache[dsn] = db
 	return db, nil
 }
 
