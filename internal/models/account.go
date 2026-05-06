@@ -15,6 +15,7 @@ const (
 
 type Profile struct {
 	ID        uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	SystemID  uuid.UUID      `gorm:"type:uuid"`
 	Name      string         `gorm:"type:varchar(255);not null;uniqueIndex"`
 	Status    string         `gorm:"type:varchar(20);not null;default:'unknown'"`
 	CreatedAt time.Time      `gorm:"not null;default:now()"`

@@ -99,7 +99,13 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wfc := client.New(infra.WorkflowBackend(tenant.Jobs))
+	wfb, err := infra.WorkflowBackend(tenant.Jobs)
+	if err != nil {
+		cleanupErr := deployDB.Unscoped().Delete(&models.Request{}, "id = ?", record.ID).Error
+		http.Error(w, errors.Join(err, cleanupErr).Error(), http.StatusInternalServerError)
+		return
+	}
+	wfc := client.New(wfb)
 	if _, err := wfc.CreateWorkflowInstance(r.Context(), client.WorkflowInstanceOptions{
 		InstanceID: "account:" + record.ID.String(),
 	}, jobs.Account, jobs.AccountArgs{

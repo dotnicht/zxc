@@ -27,15 +27,16 @@ var (
 
 // WorkflowBackend returns a cached workflow backend for the given connection string.
 // On first call it runs migrations; subsequent calls reuse the same instance.
-func WorkflowBackend(conn string) backend.Backend {
+// Returns an error if the connection string is invalid or the backend cannot be created.
+func WorkflowBackend(conn string) (b backend.Backend, err error) {
 	wfBackendCacheMu.Lock()
 	defer wfBackendCacheMu.Unlock()
-	if b, ok := wfBackendCache[conn]; ok {
-		return b
+	if cached, ok := wfBackendCache[conn]; ok {
+		return cached, nil
 	}
-	u, err := url.Parse(conn)
-	if err != nil {
-		panic(fmt.Sprintf("parse conn: %v", err))
+	u, parseErr := url.Parse(conn)
+	if parseErr != nil {
+		return nil, fmt.Errorf("parse conn: %w", parseErr)
 	}
 	host := u.Hostname()
 	portStr := u.Port()
@@ -48,7 +49,12 @@ func WorkflowBackend(conn string) backend.Backend {
 	if len(dbname) > 0 && dbname[0] == '/' {
 		dbname = dbname[1:]
 	}
-	b := wfpostgres.NewPostgresBackend(host, port, u.User.Username(), password, dbname,
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("create backend: %v", r)
+		}
+	}()
+	b = wfpostgres.NewPostgresBackend(host, port, u.User.Username(), password, dbname,
 		wfpostgres.WithApplyMigrations(true),
 		wfpostgres.WithPostgresOptions(func(db *sql.DB) {
 			db.SetMaxIdleConns(1)
@@ -57,7 +63,7 @@ func WorkflowBackend(conn string) backend.Backend {
 		}),
 	)
 	wfBackendCache[conn] = b
-	return b
+	return b, nil
 }
 
 func NewConnection(conn string) (*gorm.DB, error) {
@@ -106,7 +112,7 @@ func RunRootMigrations(db *gorm.DB) error {
 
 func RunMainMigrations(db *gorm.DB) error {
 	slog.Info("Running main database migrations")
-	if err := db.AutoMigrate(&models.User{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.System{}); err != nil {
 		return fmt.Errorf("failed to run main migrations: %w", err)
 	}
 	slog.Info("Main migrations completed")

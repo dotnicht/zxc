@@ -14,6 +14,7 @@ PROTO_FILES := \
 	proto/account.proto \
 	proto/session.proto \
 	proto/user.proto \
+	proto/system.proto \
 	proto/tenant.proto \
 	proto/release.proto \
 	proto/target.proto \

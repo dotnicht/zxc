@@ -114,7 +114,7 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 	}
 
 	dbName := sanitizeDatabaseName(req.Name)
-	if req.Database == "" && req.Deploy == "" && req.Account == "" {
+	if req.Database == "" {
 		if err := s.createDatabase(dbName); err != nil {
 			s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
 			return nil, status.Errorf(codes.Internal, "failed to create tenant database: %v", err)
@@ -144,14 +144,18 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 	}
 
 	// Initialise the jobs backend (runs migrations on first call, then cached).
-	infra.WorkflowBackend(jobs_)
+	wfb, err := infra.WorkflowBackend(jobs_)
+	if err != nil {
+		s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
+		return nil, status.Errorf(codes.Internal, "failed to initialise jobs backend: %v", err)
+	}
 
 	if err := s.seedOwner(main, s.root); err != nil {
 		s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
 		return nil, status.Errorf(codes.Internal, "failed to seed tenant owner: %v", err)
 	}
 
-	wfc := wfclient.New(infra.WorkflowBackend(jobs_))
+	wfc := wfclient.New(wfb)
 	_, _ = wfc.CreateWorkflowInstance(ctx,
 		wfclient.WorkflowInstanceOptions{InstanceID: "generate:" + t.ID.String()},
 		jobs.Generate, jobs.GenerateArgs{TenantID: t.ID},

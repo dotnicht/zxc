@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package system;
+
+option go_package = "zxc/api/system;system";
+
+service SystemService {
+  rpc Create(CreateRequest) returns (CreateResponse);
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc Update(UpdateRequest) returns (UpdateResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc List(ListRequest) returns (ListResponse);
+}
+
+message System {
+  bytes id = 1;
+  string name = 2;
+  string created_at = 3;
+  string updated_at = 4;
+}
+
+message CreateRequest {
+  string name = 1;
+}
+
+message CreateResponse {
+  System system = 1;
+}
+
+message GetRequest {
+  bytes id = 1;
+}
+
+message GetResponse {
+  System system = 1;
+}
+
+message UpdateRequest {
+  bytes id = 1;
+  string name = 2;
+}
+
+message UpdateResponse {
+  System system = 1;
+}
+
+message DeleteRequest {
+  bytes id = 1;
+}
+
+message DeleteResponse {
+  bool success = 1;
+}
+
+message ListRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message ListResponse {
+  repeated System systems = 1;
+  int32 total = 2;
+}

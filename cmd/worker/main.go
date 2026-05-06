@@ -63,7 +63,11 @@ func main() {
 		if _, ok := running[jobs_]; ok {
 			return
 		}
-		backend := infra.WorkflowBackend(jobs_)
+		backend, err := infra.WorkflowBackend(jobs_)
+		if err != nil {
+			slog.Error("workflow backend", "jobs", jobs_, "error", err)
+			return
+		}
 		w := worker.New(backend, nil)
 		if err := w.RegisterWorkflow(jobs.Deploy); err != nil {
 			slog.Error("register deploy workflow", "error", err)

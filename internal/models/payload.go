@@ -10,6 +10,7 @@ import (
 type Payload struct {
 	ID        uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	Path      string         `gorm:"type:text;not null"`
+	SystemID  uuid.UUID      `gorm:"type:uuid"`
 	OwnerID   uuid.UUID      `gorm:"type:uuid;not null"`
 	Config    string         `gorm:"type:text;not null;default:''"`
 	Start     string         `gorm:"type:text;not null;default:''"`

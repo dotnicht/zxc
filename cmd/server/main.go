@@ -17,6 +17,7 @@ import (
 	payloadapi "zxc/api/payload"
 	releaseapi "zxc/api/release"
 	sessionapi "zxc/api/session"
+	systemapi "zxc/api/system"
 	targetapi "zxc/api/target"
 	tenantapi "zxc/api/tenant"
 	userapi "zxc/api/user"
@@ -70,6 +71,7 @@ func main() {
 	}
 
 	user := service.NewUser()
+	sys := service.NewSystem()
 	account := service.NewAccount()
 	session := service.NewSession()
 	tenant := service.NewTenant(database, cfg, &root)
@@ -84,6 +86,7 @@ func main() {
 		),
 	)
 	userapi.RegisterUserServiceServer(grpcServer, user)
+	systemapi.RegisterSystemServiceServer(grpcServer, sys)
 	accountapi.RegisterAccountServiceServer(grpcServer, account)
 	sessionapi.RegisterSessionServiceServer(grpcServer, session)
 	tenantapi.RegisterTenantServiceServer(grpcServer, tenant)

@@ -116,7 +116,11 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 		return nil, status.Error(codes.NotFound, "release not found")
 	}
 
-	wfc := client.New(infra.WorkflowBackend(tenant.Jobs))
+	wfb, err := infra.WorkflowBackend(tenant.Jobs)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to initialise jobs backend: %v", err)
+	}
+	wfc := client.New(wfb)
 	if _, err := wfc.CreateWorkflowInstance(ctx, client.WorkflowInstanceOptions{
 		InstanceID: "deploy:" + id.String(),
 	}, jobs.Deploy, jobs.DeployArgs{

@@ -191,8 +191,12 @@ func targetToProto(t *models.Target) *target.Target {
 }
 
 func (s *Target) enqueueProbe(ctx context.Context, t *models.Tenant, targetID uuid.UUID) error {
-	wfc := client.New(infra.WorkflowBackend(t.Jobs))
-	_, err := wfc.CreateWorkflowInstance(ctx, client.WorkflowInstanceOptions{
+	wfb, err := infra.WorkflowBackend(t.Jobs)
+	if err != nil {
+		return err
+	}
+	wfc := client.New(wfb)
+	_, err = wfc.CreateWorkflowInstance(ctx, client.WorkflowInstanceOptions{
 		InstanceID: "probe:" + targetID.String(),
 	}, jobs.Probe, jobs.ProbeArgs{TenantID: t.ID, TargetID: targetID})
 	return err

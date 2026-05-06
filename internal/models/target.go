@@ -21,6 +21,7 @@ type Target struct {
 	Status      string         `gorm:"type:varchar(20);not null;default:'unknown'"`
 	Deploying   bool           `gorm:"not null;default:false"`
 	DeployingAt *time.Time     `gorm:"index"`
+	SystemID    uuid.UUID      `gorm:"type:uuid"`
 	OwnerID     uuid.UUID      `gorm:"type:uuid;not null"`
 	CreatedAt   time.Time      `gorm:"not null;default:now()"`
 	UpdatedAt   time.Time      `gorm:"not null;default:now()"`

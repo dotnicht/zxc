@@ -241,6 +241,19 @@ func runClient(t *testing.T, args ...string) string {
 	return ""
 }
 
+// clientCmd returns a configured exec.Cmd without running it, for tests that
+// need to assert on failure exit codes or error output.
+func clientCmd(t *testing.T, args ...string) *exec.Cmd {
+	t.Helper()
+	cmd := exec.Command(clientBinPath, args...)
+	cmd.Dir = projectRoot
+	cmd.Env = append(os.Environ(),
+		"HOME="+clientCfgRoot,
+		"XDG_CONFIG_HOME="+filepath.Join(clientCfgRoot, ".config"),
+	)
+	return cmd
+}
+
 func runTenantClient(t *testing.T, name string, args ...string) string {
 	t.Helper()
 	rootArgs := append([]string{"--tenant", name}, args...)

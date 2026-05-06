@@ -14,6 +14,7 @@ import (
 	"zxc/api/payload"
 	"zxc/api/release"
 	"zxc/api/session"
+	"zxc/api/system"
 	"zxc/api/target"
 	"zxc/api/tenant"
 	"zxc/api/user"
@@ -34,6 +35,7 @@ type state struct {
 	conn    *grpc.ClientConn
 	tenant  tenant.TenantServiceClient
 	user    user.UserServiceClient
+	system  system.SystemServiceClient
 	account account.AccountServiceClient
 	session session.SessionServiceClient
 	target  target.TargetServiceClient
@@ -71,6 +73,7 @@ var rootCmd = &cobra.Command{
 			conn:    conn,
 			tenant:  tenant.NewTenantServiceClient(conn),
 			user:    user.NewUserServiceClient(conn),
+			system:  system.NewSystemServiceClient(conn),
 			account: account.NewAccountServiceClient(conn),
 			session: session.NewSessionServiceClient(conn),
 			target:  target.NewTargetServiceClient(conn),
@@ -129,6 +132,7 @@ func main() {
 	rootCmd.PersistentFlags().StringVar(&tenantOverride, "tenant", "", "default tenant name for tenant-scoped commands")
 	rootCmd.AddCommand(tenantCmd())
 	rootCmd.AddCommand(userCmd())
+	rootCmd.AddCommand(systemCmd())
 	rootCmd.AddCommand(accountCmd())
 	rootCmd.AddCommand(sessionCmd())
 	rootCmd.AddCommand(targetCmd())
