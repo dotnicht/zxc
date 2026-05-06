@@ -38,3 +38,9 @@ go.work
 .claude/
 
 test/certs/
+
+# Coverage data
+covdata/
+
+# Built plugin binaries
+plugins/
