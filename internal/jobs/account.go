@@ -65,7 +65,16 @@ func AccountActivity(ctx context.Context, args AccountArgs) error {
 		return nil
 	}
 
-	profile := &models.Profile{Name: nodeName, Status: models.ProfileUnknown}
+	var release models.Release
+	if err := deployDB.WithContext(ctx).First(&release, "id = ?", args.ReleaseID).Error; err != nil {
+		return err
+	}
+	var payload models.Payload
+	if err := deployDB.WithContext(ctx).First(&payload, "id = ?", release.PayloadID).Error; err != nil {
+		return err
+	}
+
+	profile := &models.Profile{Name: nodeName, Status: models.ProfileUnknown, SystemID: payload.SystemID}
 	if err := accountDB.WithContext(ctx).Create(profile).Error; err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
 			slog.Info("profile already exists, skipping", "name", nodeName, "request_id", args.RequestID)

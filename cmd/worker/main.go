@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -37,10 +38,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	pluginsDir := os.Getenv("PLUGINS_DIR")
+	if pluginsDir == "" {
+		pluginsDir = filepath.Join(filepath.Dir(os.Args[0]), "plugins")
+	}
+
 	jobs.RegisterDeploy(root, infra.Connect, cfg)
 	jobs.RegisterAccount(root, infra.Connect, infra.Connect)
 	jobs.RegisterProbe(root, infra.Connect)
-	jobs.RegisterGenerate(root, infra.Connect)
+	jobs.RegisterSync(root, infra.Connect, pluginsDir)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -54,7 +60,7 @@ func main() {
 
 	var (
 		mu      sync.Mutex
-		running = map[string]*worker.Worker{} // keyed by jobs connection string
+		running = map[string]*worker.Worker{}
 	)
 
 	startWorker := func(jobs_ string) {
@@ -81,8 +87,8 @@ func main() {
 			slog.Error("register probe workflow", "error", err)
 			return
 		}
-		if err := w.RegisterWorkflow(jobs.Generate); err != nil {
-			slog.Error("register generate workflow", "error", err)
+		if err := w.RegisterWorkflow(jobs.Sync); err != nil {
+			slog.Error("register sync workflow", "error", err)
 			return
 		}
 		if err := w.RegisterActivity(jobs.DeployActivity); err != nil {
@@ -97,8 +103,8 @@ func main() {
 			slog.Error("register probe activity", "error", err)
 			return
 		}
-		if err := w.RegisterActivity(jobs.GenerateActivity); err != nil {
-			slog.Error("register generate activity", "error", err)
+		if err := w.RegisterActivity(jobs.SyncActivity); err != nil {
+			slog.Error("register sync activity", "error", err)
 			return
 		}
 		if err := w.Start(ctx); err != nil {
@@ -122,10 +128,8 @@ func main() {
 		}
 	}
 
-	// Initial discovery
 	discover()
 
-	// Poll for new tenants
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	for {

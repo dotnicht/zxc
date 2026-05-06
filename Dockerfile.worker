@@ -9,7 +9,9 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o worker cmd/worker/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o worker                cmd/worker/main.go && \
+    mkdir -p plugins && \
+    CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o plugins/generator cmd/generator/main.go
 
 FROM alpine:3.19
 
@@ -18,5 +20,6 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /app
 
 COPY --from=builder /build/worker .
+COPY --from=builder /build/plugins ./plugins/
 
 CMD ["./worker"]

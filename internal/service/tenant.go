@@ -157,8 +157,8 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 
 	wfc := wfclient.New(wfb)
 	_, _ = wfc.CreateWorkflowInstance(ctx,
-		wfclient.WorkflowInstanceOptions{InstanceID: "generate:" + t.ID.String()},
-		jobs.Generate, jobs.GenerateArgs{TenantID: t.ID},
+		wfclient.WorkflowInstanceOptions{InstanceID: "sync:" + t.ID.String()},
+		jobs.Sync, jobs.SyncArgs{TenantID: t.ID},
 	)
 
 	return &tenant.CreateResponse{Tenant: s.proto(t)}, nil
@@ -286,6 +286,10 @@ func (s *Tenant) seed(conn string, owner *models.User) error {
 	u := &models.User{ID: owner.ID, Name: owner.Name}
 	if _, err := db.NewInsert().Model(u).Exec(context.Background()); err != nil {
 		return fmt.Errorf("failed to create owner user in tenant database: %w", err)
+	}
+	sys := &models.System{Name: "default", Sync: "generator"}
+	if _, err := db.NewInsert().Model(sys).Exec(context.Background()); err != nil {
+		return fmt.Errorf("seed default system: %w", err)
 	}
 	return nil
 }

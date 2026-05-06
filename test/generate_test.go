@@ -12,10 +12,20 @@ func TestGenerateJob(t *testing.T) {
 	log("creating tenant %q for generate job test", name)
 	runClient(t, "tenant", "add", "--name", name)
 
+	mdb := tenantMainDB(t, name)
 	adb := tenantAccountDB(t, name)
+
+	var systemID string
+	if err := mdb.QueryRow(
+		`SELECT id::text FROM systems WHERE name = 'default' AND deleted_at IS NULL`,
+	).Scan(&systemID); err != nil {
+		t.Fatalf("default system not found: %v", err)
+	}
+
 	var profileID string
 	if err := adb.QueryRow(
-		`INSERT INTO profiles (name, status) VALUES ('testnode', 'unknown') RETURNING id::text`,
+		`INSERT INTO profiles (name, status, system_id) VALUES ('testnode', 'unknown', $1) RETURNING id::text`,
+		systemID,
 	).Scan(&profileID); err != nil {
 		t.Fatalf("insert test profile: %v", err)
 	}
@@ -37,7 +47,7 @@ func TestGenerateJob(t *testing.T) {
 	}
 
 	if postID == "" {
-		t.Fatal("generate job did not create any posts within timeout")
+		t.Fatal("sync job did not create any posts within timeout")
 	}
 	if talkID == "" {
 		t.Fatal("post has no talk_id")
@@ -45,7 +55,7 @@ func TestGenerateJob(t *testing.T) {
 	if contactID == "" {
 		t.Fatal("post has no contact_id")
 	}
-	log("generate job created post=%s talk=%s contact=%s", postID, talkID, contactID)
+	log("sync job created post=%s talk=%s contact=%s", postID, talkID, contactID)
 
 	var talkProfileID string
 	if err := adb.QueryRow(`SELECT profile_id::text FROM talks WHERE id = $1`, talkID).Scan(&talkProfileID); err != nil {

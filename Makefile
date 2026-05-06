@@ -26,7 +26,7 @@ proto:
 	  -I proto -I proto/vendor \
 	  $(file);)
 
-build: proto build-server build-worker build-webhook build-migrator
+build: proto build-server build-worker build-webhook build-migrator build-generator
 
 build-server:
 	$(GO) build -o $(BIN_DIR)/server ./cmd/server
@@ -39,6 +39,10 @@ build-webhook:
 
 build-migrator:
 	$(GO) build -o $(BIN_DIR)/migrator ./cmd/migrator
+
+build-generator:
+	mkdir -p plugins
+	$(GO) build -o plugins/generator ./cmd/generator
 
 run: build-server
 	./$(BIN_DIR)/server -config $(CONFIG)
