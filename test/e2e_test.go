@@ -321,6 +321,9 @@ func setup(t *testing.T, ts int64, idx int) (tenantID, ownerID, targetID, payloa
 	targetID = targetAdd["id"]
 	log("target created: id=%s address=%s", targetID, targetAdd["address"])
 
+	systemID := firstID(t, runTenant(t, name, "system", "list"))
+	log("default system id=%s", systemID)
+
 	zipContent := buildZip(t)
 	tmpZip := filepath.Join(t.TempDir(), "payload.zip")
 	if err := os.WriteFile(tmpZip, zipContent, 0o644); err != nil {
@@ -334,6 +337,7 @@ func setup(t *testing.T, ts int64, idx int) (tenantID, ownerID, targetID, payloa
 		"--config", "script.conf",
 		"--start", "bash ~/script.sh",
 		"--stop", "true",
+		"--system", systemID,
 	))
 	payloadID = payloadAdd["id"]
 	log("payload created: id=%s", payloadID)
@@ -374,6 +378,14 @@ func fixture(tmpDir string) (tenantName, profileID string) {
 	}
 	targetID := parseKVRaw(string(targetOut))["id"]
 
+	// Resolve default system
+	systemOut, err := runClientDirect("--tenant", tenantName, "system", "list")
+	if err != nil {
+		fmt.Printf("shared fixture: list systems failed: %v\n%s\n", err, systemOut)
+		os.Exit(1)
+	}
+	systemID := firstIDRaw(string(systemOut))
+
 	// Build and upload payload
 	scriptContent, _ := os.ReadFile(projectRoot + "/test/fixtures/script.sh")
 	var buf bytes.Buffer
@@ -392,7 +404,8 @@ func fixture(tmpDir string) (tenantName, profileID string) {
 	}
 	payloadOut, err := runClientDirect("--tenant", tenantName,
 		"payload", "add", "--file", zipPath,
-		"--config", "script.conf", "--start", "bash ~/script.sh", "--stop", "true")
+		"--config", "script.conf", "--start", "bash ~/script.sh", "--stop", "true",
+		"--system", systemID)
 	if err != nil {
 		fmt.Printf("shared fixture: add payload failed: %v\n%s\n", err, payloadOut)
 		os.Exit(1)

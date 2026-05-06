@@ -32,6 +32,7 @@ type Payload struct {
 	Stop          string                 `protobuf:"bytes,7,opt,name=stop,proto3" json:"stop,omitempty"`
 	Config        string                 `protobuf:"bytes,8,opt,name=config,proto3" json:"config,omitempty"`
 	Name          string                 `protobuf:"bytes,9,opt,name=name,proto3" json:"name,omitempty"`
+	SystemId      []byte                 `protobuf:"bytes,10,opt,name=system_id,json=systemId,proto3" json:"system_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -129,6 +130,13 @@ func (x *Payload) GetName() string {
 	return ""
 }
 
+func (x *Payload) GetSystemId() []byte {
+	if x != nil {
+		return x.SystemId
+	}
+	return nil
+}
+
 type CreateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OwnerId       []byte                 `protobuf:"bytes,1,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
@@ -137,6 +145,7 @@ type CreateRequest struct {
 	Stop          string                 `protobuf:"bytes,4,opt,name=stop,proto3" json:"stop,omitempty"`
 	Config        string                 `protobuf:"bytes,5,opt,name=config,proto3" json:"config,omitempty"`
 	Name          string                 `protobuf:"bytes,6,opt,name=name,proto3" json:"name,omitempty"`
+	SystemId      []byte                 `protobuf:"bytes,7,opt,name=system_id,json=systemId,proto3" json:"system_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -211,6 +220,13 @@ func (x *CreateRequest) GetName() string {
 		return x.Name
 	}
 	return ""
+}
+
+func (x *CreateRequest) GetSystemId() []byte {
+	if x != nil {
+		return x.SystemId
+	}
+	return nil
 }
 
 type CreateResponse struct {
@@ -661,7 +677,7 @@ var File_payload_proto protoreflect.FileDescriptor
 
 const file_payload_proto_rawDesc = "" +
 	"\n" +
-	"\rpayload.proto\x12\apayload\"\xdc\x01\n" +
+	"\rpayload.proto\x12\apayload\"\xf9\x01\n" +
 	"\aPayload\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x19\n" +
@@ -673,14 +689,17 @@ const file_payload_proto_rawDesc = "" +
 	"\x05start\x18\x06 \x01(\tR\x05start\x12\x12\n" +
 	"\x04stop\x18\a \x01(\tR\x04stop\x12\x16\n" +
 	"\x06config\x18\b \x01(\tR\x06config\x12\x12\n" +
-	"\x04name\x18\t \x01(\tR\x04name\"\x9a\x01\n" +
+	"\x04name\x18\t \x01(\tR\x04name\x12\x1b\n" +
+	"\tsystem_id\x18\n" +
+	" \x01(\fR\bsystemId\"\xb7\x01\n" +
 	"\rCreateRequest\x12\x19\n" +
 	"\bowner_id\x18\x01 \x01(\fR\aownerId\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\fR\acontent\x12\x14\n" +
 	"\x05start\x18\x03 \x01(\tR\x05start\x12\x12\n" +
 	"\x04stop\x18\x04 \x01(\tR\x04stop\x12\x16\n" +
 	"\x06config\x18\x05 \x01(\tR\x06config\x12\x12\n" +
-	"\x04name\x18\x06 \x01(\tR\x04name\"<\n" +
+	"\x04name\x18\x06 \x01(\tR\x04name\x12\x1b\n" +
+	"\tsystem_id\x18\a \x01(\fR\bsystemId\"<\n" +
 	"\x0eCreateResponse\x12*\n" +
 	"\apayload\x18\x01 \x01(\v2\x10.payload.PayloadR\apayload\"\x1c\n" +
 	"\n" +

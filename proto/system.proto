@@ -17,10 +17,12 @@ message System {
   string name = 2;
   string created_at = 3;
   string updated_at = 4;
+  string sync = 5;
 }
 
 message CreateRequest {
   string name = 1;
+  string sync = 2;
 }
 
 message CreateResponse {
@@ -38,6 +40,7 @@ message GetResponse {
 message UpdateRequest {
   bytes id = 1;
   string name = 2;
+  string sync = 3;
 }
 
 message UpdateResponse {

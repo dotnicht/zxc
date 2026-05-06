@@ -23,7 +23,7 @@ func payloadCmd() *cobra.Command {
 }
 
 func payloadAddCmd() *cobra.Command {
-	var file, config, start, stop string
+	var file, config, start, stop, systemID string
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Create a payload",
@@ -39,12 +39,13 @@ func payloadAddCmd() *cobra.Command {
 				return fmt.Errorf("read file %s: %w", file, err)
 			}
 			resp, err := st.payload.Create(authContext, &payload.CreateRequest{
-				OwnerId: parseUUID(userID),
-				Content: content,
-				Name:    filepath.Base(file),
-				Config:  config,
-				Start:   start,
-				Stop:    stop,
+				OwnerId:  parseUUID(userID),
+				Content:  content,
+				Name:     filepath.Base(file),
+				Config:   config,
+				Start:    start,
+				Stop:     stop,
+				SystemId: parseUUID(systemID),
 			})
 			if err != nil {
 				return err
@@ -61,6 +62,8 @@ func payloadAddCmd() *cobra.Command {
 	_ = cmd.MarkFlagRequired("start")
 	cmd.Flags().StringVar(&stop, "stop", "", "stop command")
 	_ = cmd.MarkFlagRequired("stop")
+	cmd.Flags().StringVar(&systemID, "system", "", "system ID")
+	_ = cmd.MarkFlagRequired("system")
 	return cmd
 }
 
@@ -184,6 +187,7 @@ func printPayload(p *payload.Payload) {
 		{"id", formatUUID(p.Id)},
 		{"path", p.Path},
 		{"owner_id", formatUUID(p.OwnerId)},
+		{"system_id", formatUUID(p.SystemId)},
 		{"config", p.Config},
 		{"start", p.Start},
 		{"stop", p.Stop},

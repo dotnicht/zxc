@@ -101,12 +101,13 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 	}
 
 	p := &models.Payload{
-		ID:      payloadID,
-		Path:    scriptPath,
-		OwnerID: authUserID,
-		Config:  req.Config,
-		Start:   req.Start,
-		Stop:    req.Stop,
+		ID:       payloadID,
+		Path:     scriptPath,
+		OwnerID:  authUserID,
+		SystemID: uuid.UUID(req.SystemId),
+		Config:   req.Config,
+		Start:    req.Start,
+		Stop:     req.Stop,
 	}
 	if err := db.Create(p).Error; err != nil {
 		_ = mc.Delete(ctx, bucket, scriptPath)
@@ -233,6 +234,7 @@ func (s *Payload) proto(p *models.Payload) *payload.Payload {
 		Path:      p.Path,
 		Name:      path.Base(p.Path),
 		OwnerId:   p.OwnerID[:],
+		SystemId:  p.SystemID[:],
 		Config:    p.Config,
 		Start:     p.Start,
 		Stop:      p.Stop,

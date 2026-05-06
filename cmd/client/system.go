@@ -21,7 +21,7 @@ func systemCmd() *cobra.Command {
 }
 
 func systemAddCmd() *cobra.Command {
-	var name string
+	var name, sync string
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Create a system",
@@ -32,7 +32,7 @@ func systemAddCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.system.Create(authContext, &system.CreateRequest{Name: name})
+			resp, err := st.system.Create(authContext, &system.CreateRequest{Name: name, Sync: sync})
 			if err != nil {
 				return err
 			}
@@ -42,6 +42,7 @@ func systemAddCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&name, "name", "", "system name")
 	_ = cmd.MarkFlagRequired("name")
+	cmd.Flags().StringVar(&sync, "sync", "generator", "plugin binary name")
 	return cmd
 }
 
@@ -101,7 +102,7 @@ func systemListCmd() *cobra.Command {
 }
 
 func systemUpdateCmd() *cobra.Command {
-	var id, name string
+	var id, name, sync string
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Update a system",
@@ -112,7 +113,7 @@ func systemUpdateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.system.Update(authContext, &system.UpdateRequest{Id: parseUUID(id), Name: name})
+			resp, err := st.system.Update(authContext, &system.UpdateRequest{Id: parseUUID(id), Name: name, Sync: sync})
 			if err != nil {
 				return err
 			}
@@ -124,6 +125,7 @@ func systemUpdateCmd() *cobra.Command {
 	_ = cmd.MarkFlagRequired("id")
 	cmd.Flags().StringVar(&name, "name", "", "new system name")
 	_ = cmd.MarkFlagRequired("name")
+	cmd.Flags().StringVar(&sync, "sync", "", "plugin binary name")
 	return cmd
 }
 
@@ -156,6 +158,7 @@ func printSystem(s *system.System) {
 	printKV([][2]string{
 		{"id", formatUUID(s.Id)},
 		{"name", s.Name},
+		{"sync", s.Sync},
 		{"created_at", s.CreatedAt},
 		{"updated_at", s.UpdatedAt},
 	})

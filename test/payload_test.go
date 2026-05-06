@@ -14,6 +14,7 @@ func TestPayloadAdd(t *testing.T) {
 	ts := time.Now().UnixNano()
 	name := fmt.Sprintf("pldadd%d", ts)
 	runClient(t, "tenant", "add", "--name", name)
+	systemID := firstID(t, runTenant(t, name, "system", "list"))
 
 	zipContent := buildZip(t)
 	tmpZip := filepath.Join(t.TempDir(), "payload.zip")
@@ -27,6 +28,7 @@ func TestPayloadAdd(t *testing.T) {
 		"--config", "script.conf",
 		"--start", "bash ~/script.sh",
 		"--stop", "true",
+		"--system", systemID,
 	))
 	id := out["id"]
 	if id == "" {
@@ -45,6 +47,7 @@ func TestPayloadGet(t *testing.T) {
 	ts := time.Now().UnixNano()
 	name := fmt.Sprintf("pldget%d", ts)
 	runClient(t, "tenant", "add", "--name", name)
+	systemID := firstID(t, runTenant(t, name, "system", "list"))
 
 	zipContent := buildZip(t)
 	tmpZip := filepath.Join(t.TempDir(), "payload.zip")
@@ -58,6 +61,7 @@ func TestPayloadGet(t *testing.T) {
 		"--config", "script.conf",
 		"--start", "bash ~/script.sh",
 		"--stop", "true",
+		"--system", systemID,
 	))
 	id := created["id"]
 
@@ -75,6 +79,7 @@ func TestPayloadUpdate(t *testing.T) {
 	ts := time.Now().UnixNano()
 	name := fmt.Sprintf("pldupd%d", ts)
 	runClient(t, "tenant", "add", "--name", name)
+	systemID := firstID(t, runTenant(t, name, "system", "list"))
 
 	zipContent := buildZip(t)
 	tmpZip := filepath.Join(t.TempDir(), "payload.zip")
@@ -88,6 +93,7 @@ func TestPayloadUpdate(t *testing.T) {
 		"--config", "script.conf",
 		"--start", "bash ~/script.sh",
 		"--stop", "true",
+		"--system", systemID,
 	))
 	id := created["id"]
 
@@ -116,6 +122,7 @@ func TestPayloadDelete(t *testing.T) {
 	ts := time.Now().UnixNano()
 	name := fmt.Sprintf("plddel%d", ts)
 	runClient(t, "tenant", "add", "--name", name)
+	systemID := firstID(t, runTenant(t, name, "system", "list"))
 
 	zipContent := buildZip(t)
 	tmpZip := filepath.Join(t.TempDir(), "payload.zip")
@@ -129,6 +136,7 @@ func TestPayloadDelete(t *testing.T) {
 		"--config", "script.conf",
 		"--start", "bash ~/script.sh",
 		"--stop", "true",
+		"--system", systemID,
 	))
 	id := created["id"]
 
@@ -152,6 +160,7 @@ func TestPayloadList(t *testing.T) {
 	ts := time.Now().UnixNano()
 	name := fmt.Sprintf("pldlist%d", ts)
 	runClient(t, "tenant", "add", "--name", name)
+	systemID := firstID(t, runTenant(t, name, "system", "list"))
 
 	makeZip := func() string {
 		zip := buildZip(t)
@@ -164,11 +173,11 @@ func TestPayloadList(t *testing.T) {
 
 	r1 := parseKV(t, runTenant(t, name,
 		"payload", "add", "--file", makeZip(), "--config", "script.conf",
-		"--start", "bash ~/script.sh", "--stop", "true",
+		"--start", "bash ~/script.sh", "--stop", "true", "--system", systemID,
 	))
 	r2 := parseKV(t, runTenant(t, name,
 		"payload", "add", "--file", makeZip(), "--config", "script.conf",
-		"--start", "bash ~/script.sh", "--stop", "true",
+		"--start", "bash ~/script.sh", "--stop", "true", "--system", systemID,
 	))
 
 	out := runTenant(t, name, "payload", "list")

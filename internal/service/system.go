@@ -31,7 +31,7 @@ func (s *System) Create(ctx context.Context, req *system.CreateRequest) (*system
 		return nil, err
 	}
 
-	m := &models.System{Name: req.Name}
+	m := &models.System{Name: req.Name, Sync: req.Sync}
 	if err := db.Create(m).Error; err != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create system: %v", err))
 	}
@@ -78,7 +78,7 @@ func (s *System) Update(ctx context.Context, req *system.UpdateRequest) (*system
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to load system: %v", err))
 	}
 
-	result := db.Model(&models.System{}).Where("id = ?", id).Updates(&models.System{Name: req.Name})
+	result := db.Model(&models.System{}).Where("id = ?", id).Updates(&models.System{Name: req.Name, Sync: req.Sync})
 	if result.Error != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to update system: %v", result.Error))
 	}
@@ -150,6 +150,7 @@ func (s *System) proto(m *models.System) *system.System {
 	return &system.System{
 		Id:        m.ID[:],
 		Name:      m.Name,
+		Sync:      m.Sync,
 		CreatedAt: m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: m.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}

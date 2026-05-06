@@ -27,6 +27,7 @@ type System struct {
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	CreatedAt     string                 `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     string                 `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Sync          string                 `protobuf:"bytes,5,opt,name=sync,proto3" json:"sync,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -89,9 +90,17 @@ func (x *System) GetUpdatedAt() string {
 	return ""
 }
 
+func (x *System) GetSync() string {
+	if x != nil {
+		return x.Sync
+	}
+	return ""
+}
+
 type CreateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Sync          string                 `protobuf:"bytes,2,opt,name=sync,proto3" json:"sync,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -129,6 +138,13 @@ func (*CreateRequest) Descriptor() ([]byte, []int) {
 func (x *CreateRequest) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateRequest) GetSync() string {
+	if x != nil {
+		return x.Sync
 	}
 	return ""
 }
@@ -269,6 +285,7 @@ type UpdateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Sync          string                 `protobuf:"bytes,3,opt,name=sync,proto3" json:"sync,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -313,6 +330,13 @@ func (x *UpdateRequest) GetId() []byte {
 func (x *UpdateRequest) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *UpdateRequest) GetSync() string {
+	if x != nil {
+		return x.Sync
 	}
 	return ""
 }
@@ -557,26 +581,29 @@ var File_system_proto protoreflect.FileDescriptor
 
 const file_system_proto_rawDesc = "" +
 	"\n" +
-	"\fsystem.proto\x12\x06system\"j\n" +
+	"\fsystem.proto\x12\x06system\"~\n" +
 	"\x06System\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x03 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x04 \x01(\tR\tupdatedAt\"#\n" +
+	"updated_at\x18\x04 \x01(\tR\tupdatedAt\x12\x12\n" +
+	"\x04sync\x18\x05 \x01(\tR\x04sync\"7\n" +
 	"\rCreateRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"8\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
+	"\x04sync\x18\x02 \x01(\tR\x04sync\"8\n" +
 	"\x0eCreateResponse\x12&\n" +
 	"\x06system\x18\x01 \x01(\v2\x0e.system.SystemR\x06system\"\x1c\n" +
 	"\n" +
 	"GetRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\"5\n" +
 	"\vGetResponse\x12&\n" +
-	"\x06system\x18\x01 \x01(\v2\x0e.system.SystemR\x06system\"3\n" +
+	"\x06system\x18\x01 \x01(\v2\x0e.system.SystemR\x06system\"G\n" +
 	"\rUpdateRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"8\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
+	"\x04sync\x18\x03 \x01(\tR\x04sync\"8\n" +
 	"\x0eUpdateResponse\x12&\n" +
 	"\x06system\x18\x01 \x01(\v2\x0e.system.SystemR\x06system\"\x1f\n" +
 	"\rDeleteRequest\x12\x0e\n" +

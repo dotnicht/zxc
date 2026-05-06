@@ -287,7 +287,7 @@ func (s *Tenant) seed(conn string, owner *models.User) error {
 	if _, err := db.NewInsert().Model(u).Exec(context.Background()); err != nil {
 		return fmt.Errorf("failed to create owner user in tenant database: %w", err)
 	}
-	sys := &models.System{Name: "default", Sync: "generator"}
+	sys := &models.System{ID: uuid.New(), Name: "default", Sync: "generator"}
 	if _, err := db.NewInsert().Model(sys).Exec(context.Background()); err != nil {
 		return fmt.Errorf("seed default system: %w", err)
 	}
