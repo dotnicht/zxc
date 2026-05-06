@@ -398,7 +398,7 @@ func setupSharedFixture(tmpDir string) (tenantName, profileID string) {
 	log("shared fixture: tenant=%s owner=%s target=%s payload=%s release=%s", tenantName, ownerID, targetID, payloadID, releaseID)
 	log("shared fixture: waiting for profile in account DB (up to 90s)")
 
-	adb, err := sql.Open("postgres", accountDSN(tenantName))
+	adb, err := sql.Open("postgres", accountConn(tenantName))
 	if err != nil {
 		fmt.Printf("shared fixture: open account DB: %v\n", err)
 		os.Exit(1)
@@ -546,13 +546,13 @@ func TestE2E(t *testing.T) {
 func waitForWebhookAccounts(t *testing.T, name, id string, timeout time.Duration) (requests, accounts int) {
 	t.Helper()
 
-	deployDB, err := sql.Open("postgres", deployDSN(name))
+	deployDB, err := sql.Open("postgres", deployConn(name))
 	if err != nil {
 		t.Fatalf("open deploy database: %v", err)
 	}
 	defer deployDB.Close()
 
-	accountDB, err := sql.Open("postgres", accountDSN(name))
+	accountDB, err := sql.Open("postgres", accountConn(name))
 	if err != nil {
 		t.Fatalf("open account database: %v", err)
 	}
@@ -587,13 +587,13 @@ func waitForWebhookAccounts(t *testing.T, name, id string, timeout time.Duration
 func verifyAccountFromRequest(t *testing.T, name, id string) {
 	t.Helper()
 
-	deployDB, err := sql.Open("postgres", deployDSN(name))
+	deployDB, err := sql.Open("postgres", deployConn(name))
 	if err != nil {
 		t.Fatalf("open deploy database: %v", err)
 	}
 	defer deployDB.Close()
 
-	accountDB, err := sql.Open("postgres", accountDSN(name))
+	accountDB, err := sql.Open("postgres", accountConn(name))
 	if err != nil {
 		t.Fatalf("open account database: %v", err)
 	}
@@ -622,11 +622,11 @@ func verifyAccountFromRequest(t *testing.T, name, id string) {
 	log("account name %q matches node_name from webhook request data", nodeName)
 }
 
-func deployDSN(name string) string {
+func deployConn(name string) string {
 	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s?sslmode=disable&search_path=deploy", sanitizeTenantDBName(name))
 }
 
-func accountDSN(name string) string {
+func accountConn(name string) string {
 	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s?sslmode=disable&search_path=account", sanitizeTenantDBName(name))
 }
 

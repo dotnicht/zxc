@@ -26,8 +26,8 @@ import (
 
 type Tenant struct {
 	tenant.UnimplementedTenantServiceServer
-	db  *gorm.DB
-	cfg *config.Config
+	db   *gorm.DB
+	cfg  *config.Config
 	root *models.User
 }
 
@@ -66,26 +66,26 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 		return nil, status.Error(codes.AlreadyExists, "tenant with this name already exists")
 	}
 
-	mainDSN := s.mainDSN(req.Name)
-	deployDSN := s.deployDSN(req.Name)
-	accountDSN := s.accountDSN(req.Name)
-	jobsDSN := s.jobsDSN(req.Name)
+	main := s.main(req.Name)
+	deploy := s.deploy(req.Name)
+	account := s.account(req.Name)
+	jobs_ := s.jobs(req.Name)
 
 	if req.Database != "" {
-		mainDSN = req.Database
+		main = req.Database
 	}
 	if req.Deploy != "" {
-		deployDSN = req.Deploy
+		deploy = req.Deploy
 	}
 	if req.Account != "" {
-		accountDSN = req.Account
+		account = req.Account
 	}
 	if req.Jobs != "" {
-		jobsDSN = req.Jobs
+		jobs_ = req.Jobs
 	}
 
-	storageStr := req.Storage
-	if storageStr == "" && s.cfg.Storage != "" {
+	storage := req.Storage
+	if storage == "" && s.cfg.Storage != "" {
 		sc, bucket, err := infra.StorageClientFromConnectionString(s.cfg.Storage)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to parse storage config: %v", err)
@@ -93,16 +93,16 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 		if err := sc.CreateFolder(ctx, bucket, req.Name); err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to create tenant storage folder: %v", err)
 		}
-		storageStr = strings.TrimRight(s.cfg.Storage, "/") + "/" + req.Name
+		storage = strings.TrimRight(s.cfg.Storage, "/") + "/" + req.Name
 	}
 
 	t := &models.Tenant{
 		Name:    req.Name,
-		Main:    mainDSN,
-		Deploy:  deployDSN,
-		Account: accountDSN,
-		Jobs:    jobsDSN,
-		Storage: storageStr,
+		Main:    main,
+		Deploy:  deploy,
+		Account: account,
+		Jobs:    jobs_,
+		Storage: storage,
 		OwnerID: s.root.ID,
 	}
 
@@ -115,43 +115,43 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 
 	dbName := sanitizeDatabaseName(req.Name)
 	if req.Database == "" && req.Deploy == "" && req.Account == "" {
-		if err := s.createTenantDatabase(dbName); err != nil {
+		if err := s.createDatabase(dbName); err != nil {
 			s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
 			return nil, status.Errorf(codes.Internal, "failed to create tenant database: %v", err)
 		}
 	}
 	if req.Jobs == "" {
-		if err := s.createTenantDatabase(dbName + "_jobs"); err != nil {
+		if err := s.createDatabase(dbName + "_jobs"); err != nil {
 			s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
 			return nil, status.Errorf(codes.Internal, "failed to create tenant jobs database: %v", err)
 		}
 	}
 
 	for _, m := range []struct {
-		dsn    string
+		conn   string
 		schema string
 		fn     func(*gorm.DB) error
 		label  string
 	}{
-		{mainDSN, "main", infra.RunMainMigrations, "main"},
-		{deployDSN, "deploy", infra.RunDeployMigrations, "deploy"},
-		{accountDSN, "account", infra.RunAccountMigrations, "account"},
+		{main, "main", infra.RunMainMigrations, "main"},
+		{deploy, "deploy", infra.RunDeployMigrations, "deploy"},
+		{account, "account", infra.RunAccountMigrations, "account"},
 	} {
-		if err := s.runMigrationsOn(m.dsn, m.schema, m.fn); err != nil {
+		if err := s.runMigrations(m.conn, m.schema, m.fn); err != nil {
 			s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
 			return nil, status.Errorf(codes.Internal, "failed to run %s migrations: %v", m.label, err)
 		}
 	}
 
 	// Initialise the jobs backend (runs migrations on first call, then cached).
-	infra.WorkflowBackend(jobsDSN)
+	infra.WorkflowBackend(jobs_)
 
-	if err := s.seedTenantOwner(mainDSN, s.root); err != nil {
+	if err := s.seedOwner(main, s.root); err != nil {
 		s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
 		return nil, status.Errorf(codes.Internal, "failed to seed tenant owner: %v", err)
 	}
 
-	wfc := wfclient.New(infra.WorkflowBackend(jobsDSN))
+	wfc := wfclient.New(infra.WorkflowBackend(jobs_))
 	_, _ = wfc.CreateWorkflowInstance(ctx,
 		wfclient.WorkflowInstanceOptions{InstanceID: "generate:" + t.ID.String()},
 		jobs.Generate, jobs.GenerateArgs{TenantID: t.ID},
@@ -203,19 +203,19 @@ func (s *Tenant) List(ctx context.Context, req *tenant.ListRequest) (*tenant.Lis
 	return &tenant.ListResponse{Tenants: out, Total: int32(total)}, nil
 }
 
-func (s *Tenant) mainDSN(name string) string {
-	return s.dsnWithSchema(name, "main")
+func (s *Tenant) main(name string) string {
+	return s.connWithSchema(name, "main")
 }
 
-func (s *Tenant) deployDSN(name string) string {
-	return s.dsnWithSchema(name, "deploy")
+func (s *Tenant) deploy(name string) string {
+	return s.connWithSchema(name, "deploy")
 }
 
-func (s *Tenant) accountDSN(name string) string {
-	return s.dsnWithSchema(name, "account")
+func (s *Tenant) account(name string) string {
+	return s.connWithSchema(name, "account")
 }
 
-func (s *Tenant) jobsDSN(name string) string {
+func (s *Tenant) jobs(name string) string {
 	u, err := url.Parse(s.cfg.Database)
 	if err != nil {
 		return s.cfg.Database
@@ -225,7 +225,7 @@ func (s *Tenant) jobsDSN(name string) string {
 	return u.String()
 }
 
-func (s *Tenant) dsnWithSchema(tenantName, schema string) string {
+func (s *Tenant) connWithSchema(tenantName, schema string) string {
 	u, err := url.Parse(s.cfg.Database)
 	if err != nil {
 		return s.cfg.Database
@@ -237,7 +237,7 @@ func (s *Tenant) dsnWithSchema(tenantName, schema string) string {
 	return u.String()
 }
 
-func (s *Tenant) adminDSN() string {
+func (s *Tenant) admin() string {
 	u, err := url.Parse(s.cfg.Database)
 	if err != nil {
 		return s.cfg.Database
@@ -246,8 +246,8 @@ func (s *Tenant) adminDSN() string {
 	return u.String()
 }
 
-func (s *Tenant) createTenantDatabase(dbName string) error {
-	sqlDB, err := gosql.Open("postgres", s.adminDSN())
+func (s *Tenant) createDatabase(dbName string) error {
+	sqlDB, err := gosql.Open("postgres", s.admin())
 	if err != nil {
 		return fmt.Errorf("failed to connect to postgres: %w", err)
 	}
@@ -264,8 +264,8 @@ func (s *Tenant) createTenantDatabase(dbName string) error {
 	return nil
 }
 
-func (s *Tenant) runMigrationsOn(dsn, schema string, migrate func(*gorm.DB) error) error {
-	db, err := infra.NewConnection(dsn)
+func (s *Tenant) runMigrations(conn, schema string, migrate func(*gorm.DB) error) error {
+	db, err := infra.NewConnection(conn)
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
 	}
@@ -275,8 +275,8 @@ func (s *Tenant) runMigrationsOn(dsn, schema string, migrate func(*gorm.DB) erro
 	return migrate(db)
 }
 
-func (s *Tenant) seedTenantOwner(dsn string, owner *models.User) error {
-	sqldb := gosql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
+func (s *Tenant) seedOwner(conn string, owner *models.User) error {
+	sqldb := gosql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(conn)))
 	defer sqldb.Close()
 	db := bun.NewDB(sqldb, pgdialect.New())
 	u := &models.User{ID: owner.ID, Name: owner.Name}

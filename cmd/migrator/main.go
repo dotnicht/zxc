@@ -111,10 +111,10 @@ func main() {
 	slog.Info("All migrations completed successfully")
 }
 
-func ensureRootDatabase(dsn string) (created bool, err error) {
-	u, err := url.Parse(dsn)
+func ensureRootDatabase(conn string) (created bool, err error) {
+	u, err := url.Parse(conn)
 	if err != nil {
-		return false, fmt.Errorf("invalid DSN: %w", err)
+		return false, fmt.Errorf("invalid connection string: %w", err)
 	}
 
 	dbName := strings.TrimPrefix(u.Path, "/")

@@ -54,16 +54,16 @@ func main() {
 
 	var (
 		mu      sync.Mutex
-		running = map[string]*worker.Worker{} // keyed by jobs DSN
+		running = map[string]*worker.Worker{} // keyed by jobs connection string
 	)
 
-	startWorker := func(jobsDSN string) {
+	startWorker := func(jobs_ string) {
 		mu.Lock()
 		defer mu.Unlock()
-		if _, ok := running[jobsDSN]; ok {
+		if _, ok := running[jobs_]; ok {
 			return
 		}
-		backend := infra.WorkflowBackend(jobsDSN)
+		backend := infra.WorkflowBackend(jobs_)
 		w := worker.New(backend, nil)
 		if err := w.RegisterWorkflow(jobs.Deploy); err != nil {
 			slog.Error("register deploy workflow", "error", err)
@@ -98,11 +98,11 @@ func main() {
 			return
 		}
 		if err := w.Start(ctx); err != nil {
-			slog.Error("start worker", "dsn", jobsDSN, "error", err)
+			slog.Error("start worker", "jobs", jobs_, "error", err)
 			return
 		}
-		running[jobsDSN] = w
-		slog.Info("started worker for tenant jobs DB", "dsn", jobsDSN)
+		running[jobs_] = w
+		slog.Info("started worker for tenant jobs DB", "jobs", jobs_)
 	}
 
 	discover := func() {
@@ -128,9 +128,9 @@ func main() {
 		select {
 		case <-ctx.Done():
 			mu.Lock()
-			for dsn, w := range running {
+			for jobs_, w := range running {
 				w.WaitForCompletion()
-				slog.Info("worker stopped", "dsn", dsn)
+				slog.Info("worker stopped", "jobs", jobs_)
 			}
 			mu.Unlock()
 			return

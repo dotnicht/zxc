@@ -17,10 +17,10 @@ type StorageClient struct {
 	prefix string
 }
 
-func StorageClientFromConnectionString(dsn string) (*StorageClient, string, error) {
-	u, err := url.Parse(dsn)
+func StorageClientFromConnectionString(conn string) (*StorageClient, string, error) {
+	u, err := url.Parse(conn)
 	if err != nil {
-		return nil, "", fmt.Errorf("invalid storage DSN: %w", err)
+		return nil, "", fmt.Errorf("invalid storage connection string: %w", err)
 	}
 	var accessKey, secretKey string
 	if u.User != nil {

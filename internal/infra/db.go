@@ -25,17 +25,17 @@ var (
 	wfBackendCacheMu sync.Mutex
 )
 
-// WorkflowBackend returns a cached workflow backend for the given DSN.
+// WorkflowBackend returns a cached workflow backend for the given connection string.
 // On first call it runs migrations; subsequent calls reuse the same instance.
-func WorkflowBackend(dsn string) backend.Backend {
+func WorkflowBackend(conn string) backend.Backend {
 	wfBackendCacheMu.Lock()
 	defer wfBackendCacheMu.Unlock()
-	if b, ok := wfBackendCache[dsn]; ok {
+	if b, ok := wfBackendCache[conn]; ok {
 		return b
 	}
-	u, err := url.Parse(dsn)
+	u, err := url.Parse(conn)
 	if err != nil {
-		panic(fmt.Sprintf("parse dsn: %v", err))
+		panic(fmt.Sprintf("parse conn: %v", err))
 	}
 	host := u.Hostname()
 	portStr := u.Port()
@@ -56,19 +56,19 @@ func WorkflowBackend(dsn string) backend.Backend {
 			db.SetConnMaxLifetime(time.Hour)
 		}),
 	)
-	wfBackendCache[dsn] = b
+	wfBackendCache[conn] = b
 	return b
 }
 
-func NewConnection(dsn string) (*gorm.DB, error) {
+func NewConnection(conn string) (*gorm.DB, error) {
 	connCacheMu.Lock()
 	defer connCacheMu.Unlock()
 
-	if db, ok := connCache[dsn]; ok {
+	if db, ok := connCache[conn]; ok {
 		return db, nil
 	}
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+	db, err := gorm.Open(postgres.Open(conn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
@@ -87,7 +87,7 @@ func NewConnection(dsn string) (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(1)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
-	connCache[dsn] = db
+	connCache[conn] = db
 	return db, nil
 }
 

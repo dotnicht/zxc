@@ -27,7 +27,7 @@ func tenantMainDB(t *testing.T, name string) *sql.DB {
 
 func tenantDeployDB(t *testing.T, name string) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("postgres", deployDSN(name))
+	db, err := sql.Open("postgres", deployConn(name))
 	if err != nil {
 		t.Fatalf("open tenant deploy database: %v", err)
 	}
@@ -37,7 +37,7 @@ func tenantDeployDB(t *testing.T, name string) *sql.DB {
 
 func tenantAccountDB(t *testing.T, name string) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("postgres", accountDSN(name))
+	db, err := sql.Open("postgres", accountConn(name))
 	if err != nil {
 		t.Fatalf("open tenant account database: %v", err)
 	}

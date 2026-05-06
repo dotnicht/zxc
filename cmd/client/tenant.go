@@ -19,7 +19,7 @@ func tenantCmd() *cobra.Command {
 }
 
 func tenantAddCmd() *cobra.Command {
-	var name string
+	var name, database, deploy, account, jobs, storage string
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Create a tenant",
@@ -30,7 +30,14 @@ func tenantAddCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := st.tenant.Create(authContext, &tenant.CreateRequest{Name: name})
+			resp, err := st.tenant.Create(authContext, &tenant.CreateRequest{
+				Name:     name,
+				Database: database,
+				Deploy:   deploy,
+				Account:  account,
+				Jobs:     jobs,
+				Storage:  storage,
+			})
 			if err != nil {
 				return err
 			}
@@ -40,6 +47,11 @@ func tenantAddCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&name, "name", "", "tenant name")
 	_ = cmd.MarkFlagRequired("name")
+	cmd.Flags().StringVar(&database, "database", "", "external connection string for main schema (overrides auto-provisioning)")
+	cmd.Flags().StringVar(&deploy, "deploy", "", "external connection string for deploy schema")
+	cmd.Flags().StringVar(&account, "account", "", "external connection string for account schema")
+	cmd.Flags().StringVar(&jobs, "jobs", "", "external connection string for jobs database")
+	cmd.Flags().StringVar(&storage, "storage", "", "external storage connection string")
 	return cmd
 }
 
