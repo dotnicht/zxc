@@ -9,9 +9,9 @@ import (
 func TestReleaseAdd(t *testing.T) {
 	t.Parallel()
 	ts := time.Now().UnixNano()
-	_, _, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 0)
+	_, _, targetID, payloadID, tenantName := setup(t, ts, 0)
 
-	out := parseKVOutput(t, runTenantClient(t, tenantName,
+	out := parseKV(t, runTenant(t, tenantName,
 		"release", "add",
 		"--target", targetID,
 		"--payload", payloadID,
@@ -34,14 +34,14 @@ func TestReleaseAdd(t *testing.T) {
 func TestReleaseGet(t *testing.T) {
 	t.Parallel()
 	ts := time.Now().UnixNano()
-	_, _, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 0)
+	_, _, targetID, payloadID, tenantName := setup(t, ts, 0)
 
-	created := parseKVOutput(t, runTenantClient(t, tenantName,
+	created := parseKV(t, runTenant(t, tenantName,
 		"release", "add", "--target", targetID, "--payload", payloadID,
 	))
 	id := created["id"]
 
-	got := parseKVOutput(t, runTenantClient(t, tenantName, "release", "get", "--id", id))
+	got := parseKV(t, runTenant(t, tenantName, "release", "get", "--id", id))
 	if got["id"] != id {
 		t.Fatalf("get returned wrong id: %q", got["id"])
 	}
@@ -53,14 +53,14 @@ func TestReleaseGet(t *testing.T) {
 func TestReleaseDeploy(t *testing.T) {
 	t.Parallel()
 	ts := time.Now().UnixNano()
-	_, _, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 0)
+	_, _, targetID, payloadID, tenantName := setup(t, ts, 0)
 
-	releaseAdd := parseKVOutput(t, runTenantClient(t, tenantName,
+	releaseAdd := parseKV(t, runTenant(t, tenantName,
 		"release", "add", "--target", targetID, "--payload", payloadID,
 	))
 	releaseID := releaseAdd["id"]
 
-	deployResp := parseKVOutput(t, runTenantClient(t, tenantName,
+	deployResp := parseKV(t, runTenant(t, tenantName,
 		"release", "deploy", "--id", releaseID,
 	))
 	if deployResp["status"] != "wait" {
@@ -83,7 +83,7 @@ func TestReleaseDeploy(t *testing.T) {
 	deadline := time.Now().Add(120 * time.Second)
 	var last string
 	for time.Now().Before(deadline) {
-		r := parseKVOutput(t, runTenantClient(t, tenantName, "release", "get", "--id", releaseID))
+		r := parseKV(t, runTenant(t, tenantName, "release", "get", "--id", releaseID))
 		last = r["status"]
 		if statusRank(last) >= statusRank("deployed") {
 			break
@@ -107,16 +107,16 @@ func TestReleaseDeploy(t *testing.T) {
 func TestReleaseList(t *testing.T) {
 	t.Parallel()
 	ts := time.Now().UnixNano()
-	_, _, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 0)
+	_, _, targetID, payloadID, tenantName := setup(t, ts, 0)
 
-	r1 := parseKVOutput(t, runTenantClient(t, tenantName,
+	r1 := parseKV(t, runTenant(t, tenantName,
 		"release", "add", "--target", targetID, "--payload", payloadID,
 	))
-	r2 := parseKVOutput(t, runTenantClient(t, tenantName,
+	r2 := parseKV(t, runTenant(t, tenantName,
 		"release", "add", "--target", targetID, "--payload", payloadID,
 	))
 
-	out := runTenantClient(t, tenantName, "release", "list")
+	out := runTenant(t, tenantName, "release", "list")
 	for _, id := range []string{r1["id"], r2["id"]} {
 		if !strings.Contains(out, id) {
 			t.Fatalf("release %s not found in list output:\n%s", id, out)

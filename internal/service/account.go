@@ -25,7 +25,7 @@ func NewAccount() *Account {
 func (s *Account) Get(ctx context.Context, req *account.GetRequest) (*account.GetResponse, error) {
 	id := uuid.UUID(req.Id)
 
-	_, db, err := ctxAccountDB(ctx)
+	_, db, err := accountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (s *Account) Get(ctx context.Context, req *account.GetRequest) (*account.Ge
 		return nil, status.Errorf(codes.Internal, "failed to get account: %v", err)
 	}
 
-	return &account.GetResponse{Account: profileToProto(&a)}, nil
+	return &account.GetResponse{Account: s.proto(&a)}, nil
 }
 
 func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.ListResponse, error) {
@@ -50,7 +50,7 @@ func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.
 		size = 10
 	}
 
-	_, db, err := ctxAccountDB(ctx)
+	_, db, err := accountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.
 
 	out := make([]*account.Account, len(profiles))
 	for i, a := range profiles {
-		out[i] = profileToProto(a)
+		out[i] = s.proto(a)
 	}
 
 	return &account.ListResponse{Accounts: out, Total: int32(total)}, nil
@@ -77,7 +77,7 @@ func (s *Account) List(ctx context.Context, req *account.ListRequest) (*account.
 func (s *Account) Disable(ctx context.Context, req *account.DisableRequest) (*account.DisableResponse, error) {
 	id := uuid.UUID(req.Id)
 
-	_, db, err := ctxAccountDB(ctx)
+	_, db, err := accountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -100,13 +100,13 @@ func (s *Account) Disable(ctx context.Context, req *account.DisableRequest) (*ac
 	}
 
 	current.Status = models.ProfileDisabled
-	return &account.DisableResponse{Account: profileToProto(&current)}, nil
+	return &account.DisableResponse{Account: s.proto(&current)}, nil
 }
 
 func (s *Account) GetTalks(ctx context.Context, req *account.GetTalksRequest) (*account.GetTalksResponse, error) {
 	profileID := uuid.UUID(req.ProfileId)
 
-	_, db, err := ctxAccountDB(ctx)
+	_, db, err := accountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func (s *Account) GetTalks(ctx context.Context, req *account.GetTalksRequest) (*
 	return &account.GetTalksResponse{Talks: out}, nil
 }
 
-func profileToProto(a *models.Profile) *account.Account {
+func (s *Account) proto(a *models.Profile) *account.Account {
 	return &account.Account{
 		Id:        a.ID[:],
 		Name:      a.Name,

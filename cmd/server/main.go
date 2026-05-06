@@ -49,13 +49,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	database, err := infra.NewConnection(cfg.Database)
+	database, err := infra.Connect(cfg.Database)
 	if err != nil {
 		slog.Error("Failed to connect to database", "error", err)
 		os.Exit(1)
 	}
 
-	if err := infra.RunRootMigrations(database); err != nil {
+	if err := (infra.Migrator{DB: database}).Root(); err != nil {
 		slog.Error("Failed to run migrations", "error", err)
 		os.Exit(1)
 	}
@@ -82,7 +82,7 @@ func main() {
 	grpcServer := grpc.NewServer(
 		grpc.Creds(creds),
 		grpc.ChainUnaryInterceptor(
-			service.UserInterceptor(database, root.ID),
+			service.Interceptor(database, root.ID),
 		),
 	)
 	userapi.RegisterUserServiceServer(grpcServer, user)

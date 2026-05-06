@@ -24,7 +24,7 @@ func NewSession() *Session {
 func (s *Session) Get(ctx context.Context, req *session.GetRequest) (*session.GetResponse, error) {
 	id := uuid.UUID(req.Id)
 
-	_, db, err := ctxAccountDB(ctx)
+	_, db, err := accountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (s *Session) Get(ctx context.Context, req *session.GetRequest) (*session.Ge
 		return nil, status.Errorf(codes.Internal, "failed to get session: %v", err)
 	}
 
-	return &session.GetResponse{Session: sessionToProto(&record)}, nil
+	return &session.GetResponse{Session: s.proto(&record)}, nil
 }
 
 func (s *Session) List(ctx context.Context, req *session.ListRequest) (*session.ListResponse, error) {
@@ -49,7 +49,7 @@ func (s *Session) List(ctx context.Context, req *session.ListRequest) (*session.
 		size = 10
 	}
 
-	_, db, err := ctxAccountDB(ctx)
+	_, db, err := accountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (s *Session) List(ctx context.Context, req *session.ListRequest) (*session.
 
 	out := make([]*session.Session, len(records))
 	for i, record := range records {
-		out[i] = sessionToProto(record)
+		out[i] = s.proto(record)
 	}
 
 	return &session.ListResponse{Sessions: out, Total: int32(total)}, nil
@@ -88,7 +88,7 @@ func (s *Session) Stop(ctx context.Context, req *session.StopRequest) (*session.
 func (s *Session) setStatus(ctx context.Context, rawID []byte, newStatus string) (*session.StartResponse, error) {
 	id := uuid.UUID(rawID)
 
-	_, db, err := ctxAccountDB(ctx)
+	_, db, err := accountDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -111,10 +111,10 @@ func (s *Session) setStatus(ctx context.Context, rawID []byte, newStatus string)
 		return nil, status.Errorf(codes.Internal, "failed to fetch session: %v", err)
 	}
 
-	return &session.StartResponse{Session: sessionToProto(&record)}, nil
+	return &session.StartResponse{Session: s.proto(&record)}, nil
 }
 
-func sessionToProto(record *models.Session) *session.Session {
+func (s *Session) proto(record *models.Session) *session.Session {
 	return &session.Session{
 		Id:        record.ID[:],
 		AccountId: record.ProfileID[:],

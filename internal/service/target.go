@@ -28,12 +28,12 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 		return nil, status.Error(codes.InvalidArgument, "address is required")
 	}
 
-	authUserID, err := ctxUserID(ctx)
+	authUserID, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, db, err := ctxDeployDB(ctx)
+	tenant, db, err := deployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -42,18 +42,18 @@ func (s *Target) Create(ctx context.Context, req *target.CreateRequest) (*target
 	if err := db.Create(t).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create target: %v", err)
 	}
-	if err := s.enqueueProbe(ctx, tenant, t.ID); err != nil {
+	if err := s.enqueue(ctx, tenant, t.ID); err != nil {
 		cleanupErr := db.Unscoped().Delete(&models.Target{}, "id = ?", t.ID).Error
 		return nil, status.Errorf(codes.Internal, "failed to persist target creation: %v", errors.Join(err, cleanupErr))
 	}
 
-	return &target.CreateResponse{Target: targetToProto(t)}, nil
+	return &target.CreateResponse{Target: s.proto(t)}, nil
 }
 
 func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetResponse, error) {
 	id := uuid.UUID(req.Id)
 
-	_, db, err := ctxDeployDB(ctx)
+	_, db, err := deployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (s *Target) Get(ctx context.Context, req *target.GetRequest) (*target.GetRe
 		return nil, status.Errorf(codes.Internal, "failed to get target: %v", err)
 	}
 
-	return &target.GetResponse{Target: targetToProto(&t)}, nil
+	return &target.GetResponse{Target: s.proto(&t)}, nil
 }
 
 func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target.UpdateResponse, error) {
@@ -76,7 +76,7 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		return nil, status.Error(codes.InvalidArgument, "address is required")
 	}
 
-	tenant, db, err := ctxDeployDB(ctx)
+	tenant, db, err := deployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 	if err := db.First(&updated, "id = ?", id).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated target: %v", err)
 	}
-	if err := s.enqueueProbe(ctx, tenant, updated.ID); err != nil {
+	if err := s.enqueue(ctx, tenant, updated.ID); err != nil {
 		revertErr := db.Model(&models.Target{}).Where("id = ?", id).Updates(map[string]any{
 			"address":      previous.Address,
 			"user":         previous.User,
@@ -114,13 +114,13 @@ func (s *Target) Update(ctx context.Context, req *target.UpdateRequest) (*target
 		return nil, status.Errorf(codes.Internal, "failed to persist target update: %v", errors.Join(err, revertErr))
 	}
 
-	return &target.UpdateResponse{Target: targetToProto(&updated)}, nil
+	return &target.UpdateResponse{Target: s.proto(&updated)}, nil
 }
 
 func (s *Target) Delete(ctx context.Context, req *target.DeleteRequest) (*target.DeleteResponse, error) {
 	id := uuid.UUID(req.Id)
 
-	_, db, err := ctxDeployDB(ctx)
+	_, db, err := deployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.Lis
 		size = 10
 	}
 
-	_, db, err := ctxDeployDB(ctx)
+	_, db, err := deployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -171,13 +171,13 @@ func (s *Target) List(ctx context.Context, req *target.ListRequest) (*target.Lis
 
 	out := make([]*target.Target, len(targets))
 	for i, t := range targets {
-		out[i] = targetToProto(t)
+		out[i] = s.proto(t)
 	}
 
 	return &target.ListResponse{Targets: out, Total: int32(total)}, nil
 }
 
-func targetToProto(t *models.Target) *target.Target {
+func (s *Target) proto(t *models.Target) *target.Target {
 	return &target.Target{
 		Id:        t.ID[:],
 		Address:   t.Address,
@@ -190,8 +190,8 @@ func targetToProto(t *models.Target) *target.Target {
 	}
 }
 
-func (s *Target) enqueueProbe(ctx context.Context, t *models.Tenant, targetID uuid.UUID) error {
-	wfb, err := infra.WorkflowBackend(t.Jobs)
+func (s *Target) enqueue(ctx context.Context, t *models.Tenant, targetID uuid.UUID) error {
+	wfb, err := infra.Backend(t.Jobs)
 	if err != nil {
 		return err
 	}

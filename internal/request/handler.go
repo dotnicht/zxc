@@ -72,7 +72,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deployDB, err := infra.NewConnection(tenant.Deploy)
+	deployDB, err := infra.Connect(tenant.Deploy)
 	if err != nil {
 		http.Error(w, "failed to connect to tenant database", http.StatusInternalServerError)
 		return
@@ -99,7 +99,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wfb, err := infra.WorkflowBackend(tenant.Jobs)
+	wfb, err := infra.Backend(tenant.Jobs)
 	if err != nil {
 		cleanupErr := deployDB.Unscoped().Delete(&models.Request{}, "id = ?", record.ID).Error
 		http.Error(w, errors.Join(err, cleanupErr).Error(), http.StatusInternalServerError)

@@ -31,7 +31,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	database, err := infra.NewConnection(cfg.Database)
+	database, err := infra.Connect(cfg.Database)
 	if err != nil {
 		slog.Error("Failed to connect to database", "error", err)
 		os.Exit(1)

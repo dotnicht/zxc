@@ -42,8 +42,8 @@ type deployDeps struct {
 
 var deployDep *deployDeps
 
-func RegisterDeployDeps(rootDB *gorm.DB, newDeploy func(string) (*gorm.DB, error), cfg *config.Config) {
-	deployDep = &deployDeps{rootDB: rootDB, newDeploy: newDeploy, cfg: cfg}
+func RegisterDeploy(rootDB *gorm.DB, connect func(string) (*gorm.DB, error), cfg *config.Config) {
+	deployDep = &deployDeps{rootDB: rootDB, newDeploy: connect, cfg: cfg}
 }
 
 func DeployActivity(ctx context.Context, args DeployArgs) error {
@@ -100,7 +100,7 @@ func DeployActivity(ctx context.Context, args DeployArgs) error {
 		}
 	}()
 
-	mc, bucket, err := infra.StorageClientFromConnectionString(tenant.Storage)
+	mc, bucket, err := infra.Storage(tenant.Storage)
 	if err != nil {
 		return fmt.Errorf("storage client: %w", err)
 	}
@@ -116,7 +116,7 @@ func DeployActivity(ctx context.Context, args DeployArgs) error {
 		return fmt.Errorf("read payload script: %w", err)
 	}
 
-	deployZip, err := injectConfig(scriptContent, pld.Config, release.ID, args.TenantID, deployDep.cfg.Webhook, deployDep.cfg.Secret, tgt.Key)
+	deployZip, err := inject(scriptContent, pld.Config, release.ID, args.TenantID, deployDep.cfg.Webhook, deployDep.cfg.Secret, tgt.Key)
 	if err != nil {
 		return fmt.Errorf("create deploy zip: %w", err)
 	}
@@ -153,7 +153,7 @@ func DeployActivity(ctx context.Context, args DeployArgs) error {
 		Updates(map[string]any{"status": models.ReleaseDeployed, "changed_by_id": args.ChangedByID}).Error
 }
 
-func injectConfig(zipContent []byte, config string, releaseID, tenantID uuid.UUID, webhookURL, secret, key string) ([]byte, error) {
+func inject(zipContent []byte, config string, releaseID, tenantID uuid.UUID, webhookURL, secret, key string) ([]byte, error) {
 	token, err := jwt.NewBuilder().
 		Claim("release_id", releaseID.String()).
 		Claim("tenant_id", tenantID.String()).

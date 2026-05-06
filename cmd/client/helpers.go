@@ -40,7 +40,7 @@ func authCtx(ctx context.Context, tenantID string) (context.Context, error) {
 	), nil
 }
 
-func rootAuthCtx(ctx context.Context) (context.Context, error) {
+func rootAuth(ctx context.Context) (context.Context, error) {
 	userID, err := userID()
 	if err != nil {
 		return nil, err
@@ -57,8 +57,8 @@ func formatUUID(b []byte) string {
 	return uuid.UUID(b).String()
 }
 
-func resolveTenant(ctx context.Context, name string) (string, error) {
-	authContext, err := rootAuthCtx(ctx)
+func resolve(ctx context.Context, name string) (string, error) {
+	authContext, err := rootAuth(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -74,7 +74,7 @@ func resolveTenant(ctx context.Context, name string) (string, error) {
 	return "", fmt.Errorf("tenant %q not found", name)
 }
 
-func effectiveTenantName() (string, error) {
+func name() (string, error) {
 	if tenantOverride != "" {
 		return tenantOverride, nil
 	}
@@ -85,11 +85,11 @@ func effectiveTenantName() (string, error) {
 }
 
 func tenantCtx(ctx context.Context) (context.Context, string, error) {
-	name, err := effectiveTenantName()
+	name, err := name()
 	if err != nil {
 		return nil, "", err
 	}
-	tenantID, err := resolveTenant(ctx, name)
+	tenantID, err := resolve(ctx, name)
 	if err != nil {
 		return nil, "", err
 	}
@@ -112,12 +112,12 @@ func tenantOwnerCtx(ctx context.Context) (context.Context, string, string, error
 	return authContext, tenantID, userID, nil
 }
 
-func newTabWriter() *tabwriter.Writer {
+func writer() *tabwriter.Writer {
 	return tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 }
 
 func printKV(pairs [][2]string) {
-	w := newTabWriter()
+	w := writer()
 	for _, p := range pairs {
 		fmt.Fprintf(w, "%s\t%s\n", p[0], p[1])
 	}

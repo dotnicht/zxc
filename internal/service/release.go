@@ -25,7 +25,7 @@ func NewRelease() *Release {
 }
 
 func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*release.CreateResponse, error) {
-	authUserID, err := ctxUserID(ctx)
+	authUserID, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 	targetID := uuid.UUID(req.TargetId)
 	payloadID := uuid.UUID(req.PayloadId)
 
-	_, db, err := ctxDeployDB(ctx)
+	_, db, err := deployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -59,13 +59,13 @@ func (s *Release) Create(ctx context.Context, req *release.CreateRequest) (*rele
 		return nil, status.Errorf(codes.Internal, "failed to create release: %v", err)
 	}
 
-	return &release.CreateResponse{Release: releaseToProto(rel)}, nil
+	return &release.CreateResponse{Release: s.proto(rel)}, nil
 }
 
 func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.GetResponse, error) {
 	id := uuid.UUID(req.Id)
 
-	_, db, err := ctxDeployDB(ctx)
+	_, db, err := deployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -78,18 +78,18 @@ func (s *Release) Get(ctx context.Context, req *release.GetRequest) (*release.Ge
 		return nil, status.Errorf(codes.Internal, "failed to get release: %v", err)
 	}
 
-	return &release.GetResponse{Release: releaseToProto(&rel)}, nil
+	return &release.GetResponse{Release: s.proto(&rel)}, nil
 }
 
 func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*release.DeployResponse, error) {
 	id := uuid.UUID(req.Id)
 
-	authUserID, err := ctxUserID(ctx)
+	authUserID, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, db, err := ctxDeployDB(ctx)
+	tenant, db, err := deployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 		return nil, status.Error(codes.NotFound, "release not found")
 	}
 
-	wfb, err := infra.WorkflowBackend(tenant.Jobs)
+	wfb, err := infra.Backend(tenant.Jobs)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to initialise jobs backend: %v", err)
 	}
@@ -143,7 +143,7 @@ func (s *Release) Deploy(ctx context.Context, req *release.DeployRequest) (*rele
 		return nil, status.Errorf(codes.Internal, "failed to get release: %v", err)
 	}
 
-	return &release.DeployResponse{Release: releaseToProto(&rel)}, nil
+	return &release.DeployResponse{Release: s.proto(&rel)}, nil
 }
 
 func (s *Release) List(ctx context.Context, req *release.ListRequest) (*release.ListResponse, error) {
@@ -155,7 +155,7 @@ func (s *Release) List(ctx context.Context, req *release.ListRequest) (*release.
 		size = 10
 	}
 
-	_, db, err := ctxDeployDB(ctx)
+	_, db, err := deployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -173,13 +173,13 @@ func (s *Release) List(ctx context.Context, req *release.ListRequest) (*release.
 
 	out := make([]*release.Release, len(releases))
 	for i, r := range releases {
-		out[i] = releaseToProto(r)
+		out[i] = s.proto(r)
 	}
 
 	return &release.ListResponse{Releases: out, Total: int32(total)}, nil
 }
 
-func releaseToProto(r *models.Release) *release.Release {
+func (s *Release) proto(r *models.Release) *release.Release {
 	p := &release.Release{
 		Id:          r.ID[:],
 		Status:      r.Status,

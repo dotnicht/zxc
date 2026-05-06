@@ -17,7 +17,7 @@ type StorageClient struct {
 	prefix string
 }
 
-func StorageClientFromConnectionString(conn string) (*StorageClient, string, error) {
+func Storage(conn string) (*StorageClient, string, error) {
 	u, err := url.Parse(conn)
 	if err != nil {
 		return nil, "", fmt.Errorf("invalid storage connection string: %w", err)

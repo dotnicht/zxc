@@ -88,7 +88,7 @@ func userListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			w := newTabWriter()
+			w := writer()
 			fmt.Fprintf(w, "ID\tNAME\tCREATED\n")
 			for _, u := range resp.Users {
 				fmt.Fprintf(w, "%s\t%s\t%s\n", formatUUID(u.Id), u.Name, u.CreatedAt)

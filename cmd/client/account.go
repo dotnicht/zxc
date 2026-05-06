@@ -59,7 +59,7 @@ func accountListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			w := newTabWriter()
+			w := writer()
 			fmt.Fprintf(w, "ID\tNAME\tSTATUS\tCREATED\n")
 			for _, a := range resp.Accounts {
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", formatUUID(a.Id), a.Name, a.Status, a.CreatedAt)

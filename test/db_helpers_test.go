@@ -17,7 +17,7 @@ func rootDB(t *testing.T) *sql.DB {
 
 func tenantMainDB(t *testing.T, name string) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("postgres", "postgres://postgres:postgres@localhost:5432/"+sanitizeTenantDBName(name)+"?sslmode=disable&search_path=main")
+	db, err := sql.Open("postgres", "postgres://postgres:postgres@localhost:5432/"+sanitize(name)+"?sslmode=disable&search_path=main")
 	if err != nil {
 		t.Fatalf("open tenant main database: %v", err)
 	}
@@ -27,7 +27,7 @@ func tenantMainDB(t *testing.T, name string) *sql.DB {
 
 func tenantDeployDB(t *testing.T, name string) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("postgres", deployConn(name))
+	db, err := sql.Open("postgres", deploy(name))
 	if err != nil {
 		t.Fatalf("open tenant deploy database: %v", err)
 	}
@@ -37,7 +37,7 @@ func tenantDeployDB(t *testing.T, name string) *sql.DB {
 
 func tenantAccountDB(t *testing.T, name string) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("postgres", accountConn(name))
+	db, err := sql.Open("postgres", account(name))
 	if err != nil {
 		t.Fatalf("open tenant account database: %v", err)
 	}

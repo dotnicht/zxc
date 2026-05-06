@@ -26,7 +26,7 @@ func (s *System) Create(ctx context.Context, req *system.CreateRequest) (*system
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	_, db, err := ctxUsersDB(ctx)
+	_, db, err := usersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -36,13 +36,13 @@ func (s *System) Create(ctx context.Context, req *system.CreateRequest) (*system
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create system: %v", err))
 	}
 
-	return &system.CreateResponse{System: systemToProto(m)}, nil
+	return &system.CreateResponse{System: s.proto(m)}, nil
 }
 
 func (s *System) Get(ctx context.Context, req *system.GetRequest) (*system.GetResponse, error) {
 	id := uuid.UUID(req.Id)
 
-	_, db, err := ctxUsersDB(ctx)
+	_, db, err := usersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (s *System) Get(ctx context.Context, req *system.GetRequest) (*system.GetRe
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to get system: %v", err))
 	}
 
-	return &system.GetResponse{System: systemToProto(&m)}, nil
+	return &system.GetResponse{System: s.proto(&m)}, nil
 }
 
 func (s *System) Update(ctx context.Context, req *system.UpdateRequest) (*system.UpdateResponse, error) {
@@ -65,7 +65,7 @@ func (s *System) Update(ctx context.Context, req *system.UpdateRequest) (*system
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	_, db, err := ctxUsersDB(ctx)
+	_, db, err := usersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -91,13 +91,13 @@ func (s *System) Update(ctx context.Context, req *system.UpdateRequest) (*system
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to fetch updated system: %v", err))
 	}
 
-	return &system.UpdateResponse{System: systemToProto(&updated)}, nil
+	return &system.UpdateResponse{System: s.proto(&updated)}, nil
 }
 
 func (s *System) Delete(ctx context.Context, req *system.DeleteRequest) (*system.DeleteResponse, error) {
 	id := uuid.UUID(req.Id)
 
-	_, db, err := ctxUsersDB(ctx)
+	_, db, err := usersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (s *System) List(ctx context.Context, req *system.ListRequest) (*system.Lis
 		size = 10
 	}
 
-	_, db, err := ctxUsersDB(ctx)
+	_, db, err := usersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -140,13 +140,13 @@ func (s *System) List(ctx context.Context, req *system.ListRequest) (*system.Lis
 
 	out := make([]*system.System, len(systems))
 	for i, m := range systems {
-		out[i] = systemToProto(m)
+		out[i] = s.proto(m)
 	}
 
 	return &system.ListResponse{Systems: out, Total: int32(total)}, nil
 }
 
-func systemToProto(m *models.System) *system.System {
+func (s *System) proto(m *models.System) *system.System {
 	return &system.System{
 		Id:        m.ID[:],
 		Name:      m.Name,

@@ -60,7 +60,7 @@ func sessionListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			w := newTabWriter()
+			w := writer()
 			fmt.Fprintf(w, "ID\tACCOUNT_ID\tSTATUS\tCREATED\n")
 			for _, record := range resp.Sessions {
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", formatUUID(record.Id), formatUUID(record.AccountId), record.Status, record.CreatedAt)

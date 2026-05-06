@@ -26,7 +26,7 @@ func tenantAddCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, err := rootAuthCtx(ctx)
+			authContext, err := rootAuth(ctx)
 			if err != nil {
 				return err
 			}
@@ -63,7 +63,7 @@ func tenantGetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, err := rootAuthCtx(ctx)
+			authContext, err := rootAuth(ctx)
 			if err != nil {
 				return err
 			}
@@ -88,7 +88,7 @@ func tenantListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := newCtx()
 			defer cancel()
-			authContext, err := rootAuthCtx(ctx)
+			authContext, err := rootAuth(ctx)
 			if err != nil {
 				return err
 			}
@@ -96,7 +96,7 @@ func tenantListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			w := newTabWriter()
+			w := writer()
 			fmt.Fprintf(w, "ID\tNAME\tCREATED\n")
 			for _, t := range resp.Tenants {
 				fmt.Fprintf(w, "%s\t%s\t%s\n", formatUUID(t.Id), t.Name, t.CreatedAt)

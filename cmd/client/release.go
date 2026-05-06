@@ -91,7 +91,7 @@ func releaseListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			w := newTabWriter()
+			w := writer()
 			fmt.Fprintf(w, "ID\tSTATUS\tTARGET_ID\tPAYLOAD_ID\tCREATED\n")
 			for _, r := range resp.Releases {
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", formatUUID(r.Id), r.Status, formatUUID(r.TargetId), formatUUID(r.PayloadId), r.CreatedAt)

@@ -30,7 +30,7 @@ func NewPayload() *Payload {
 
 const maxPayloadSize = 50 * 1024 * 1024
 
-func validatePayloadZip(content []byte, config string) error {
+func validate(content []byte, config string) error {
 	r, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
 	if err != nil {
 		return fmt.Errorf("not a valid zip archive: %w", err)
@@ -70,23 +70,23 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 	if req.Config == "" {
 		return nil, status.Error(codes.InvalidArgument, "config is required")
 	}
-	if err := validatePayloadZip(req.Content, req.Config); err != nil {
+	if err := validate(req.Content, req.Config); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid payload zip: %v", err)
 	}
 
-	authUserID, err := ctxUserID(ctx)
+	authUserID, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, db, err := ctxDeployDB(ctx)
+	tenant, db, err := deployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	payloadID := uuid.New()
 
-	mc, bucket, err := infra.StorageClientFromConnectionString(tenant.Storage)
+	mc, bucket, err := infra.Storage(tenant.Storage)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to connect to storage: %v", err)
 	}
@@ -113,13 +113,13 @@ func (s *Payload) Create(ctx context.Context, req *payload.CreateRequest) (*payl
 		return nil, status.Errorf(codes.Internal, "failed to create payload: %v", err)
 	}
 
-	return &payload.CreateResponse{Payload: payloadToProto(p)}, nil
+	return &payload.CreateResponse{Payload: s.proto(p)}, nil
 }
 
 func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.GetResponse, error) {
 	id := uuid.UUID(req.Id)
 
-	_, db, err := ctxDeployDB(ctx)
+	_, db, err := deployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -132,13 +132,13 @@ func (s *Payload) Get(ctx context.Context, req *payload.GetRequest) (*payload.Ge
 		return nil, status.Errorf(codes.Internal, "failed to get payload: %v", err)
 	}
 
-	return &payload.GetResponse{Payload: payloadToProto(&p)}, nil
+	return &payload.GetResponse{Payload: s.proto(&p)}, nil
 }
 
 func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payload.UpdateResponse, error) {
 	id := uuid.UUID(req.Id)
 
-	_, db, err := ctxDeployDB(ctx)
+	_, db, err := deployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -164,13 +164,13 @@ func (s *Payload) Update(ctx context.Context, req *payload.UpdateRequest) (*payl
 		return nil, status.Errorf(codes.Internal, "failed to fetch updated payload: %v", err)
 	}
 
-	return &payload.UpdateResponse{Payload: payloadToProto(&updated)}, nil
+	return &payload.UpdateResponse{Payload: s.proto(&updated)}, nil
 }
 
 func (s *Payload) Delete(ctx context.Context, req *payload.DeleteRequest) (*payload.DeleteResponse, error) {
 	id := uuid.UUID(req.Id)
 
-	_, db, err := ctxDeployDB(ctx)
+	_, db, err := deployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +203,7 @@ func (s *Payload) List(ctx context.Context, req *payload.ListRequest) (*payload.
 		size = 10
 	}
 
-	_, db, err := ctxDeployDB(ctx)
+	_, db, err := deployDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -221,13 +221,13 @@ func (s *Payload) List(ctx context.Context, req *payload.ListRequest) (*payload.
 
 	out := make([]*payload.Payload, len(payloads))
 	for i, p := range payloads {
-		out[i] = payloadToProto(p)
+		out[i] = s.proto(p)
 	}
 
 	return &payload.ListResponse{Payloads: out, Total: int32(total)}, nil
 }
 
-func payloadToProto(p *models.Payload) *payload.Payload {
+func (s *Payload) proto(p *models.Payload) *payload.Payload {
 	return &payload.Payload{
 		Id:        p.ID[:],
 		Path:      p.Path,

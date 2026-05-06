@@ -54,8 +54,8 @@ type generateDeps struct {
 
 var generateDep *generateDeps
 
-func RegisterGenerateDeps(rootDB *gorm.DB, newAccount func(string) (*gorm.DB, error)) {
-	generateDep = &generateDeps{rootDB: rootDB, newAccount: newAccount}
+func RegisterGenerate(rootDB *gorm.DB, connect func(string) (*gorm.DB, error)) {
+	generateDep = &generateDeps{rootDB: rootDB, newAccount: connect}
 }
 
 func GenerateActivity(ctx context.Context, args GenerateArgs) error {
@@ -75,14 +75,14 @@ func GenerateActivity(ctx context.Context, args GenerateArgs) error {
 	}
 
 	for _, profile := range profiles {
-		if err := generateForProfile(ctx, db, profile); err != nil {
+		if err := generate(ctx, db, profile); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func generateForProfile(ctx context.Context, db *gorm.DB, profile models.Profile) error {
+func generate(ctx context.Context, db *gorm.DB, profile models.Profile) error {
 	var talks []models.Talk
 	if err := db.WithContext(ctx).Where("profile_id = ? AND deleted_at IS NULL", profile.ID).Find(&talks).Error; err != nil {
 		return err

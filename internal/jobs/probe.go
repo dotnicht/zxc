@@ -33,8 +33,8 @@ type probeDeps struct {
 
 var probeDep *probeDeps
 
-func RegisterProbeDeps(rootDB *gorm.DB, newDeploy func(string) (*gorm.DB, error)) {
-	probeDep = &probeDeps{rootDB: rootDB, newDeploy: newDeploy}
+func RegisterProbe(rootDB *gorm.DB, connect func(string) (*gorm.DB, error)) {
+	probeDep = &probeDeps{rootDB: rootDB, newDeploy: connect}
 }
 
 func ProbeActivity(ctx context.Context, args ProbeArgs) error {

@@ -37,14 +37,14 @@ func main() {
 	}
 
 	slog.Info("Ensuring root database exists...")
-	dbCreated, err := ensureRootDatabase(cfg.Database)
+	dbCreated, err := ensureRoot(cfg.Database)
 	if err != nil {
 		slog.Error("Failed to ensure root database", "error", err)
 		os.Exit(1)
 	}
 
 	slog.Info("Connecting to root database...")
-	rootDB, err := infra.NewConnection(cfg.Database)
+	rootDB, err := infra.Connect(cfg.Database)
 	if err != nil {
 		slog.Error("Failed to connect to root database", "error", err)
 		os.Exit(1)
@@ -58,7 +58,7 @@ func main() {
 	defer sqlDB.Close()
 
 	slog.Info("Running root migrations...")
-	if err := infra.RunRootMigrations(rootDB); err != nil {
+	if err := (infra.Migrator{DB: rootDB}).Root(); err != nil {
 		slog.Error("Failed to run root migrations", "error", err)
 		os.Exit(1)
 	}
@@ -94,7 +94,7 @@ func main() {
 	for i, tenant := range tenants {
 		slog.Info("Migrating tenant", "index", i+1, "total", len(tenants), "name", tenant.Name)
 		start := time.Now()
-		if err := migrateTenantDatabases(tenant); err != nil {
+		if err := migrateTenant(tenant); err != nil {
 			slog.Error("Tenant migration failed", "name", tenant.Name, "error", err)
 			failCount++
 		} else {
@@ -111,7 +111,7 @@ func main() {
 	slog.Info("All migrations completed successfully")
 }
 
-func ensureRootDatabase(conn string) (created bool, err error) {
+func ensureRoot(conn string) (created bool, err error) {
 	u, err := url.Parse(conn)
 	if err != nil {
 		return false, fmt.Errorf("invalid connection string: %w", err)
@@ -152,15 +152,15 @@ func ensureRootDatabase(conn string) (created bool, err error) {
 	return false, nil
 }
 
-func migrateTenantDatabases(tenant *models.Tenant) error {
+func migrateTenant(tenant *models.Tenant) error {
 	for _, m := range []struct {
 		connStr string
-		fn      func(*gorm.DB) error
+		fn      func(infra.Migrator) error
 		label   string
 	}{
-		{tenant.Main, infra.RunMainMigrations, "main"},
-		{tenant.Deploy, infra.RunDeployMigrations, "deploy"},
-		{tenant.Account, infra.RunAccountMigrations, "account"},
+		{tenant.Main, func(mg infra.Migrator) error { return mg.Main() }, "main"},
+		{tenant.Deploy, func(mg infra.Migrator) error { return mg.Deploy() }, "deploy"},
+		{tenant.Account, func(mg infra.Migrator) error { return mg.Account() }, "account"},
 	} {
 		if m.connStr == "" {
 			continue
@@ -169,7 +169,7 @@ func migrateTenantDatabases(tenant *models.Tenant) error {
 		if err != nil {
 			return fmt.Errorf("connect to %s db: %w", m.label, err)
 		}
-		if err := m.fn(db); err != nil {
+		if err := m.fn(infra.Migrator{DB: db}); err != nil {
 			return fmt.Errorf("migrate %s db: %w", m.label, err)
 		}
 		sqlDB, _ := db.DB()

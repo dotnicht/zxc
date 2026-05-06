@@ -15,7 +15,7 @@ func TestSessionStartStop(t *testing.T) {
 		t.Fatalf("insert session: %v", err)
 	}
 
-	started := parseKVOutput(t, runTenantClient(t, sharedTenantName, "session", "start", "--id", sessionID))
+	started := parseKV(t, runTenant(t, sharedTenantName, "session", "start", "--id", sessionID))
 	if started["status"] != "online" {
 		t.Fatalf("expected status=online after start, got %q", started["status"])
 	}
@@ -27,7 +27,7 @@ func TestSessionStartStop(t *testing.T) {
 		t.Fatalf("DB status after start: %q", dbStatus)
 	}
 
-	stopped := parseKVOutput(t, runTenantClient(t, sharedTenantName, "session", "stop", "--id", sessionID))
+	stopped := parseKV(t, runTenant(t, sharedTenantName, "session", "stop", "--id", sessionID))
 	if stopped["status"] != "offline" {
 		t.Fatalf("expected status=offline after stop, got %q", stopped["status"])
 	}
@@ -36,6 +36,26 @@ func TestSessionStartStop(t *testing.T) {
 	}
 	if dbStatus != "offline" {
 		t.Fatalf("DB status after stop: %q", dbStatus)
+	}
+}
+
+func TestSessionGet(t *testing.T) {
+	t.Parallel()
+	adb := tenantAccountDB(t, sharedTenantName)
+	var sessionID string
+	if err := adb.QueryRow(
+		`INSERT INTO sessions (profile_id, status) VALUES ($1, 'offline') RETURNING id::text`,
+		sharedProfileID,
+	).Scan(&sessionID); err != nil {
+		t.Fatalf("insert session: %v", err)
+	}
+
+	got := parseKV(t, runTenant(t, sharedTenantName, "session", "get", "--id", sessionID))
+	if got["id"] != sessionID {
+		t.Fatalf("get returned wrong id: got %q want %q", got["id"], sessionID)
+	}
+	if got["status"] != "offline" {
+		t.Fatalf("status mismatch: got %q", got["status"])
 	}
 }
 
@@ -48,7 +68,7 @@ func TestSessionList(t *testing.T) {
 		t.Fatalf("insert session: %v", err)
 	}
 
-	out := runTenantClient(t, sharedTenantName, "session", "list")
+	out := runTenant(t, sharedTenantName, "session", "list")
 	if out == "" {
 		t.Fatal("expected non-empty session list output")
 	}

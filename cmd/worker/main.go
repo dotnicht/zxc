@@ -31,16 +31,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	root, err := infra.NewConnection(cfg.Database)
+	root, err := infra.Connect(cfg.Database)
 	if err != nil {
 		slog.Error("failed to connect to root database", "error", err)
 		os.Exit(1)
 	}
 
-	jobs.RegisterDeployDeps(root, infra.NewConnection, cfg)
-	jobs.RegisterAccountDeps(root, infra.NewConnection, infra.NewConnection)
-	jobs.RegisterProbeDeps(root, infra.NewConnection)
-	jobs.RegisterGenerateDeps(root, infra.NewConnection)
+	jobs.RegisterDeploy(root, infra.Connect, cfg)
+	jobs.RegisterAccount(root, infra.Connect, infra.Connect)
+	jobs.RegisterProbe(root, infra.Connect)
+	jobs.RegisterGenerate(root, infra.Connect)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -63,7 +63,7 @@ func main() {
 		if _, ok := running[jobs_]; ok {
 			return
 		}
-		backend, err := infra.WorkflowBackend(jobs_)
+		backend, err := infra.Backend(jobs_)
 		if err != nil {
 			slog.Error("workflow backend", "jobs", jobs_, "error", err)
 			return

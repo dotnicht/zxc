@@ -35,7 +35,7 @@ func NewTenant(db *gorm.DB, cfg *config.Config, root *models.User) *Tenant {
 	return &Tenant{db: db, cfg: cfg, root: root}
 }
 
-func validateTenantName(name string) error {
+func (s *Tenant) validate(name string) error {
 	if name == "" {
 		return fmt.Errorf("name is required")
 	}
@@ -54,7 +54,7 @@ func validateTenantName(name string) error {
 }
 
 func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant.CreateResponse, error) {
-	if err := validateTenantName(req.Name); err != nil {
+	if err := s.validate(req.Name); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid tenant name: %v", err)
 	}
 
@@ -86,7 +86,7 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 
 	storage := req.Storage
 	if storage == "" && s.cfg.Storage != "" {
-		sc, bucket, err := infra.StorageClientFromConnectionString(s.cfg.Storage)
+		sc, bucket, err := infra.Storage(s.cfg.Storage)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to parse storage config: %v", err)
 		}
@@ -113,15 +113,15 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 		return nil, status.Errorf(codes.Internal, "failed to create tenant: %v", err)
 	}
 
-	dbName := sanitizeDatabaseName(req.Name)
+	dbName := sanitize(req.Name)
 	if req.Database == "" {
-		if err := s.createDatabase(dbName); err != nil {
+		if err := s.create(dbName); err != nil {
 			s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
 			return nil, status.Errorf(codes.Internal, "failed to create tenant database: %v", err)
 		}
 	}
 	if req.Jobs == "" {
-		if err := s.createDatabase(dbName + "_jobs"); err != nil {
+		if err := s.create(dbName + "_jobs"); err != nil {
 			s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
 			return nil, status.Errorf(codes.Internal, "failed to create tenant jobs database: %v", err)
 		}
@@ -130,27 +130,27 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 	for _, m := range []struct {
 		conn   string
 		schema string
-		fn     func(*gorm.DB) error
+		fn     func(infra.Migrator) error
 		label  string
 	}{
-		{main, "main", infra.RunMainMigrations, "main"},
-		{deploy, "deploy", infra.RunDeployMigrations, "deploy"},
-		{account, "account", infra.RunAccountMigrations, "account"},
+		{main, "main", func(mg infra.Migrator) error { return mg.Main() }, "main"},
+		{deploy, "deploy", func(mg infra.Migrator) error { return mg.Deploy() }, "deploy"},
+		{account, "account", func(mg infra.Migrator) error { return mg.Account() }, "account"},
 	} {
-		if err := s.runMigrations(m.conn, m.schema, m.fn); err != nil {
+		if err := s.migrate(m.conn, m.schema, m.fn); err != nil {
 			s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
 			return nil, status.Errorf(codes.Internal, "failed to run %s migrations: %v", m.label, err)
 		}
 	}
 
 	// Initialise the jobs backend (runs migrations on first call, then cached).
-	wfb, err := infra.WorkflowBackend(jobs_)
+	wfb, err := infra.Backend(jobs_)
 	if err != nil {
 		s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
 		return nil, status.Errorf(codes.Internal, "failed to initialise jobs backend: %v", err)
 	}
 
-	if err := s.seedOwner(main, s.root); err != nil {
+	if err := s.seed(main, s.root); err != nil {
 		s.db.Delete(&models.Tenant{}, "id = ?", t.ID)
 		return nil, status.Errorf(codes.Internal, "failed to seed tenant owner: %v", err)
 	}
@@ -161,7 +161,7 @@ func (s *Tenant) Create(ctx context.Context, req *tenant.CreateRequest) (*tenant
 		jobs.Generate, jobs.GenerateArgs{TenantID: t.ID},
 	)
 
-	return &tenant.CreateResponse{Tenant: s.modelToProto(t)}, nil
+	return &tenant.CreateResponse{Tenant: s.proto(t)}, nil
 }
 
 func (s *Tenant) Get(ctx context.Context, req *tenant.GetRequest) (*tenant.GetResponse, error) {
@@ -175,7 +175,7 @@ func (s *Tenant) Get(ctx context.Context, req *tenant.GetRequest) (*tenant.GetRe
 		return nil, status.Errorf(codes.Internal, "failed to get tenant: %v", err)
 	}
 
-	return &tenant.GetResponse{Tenant: s.modelToProto(&t)}, nil
+	return &tenant.GetResponse{Tenant: s.proto(&t)}, nil
 }
 
 func (s *Tenant) List(ctx context.Context, req *tenant.ListRequest) (*tenant.ListResponse, error) {
@@ -201,22 +201,22 @@ func (s *Tenant) List(ctx context.Context, req *tenant.ListRequest) (*tenant.Lis
 
 	out := make([]*tenant.Tenant, len(tenants))
 	for i, t := range tenants {
-		out[i] = s.modelToProto(t)
+		out[i] = s.proto(t)
 	}
 
 	return &tenant.ListResponse{Tenants: out, Total: int32(total)}, nil
 }
 
 func (s *Tenant) main(name string) string {
-	return s.connWithSchema(name, "main")
+	return s.conn(name, "main")
 }
 
 func (s *Tenant) deploy(name string) string {
-	return s.connWithSchema(name, "deploy")
+	return s.conn(name, "deploy")
 }
 
 func (s *Tenant) account(name string) string {
-	return s.connWithSchema(name, "account")
+	return s.conn(name, "account")
 }
 
 func (s *Tenant) jobs(name string) string {
@@ -224,17 +224,17 @@ func (s *Tenant) jobs(name string) string {
 	if err != nil {
 		return s.cfg.Database
 	}
-	u.Path = "/" + sanitizeDatabaseName(name) + "_jobs"
+	u.Path = "/" + sanitize(name) + "_jobs"
 	u.RawQuery = ""
 	return u.String()
 }
 
-func (s *Tenant) connWithSchema(tenantName, schema string) string {
+func (s *Tenant) conn(tenantName, schema string) string {
 	u, err := url.Parse(s.cfg.Database)
 	if err != nil {
 		return s.cfg.Database
 	}
-	u.Path = "/" + sanitizeDatabaseName(tenantName)
+	u.Path = "/" + sanitize(tenantName)
 	q := u.Query()
 	q.Set("search_path", schema)
 	u.RawQuery = q.Encode()
@@ -250,14 +250,14 @@ func (s *Tenant) admin() string {
 	return u.String()
 }
 
-func (s *Tenant) createDatabase(dbName string) error {
+func (s *Tenant) create(dbName string) error {
 	sqlDB, err := gosql.Open("postgres", s.admin())
 	if err != nil {
 		return fmt.Errorf("failed to connect to postgres: %w", err)
 	}
 	defer sqlDB.Close()
 
-	name := sanitizeDatabaseName(dbName)
+	name := sanitize(dbName)
 	_, err = sqlDB.Exec(fmt.Sprintf(`CREATE DATABASE "%s"`, name))
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
@@ -268,18 +268,18 @@ func (s *Tenant) createDatabase(dbName string) error {
 	return nil
 }
 
-func (s *Tenant) runMigrations(conn, schema string, migrate func(*gorm.DB) error) error {
-	db, err := infra.NewConnection(conn)
+func (s *Tenant) migrate(conn, schema string, fn func(infra.Migrator) error) error {
+	db, err := infra.Connect(conn)
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
 	}
-	if err := infra.EnsureSchema(db, schema); err != nil {
+	if err := infra.Schema(db, schema); err != nil {
 		return fmt.Errorf("failed to create schema: %w", err)
 	}
-	return migrate(db)
+	return fn(infra.Migrator{DB: db})
 }
 
-func (s *Tenant) seedOwner(conn string, owner *models.User) error {
+func (s *Tenant) seed(conn string, owner *models.User) error {
 	sqldb := gosql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(conn)))
 	defer sqldb.Close()
 	db := bun.NewDB(sqldb, pgdialect.New())
@@ -290,7 +290,7 @@ func (s *Tenant) seedOwner(conn string, owner *models.User) error {
 	return nil
 }
 
-func (s *Tenant) modelToProto(m *models.Tenant) *tenant.Tenant {
+func (s *Tenant) proto(m *models.Tenant) *tenant.Tenant {
 	return &tenant.Tenant{
 		Id:        m.ID[:],
 		Name:      m.Name,
@@ -305,7 +305,7 @@ func (s *Tenant) modelToProto(m *models.Tenant) *tenant.Tenant {
 	}
 }
 
-func sanitizeDatabaseName(name string) string {
+func sanitize(name string) string {
 	var result strings.Builder
 	for _, r := range name {
 		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' {

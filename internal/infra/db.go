@@ -25,10 +25,9 @@ var (
 	wfBackendCacheMu sync.Mutex
 )
 
-// WorkflowBackend returns a cached workflow backend for the given connection string.
+// backend returns a cached workflow backend for the given connection string.
 // On first call it runs migrations; subsequent calls reuse the same instance.
-// Returns an error if the connection string is invalid or the backend cannot be created.
-func WorkflowBackend(conn string) (b backend.Backend, err error) {
+func Backend(conn string) (b backend.Backend, err error) {
 	wfBackendCacheMu.Lock()
 	defer wfBackendCacheMu.Unlock()
 	if cached, ok := wfBackendCache[conn]; ok {
@@ -66,7 +65,7 @@ func WorkflowBackend(conn string) (b backend.Backend, err error) {
 	return b, nil
 }
 
-func NewConnection(conn string) (*gorm.DB, error) {
+func Connect(conn string) (*gorm.DB, error) {
 	connCacheMu.Lock()
 	defer connCacheMu.Unlock()
 
@@ -97,40 +96,45 @@ func NewConnection(conn string) (*gorm.DB, error) {
 	return db, nil
 }
 
-func EnsureSchema(db *gorm.DB, schema string) error {
+func Schema(db *gorm.DB, schema string) error {
 	return db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %q", schema)).Error
 }
 
-func RunRootMigrations(db *gorm.DB) error {
+// Migrator runs schema migrations against a gorm.DB.
+type Migrator struct {
+	DB *gorm.DB
+}
+
+func (m Migrator) Root() error {
 	slog.Info("Running root database migrations")
-	if err := db.AutoMigrate(&models.Tenant{}, &models.User{}); err != nil {
+	if err := m.DB.AutoMigrate(&models.Tenant{}, &models.User{}); err != nil {
 		return fmt.Errorf("failed to run root migrations: %w", err)
 	}
 	slog.Info("Root migrations completed")
 	return nil
 }
 
-func RunMainMigrations(db *gorm.DB) error {
+func (m Migrator) Main() error {
 	slog.Info("Running main database migrations")
-	if err := db.AutoMigrate(&models.User{}, &models.System{}); err != nil {
+	if err := m.DB.AutoMigrate(&models.User{}, &models.System{}); err != nil {
 		return fmt.Errorf("failed to run main migrations: %w", err)
 	}
 	slog.Info("Main migrations completed")
 	return nil
 }
 
-func RunDeployMigrations(db *gorm.DB) error {
+func (m Migrator) Deploy() error {
 	slog.Info("Running deploy database migrations")
-	if err := db.AutoMigrate(&models.Target{}, &models.Payload{}, &models.Release{}, &models.Request{}); err != nil {
+	if err := m.DB.AutoMigrate(&models.Target{}, &models.Payload{}, &models.Release{}, &models.Request{}); err != nil {
 		return fmt.Errorf("failed to run deploy migrations: %w", err)
 	}
 	slog.Info("Deploy migrations completed")
 	return nil
 }
 
-func RunAccountMigrations(db *gorm.DB) error {
+func (m Migrator) Account() error {
 	slog.Info("Running account database migrations")
-	if err := db.AutoMigrate(&models.Profile{}, &models.Session{}, &models.Talk{}, &models.File{}, &models.Contact{}, &models.Post{}); err != nil {
+	if err := m.DB.AutoMigrate(&models.Profile{}, &models.Session{}, &models.Talk{}, &models.File{}, &models.Contact{}, &models.Post{}); err != nil {
 		return fmt.Errorf("failed to run account migrations: %w", err)
 	}
 	slog.Info("Account migrations completed")

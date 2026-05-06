@@ -50,7 +50,7 @@ var rootCmd = &cobra.Command{
 	Use:   "client",
 	Short: "gRPC API client",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := loadConfig()
+		cfg, err := load()
 		if err != nil {
 			return err
 		}
@@ -89,7 +89,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func loadConfig() (*clientConfig, error) {
+func load() (*clientConfig, error) {
 	cfg := &clientConfig{
 		Address: "localhost:50051",
 	}

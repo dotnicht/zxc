@@ -105,7 +105,7 @@ func payloadListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			w := newTabWriter()
+			w := writer()
 			fmt.Fprintf(w, "ID\tPATH\tCREATED\n")
 			for _, p := range resp.Payloads {
 				fmt.Fprintf(w, "%s\t%s\t%s\n", formatUUID(p.Id), p.Path, p.CreatedAt)

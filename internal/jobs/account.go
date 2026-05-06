@@ -32,8 +32,8 @@ type accountDeps struct {
 
 var accountDep *accountDeps
 
-func RegisterAccountDeps(rootDB *gorm.DB, newDeploy func(string) (*gorm.DB, error), newAccount func(string) (*gorm.DB, error)) {
-	accountDep = &accountDeps{rootDB: rootDB, newDeploy: newDeploy, newAccount: newAccount}
+func RegisterAccount(rootDB *gorm.DB, connect func(string) (*gorm.DB, error), connectAccount func(string) (*gorm.DB, error)) {
+	accountDep = &accountDeps{rootDB: rootDB, newDeploy: connect, newAccount: connectAccount}
 }
 
 func AccountActivity(ctx context.Context, args AccountArgs) error {
@@ -60,7 +60,7 @@ func AccountActivity(ctx context.Context, args AccountArgs) error {
 		return err
 	}
 
-	nodeName, ok := extractNodeName(request.Data)
+	nodeName, ok := extract(request.Data)
 	if !ok {
 		return nil
 	}
@@ -77,7 +77,7 @@ func AccountActivity(ctx context.Context, args AccountArgs) error {
 	return nil
 }
 
-func extractNodeName(data json.RawMessage) (string, bool) {
+func extract(data json.RawMessage) (string, bool) {
 	var payload map[string]any
 	if err := json.Unmarshal(data, &payload); err != nil {
 		return "", false

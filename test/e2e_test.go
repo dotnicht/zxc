@@ -73,21 +73,21 @@ func TestMain(m *testing.M) {
 	}
 
 	log("waiting for migrator container %q to finish", migratorName)
-	if err := waitForMigrator(migratorName, 120*time.Second); err != nil {
+	if err := waitMigrator(migratorName, 120*time.Second); err != nil {
 		printComposeDiagnostics()
 		fmt.Printf("migrator did not complete: %v\n", err)
 		os.Exit(1)
 	}
 
 	log("waiting for gRPC endpoint %s", grpcAddr)
-	if err := waitForGRPC(grpcAddr, 60*time.Second); err != nil {
+	if err := waitGRPC(grpcAddr, 60*time.Second); err != nil {
 		printComposeDiagnostics()
 		fmt.Printf("gRPC server not ready: %v\n", err)
 		os.Exit(1)
 	}
 
 	log("waiting for worker container %q to be running", workerName)
-	if err := waitForContainer(workerName, 60*time.Second); err != nil {
+	if err := waitContainer(workerName, 60*time.Second); err != nil {
 		printComposeDiagnostics()
 		fmt.Printf("worker not running: %v\n", err)
 		os.Exit(1)
@@ -120,12 +120,12 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	if err := writeClientConfig(rootUserID); err != nil {
+	if err := writeConfig(rootUserID); err != nil {
 		fmt.Printf("write initial client config failed: %v\n", err)
 		os.Exit(1)
 	}
 
-	sharedTenantName, sharedProfileID = setupSharedFixture(tmpDir)
+	sharedTenantName, sharedProfileID = fixture(tmpDir)
 
 	log("starting tests")
 	code := m.Run()
@@ -168,7 +168,7 @@ func printComposeDiagnostics() {
 	}
 }
 
-func buildFixtureZip(t *testing.T) []byte {
+func buildZip(t *testing.T) []byte {
 	t.Helper()
 	log("building payload fixture zip")
 	scriptContent, _ := os.ReadFile(projectRoot + "/test/fixtures/script.sh")
@@ -182,8 +182,8 @@ func buildFixtureZip(t *testing.T) []byte {
 	return buf.Bytes()
 }
 
-func writeClientConfig(userID string) error {
-	cfgDir := filepath.Join(clientConfigBaseDir(), "zxc")
+func writeConfig(userID string) error {
+	cfgDir := filepath.Join(configDir(), "zxc")
 	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
 		return err
 	}
@@ -203,7 +203,7 @@ key = %q
 	return os.WriteFile(filepath.Join(cfgDir, "client.toml"), []byte(body), 0o644)
 }
 
-func clientConfigBaseDir() string {
+func configDir() string {
 	switch runtime.GOOS {
 	case "darwin":
 		return filepath.Join(clientCfgRoot, "Library", "Application Support")
@@ -259,13 +259,13 @@ func clientCmd(t *testing.T, args ...string) *exec.Cmd {
 	return cmd
 }
 
-func runTenantClient(t *testing.T, name string, args ...string) string {
+func runTenant(t *testing.T, name string, args ...string) string {
 	t.Helper()
 	rootArgs := append([]string{"--tenant", name}, args...)
 	return runClient(t, rootArgs...)
 }
 
-func parseKVOutput(t *testing.T, out string) map[string]string {
+func parseKV(t *testing.T, out string) map[string]string {
 	t.Helper()
 	parsed := make(map[string]string)
 	for _, line := range strings.Split(out, "\n") {
@@ -284,7 +284,7 @@ func parseKVOutput(t *testing.T, out string) map[string]string {
 	return parsed
 }
 
-func firstDataID(t *testing.T, out string) string {
+func firstID(t *testing.T, out string) string {
 	t.Helper()
 	lines := strings.Split(strings.TrimSpace(out), "\n")
 	if len(lines) < 2 {
@@ -297,21 +297,21 @@ func firstDataID(t *testing.T, out string) string {
 	return fields[0]
 }
 
-func setupTenantWithDeps(t *testing.T, ts int64, idx int) (tenantID, ownerID, targetID, payloadID, tenantName string) {
+func setup(t *testing.T, ts int64, idx int) (tenantID, ownerID, targetID, payloadID, tenantName string) {
 	t.Helper()
 	tenantName = fmt.Sprintf("inttenant%d_%d", ts, idx)
 	name := tenantName
 	log("creating tenant %q", name)
-	tenantAdd := parseKVOutput(t, runClient(t, "tenant", "add", "--name", name))
+	tenantAdd := parseKV(t, runClient(t, "tenant", "add", "--name", name))
 	tenantID = tenantAdd["id"]
 	log("tenant created: id=%s", tenantID)
 
 	log("listing users for tenant %s", tenantID)
-	ownerID = firstDataID(t, runTenantClient(t, name, "user", "list", "--size", "10"))
+	ownerID = firstID(t, runTenant(t, name, "user", "list", "--size", "10"))
 	log("tenant owner resolved: userid=%s", ownerID)
 
 	log("creating deploy target")
-	targetAdd := parseKVOutput(t, runClient(t,
+	targetAdd := parseKV(t, runClient(t,
 		"--tenant", name,
 		"target", "add",
 		"--address", "zxc-target",
@@ -321,13 +321,13 @@ func setupTenantWithDeps(t *testing.T, ts int64, idx int) (tenantID, ownerID, ta
 	targetID = targetAdd["id"]
 	log("target created: id=%s address=%s", targetID, targetAdd["address"])
 
-	zipContent := buildFixtureZip(t)
+	zipContent := buildZip(t)
 	tmpZip := filepath.Join(t.TempDir(), "payload.zip")
 	if err := os.WriteFile(tmpZip, zipContent, 0o644); err != nil {
 		t.Fatalf("write payload fixture zip: %v", err)
 	}
 	log("creating payload (%d bytes)", len(zipContent))
-	payloadAdd := parseKVOutput(t, runClient(t,
+	payloadAdd := parseKV(t, runClient(t,
 		"--tenant", name,
 		"payload", "add",
 		"--file", tmpZip,
@@ -343,7 +343,7 @@ func setupTenantWithDeps(t *testing.T, ts int64, idx int) (tenantID, ownerID, ta
 
 // setupSharedFixture creates one deployed tenant and waits for a profile, then
 // returns the tenant name and profile ID for use by all profile-dependent tests.
-func setupSharedFixture(tmpDir string) (tenantName, profileID string) {
+func fixture(tmpDir string) (tenantName, profileID string) {
 	ts := time.Now().UnixNano()
 	tenantName = fmt.Sprintf("shared%d", ts)
 	log("creating shared fixture tenant %q", tenantName)
@@ -362,7 +362,7 @@ func setupSharedFixture(tmpDir string) (tenantName, profileID string) {
 		fmt.Printf("shared fixture: list users failed: %v\n%s\n", err, userOut)
 		os.Exit(1)
 	}
-	ownerID := firstDataIDRaw(string(userOut))
+	ownerID := firstIDRaw(string(userOut))
 
 	// Add target
 	keyPath := filepath.Join(absProjectRoot, "test/fixtures/id_ed25519")
@@ -416,7 +416,7 @@ func setupSharedFixture(tmpDir string) (tenantName, profileID string) {
 	log("shared fixture: tenant=%s owner=%s target=%s payload=%s release=%s", tenantName, ownerID, targetID, payloadID, releaseID)
 	log("shared fixture: waiting for profile in account DB (up to 90s)")
 
-	adb, err := sql.Open("postgres", accountConn(tenantName))
+	adb, err := sql.Open("postgres", account(tenantName))
 	if err != nil {
 		fmt.Printf("shared fixture: open account DB: %v\n", err)
 		os.Exit(1)
@@ -464,7 +464,7 @@ func parseKVRaw(out string) map[string]string {
 	return parsed
 }
 
-func firstDataIDRaw(out string) string {
+func firstIDRaw(out string) string {
 	lines := strings.Split(strings.TrimSpace(out), "\n")
 	if len(lines) < 2 {
 		return ""
@@ -481,11 +481,11 @@ func TestE2E(t *testing.T) {
 	started := time.Now()
 	ts := time.Now().UnixNano()
 
-	tenantID, ownerID, targetID, payloadID, tenantName := setupTenantWithDeps(t, ts, 0)
+	tenantID, ownerID, targetID, payloadID, tenantName := setup(t, ts, 0)
 	log("fixture setup complete: tenant=%s owner=%s target=%s payload=%s", tenantID, ownerID, targetID, payloadID)
 
 	log("creating release for tenant %s", tenantName)
-	releaseAdd := parseKVOutput(t, runTenantClient(t, tenantName,
+	releaseAdd := parseKV(t, runTenant(t, tenantName,
 		"release", "add",
 		"--target", targetID,
 		"--payload", payloadID,
@@ -494,7 +494,7 @@ func TestE2E(t *testing.T) {
 	log("release created: id=%s status=%s", releaseID, releaseAdd["status"])
 
 	log("triggering deploy for release %s", releaseID)
-	deployResp := parseKVOutput(t, runTenantClient(t, tenantName,
+	deployResp := parseKV(t, runTenant(t, tenantName,
 		"release", "deploy",
 		"--id", releaseID,
 	))
@@ -523,7 +523,7 @@ func TestE2E(t *testing.T) {
 		deadline := time.Now().Add(timeout)
 		var last, prev string
 		for time.Now().Before(deadline) {
-			getResp := parseKVOutput(t, runTenantClient(t, tenantName,
+			getResp := parseKV(t, runTenant(t, tenantName,
 				"release", "get",
 				"--id", id,
 			))
@@ -564,13 +564,13 @@ func TestE2E(t *testing.T) {
 func waitForWebhookAccounts(t *testing.T, name, id string, timeout time.Duration) (requests, accounts int) {
 	t.Helper()
 
-	deployDB, err := sql.Open("postgres", deployConn(name))
+	deployDB, err := sql.Open("postgres", deploy(name))
 	if err != nil {
 		t.Fatalf("open deploy database: %v", err)
 	}
 	defer deployDB.Close()
 
-	accountDB, err := sql.Open("postgres", accountConn(name))
+	accountDB, err := sql.Open("postgres", account(name))
 	if err != nil {
 		t.Fatalf("open account database: %v", err)
 	}
@@ -605,13 +605,13 @@ func waitForWebhookAccounts(t *testing.T, name, id string, timeout time.Duration
 func verifyAccountFromRequest(t *testing.T, name, id string) {
 	t.Helper()
 
-	deployDB, err := sql.Open("postgres", deployConn(name))
+	deployDB, err := sql.Open("postgres", deploy(name))
 	if err != nil {
 		t.Fatalf("open deploy database: %v", err)
 	}
 	defer deployDB.Close()
 
-	accountDB, err := sql.Open("postgres", accountConn(name))
+	accountDB, err := sql.Open("postgres", account(name))
 	if err != nil {
 		t.Fatalf("open account database: %v", err)
 	}
@@ -640,15 +640,15 @@ func verifyAccountFromRequest(t *testing.T, name, id string) {
 	log("account name %q matches node_name from webhook request data", nodeName)
 }
 
-func deployConn(name string) string {
-	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s?sslmode=disable&search_path=deploy", sanitizeTenantDBName(name))
+func deploy(name string) string {
+	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s?sslmode=disable&search_path=deploy", sanitize(name))
 }
 
-func accountConn(name string) string {
-	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s?sslmode=disable&search_path=account", sanitizeTenantDBName(name))
+func account(name string) string {
+	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s?sslmode=disable&search_path=account", sanitize(name))
 }
 
-func sanitizeTenantDBName(name string) string {
+func sanitize(name string) string {
 	var result strings.Builder
 	for _, r := range name {
 		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' {
@@ -660,7 +660,7 @@ func sanitizeTenantDBName(name string) string {
 	return result.String()
 }
 
-func waitForMigrator(containerName string, timeout time.Duration) error {
+func waitMigrator(containerName string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
 		out, err := exec.Command("docker", "inspect",
@@ -679,7 +679,7 @@ func waitForMigrator(containerName string, timeout time.Duration) error {
 	return fmt.Errorf("migrator did not finish within %v", timeout)
 }
 
-func waitForGRPC(addr string, timeout time.Duration) error {
+func waitGRPC(addr string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
 		c, err := net.DialTimeout("tcp", addr, 2*time.Second)
@@ -692,7 +692,7 @@ func waitForGRPC(addr string, timeout time.Duration) error {
 	return fmt.Errorf("gRPC at %s not ready within %v", addr, timeout)
 }
 
-func waitForContainer(containerName string, timeout time.Duration) error {
+func waitContainer(containerName string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
 		out, err := exec.Command("docker", "inspect",

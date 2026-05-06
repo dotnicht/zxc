@@ -88,12 +88,12 @@ func tenantDBExists(t *testing.T, dbName string) bool {
 // Used by tests that need to connect directly (bypassing the server's Docker-internal hostname).
 func tenantLocalConn(dbName, schema string) string {
 	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s?search_path=%s&sslmode=disable",
-		sanitizeTenantDBName(dbName), schema)
+		sanitize(dbName), schema)
 }
 
 func tenantLocalJobsConn(name string) string {
 	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s_jobs?sslmode=disable",
-		sanitizeTenantDBName(name))
+		sanitize(name))
 }
 
 // queryTenantRow returns the stored connection string fields for a tenant.
@@ -124,7 +124,7 @@ func TestTenantRegisterDefault(t *testing.T) {
 	t.Parallel()
 	name := fmt.Sprintf("treg%d", time.Now().UnixNano())
 
-	out := parseKVOutput(t, runClient(t, "tenant", "add", "--name", name))
+	out := parseKV(t, runClient(t, "tenant", "add", "--name", name))
 	if out["id"] == "" {
 		t.Fatal("expected id in response")
 	}
@@ -135,16 +135,16 @@ func TestTenantRegisterDefault(t *testing.T) {
 	row := queryTenantRow(t, name)
 
 	// Verify stored connection strings reference the right DB/schema (hostname may differ).
-	if !strings.Contains(row.main, sanitizeTenantDBName(name)) || !strings.Contains(row.main, "main") {
+	if !strings.Contains(row.main, sanitize(name)) || !strings.Contains(row.main, "main") {
 		t.Errorf("main conn string looks wrong: %s", row.main)
 	}
-	if !strings.Contains(row.deploy, sanitizeTenantDBName(name)) || !strings.Contains(row.deploy, "deploy") {
+	if !strings.Contains(row.deploy, sanitize(name)) || !strings.Contains(row.deploy, "deploy") {
 		t.Errorf("deploy conn string looks wrong: %s", row.deploy)
 	}
-	if !strings.Contains(row.account, sanitizeTenantDBName(name)) || !strings.Contains(row.account, "account") {
+	if !strings.Contains(row.account, sanitize(name)) || !strings.Contains(row.account, "account") {
 		t.Errorf("account conn string looks wrong: %s", row.account)
 	}
-	if !strings.Contains(row.jobs, sanitizeTenantDBName(name)+"_jobs") {
+	if !strings.Contains(row.jobs, sanitize(name)+"_jobs") {
 		t.Errorf("jobs conn string looks wrong: %s", row.jobs)
 	}
 
@@ -165,7 +165,7 @@ func TestTenantRegisterExternalJobs(t *testing.T) {
 	extJobs := createExternalDB(t, fmt.Sprintf("extjobs%d", ts))
 	srvJobs := serverDSN(extJobs)
 
-	out := parseKVOutput(t, runClient(t, "tenant", "add", "--name", name, "--jobs", srvJobs))
+	out := parseKV(t, runClient(t, "tenant", "add", "--name", name, "--jobs", srvJobs))
 	if out["id"] == "" {
 		t.Fatal("expected id in response")
 	}
@@ -177,7 +177,7 @@ func TestTenantRegisterExternalJobs(t *testing.T) {
 		t.Errorf("jobs mismatch:\n got  %s\n want %s", row.jobs, srvJobs)
 	}
 	// main auto-provisioned — DB should exist.
-	if !tenantDBExists(t, sanitizeTenantDBName(name)) {
+	if !tenantDBExists(t, sanitize(name)) {
 		t.Errorf("auto-created DB for %q should exist", name)
 	}
 
@@ -214,7 +214,7 @@ func TestTenantRegisterExternalDeployAccount(t *testing.T) {
 	localDeploy := extDB + "&search_path=deploy"
 	localAccount := extDB + "&search_path=account"
 
-	out := parseKVOutput(t, runClient(t, "tenant", "add", "--name", name,
+	out := parseKV(t, runClient(t, "tenant", "add", "--name", name,
 		"--deploy", srvDeploy, "--account", srvAccount))
 	if out["id"] == "" {
 		t.Fatal("expected id in response")
@@ -229,7 +229,7 @@ func TestTenantRegisterExternalDeployAccount(t *testing.T) {
 		t.Errorf("account mismatch:\n got  %s\n want %s", row.account, srvAccount)
 	}
 	// main auto-provisioned — DB should exist.
-	if !tenantDBExists(t, sanitizeTenantDBName(name)) {
+	if !tenantDBExists(t, sanitize(name)) {
 		t.Errorf("auto-created DB for %q should exist", name)
 	}
 
@@ -259,7 +259,7 @@ func TestTenantRegisterAllExternal(t *testing.T) {
 	localDeploy := localMain + "&search_path=deploy"
 	localAccount := localMain + "&search_path=account"
 
-	out := parseKVOutput(t, runClient(t, "tenant", "add", "--name", name,
+	out := parseKV(t, runClient(t, "tenant", "add", "--name", name,
 		"--database", srvMain,
 		"--deploy", srvDeploy,
 		"--account", srvAccount,
@@ -285,7 +285,7 @@ func TestTenantRegisterAllExternal(t *testing.T) {
 	}
 
 	// No auto-created database for this tenant name.
-	if tenantDBExists(t, sanitizeTenantDBName(name)) {
+	if tenantDBExists(t, sanitize(name)) {
 		t.Errorf("server should not have auto-created database %q when all connections are external", name)
 	}
 
@@ -294,6 +294,26 @@ func TestTenantRegisterAllExternal(t *testing.T) {
 	verifySchema(t, localDeploy, "deploy", "targets")
 	verifySchema(t, localAccount, "account", "profiles")
 	verifyOwnerSeeded(t, localMainConn)
+}
+
+// TestTenantGet: get by ID returns the same tenant that was just created.
+func TestTenantGet(t *testing.T) {
+	t.Parallel()
+	name := fmt.Sprintf("tget%d", time.Now().UnixNano())
+
+	created := parseKV(t, runClient(t, "tenant", "add", "--name", name))
+	id := created["id"]
+	if id == "" {
+		t.Fatal("expected id from tenant add")
+	}
+
+	got := parseKV(t, runClient(t, "tenant", "get", "--id", id))
+	if got["id"] != id {
+		t.Fatalf("get returned wrong id: got %q want %q", got["id"], id)
+	}
+	if got["name"] != name {
+		t.Fatalf("name mismatch: got %q want %q", got["name"], name)
+	}
 }
 
 // TestTenantRegisterDuplicate: registering the same name twice returns AlreadyExists.

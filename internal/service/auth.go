@@ -21,7 +21,7 @@ type mainDBKey struct{}
 type deployDBKey struct{}
 type accountDBKey struct{}
 
-func UserInterceptor(rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServerInterceptor {
+func Interceptor(rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {
@@ -61,17 +61,17 @@ func UserInterceptor(rootDB *gorm.DB, rootUserID uuid.UUID) grpc.UnaryServerInte
 			return nil, status.Errorf(codes.Internal, "failed to get tenant: %v", err)
 		}
 
-		mainDB, err := infra.NewConnection(tenant.Main)
+		mainDB, err := infra.Connect(tenant.Main)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to connect to users database: %v", err)
 		}
 
-		deployDB, err := infra.NewConnection(tenant.Deploy)
+		deployDB, err := infra.Connect(tenant.Deploy)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to connect to deploy database: %v", err)
 		}
 
-		accountDB, err := infra.NewConnection(tenant.Account)
+		accountDB, err := infra.Connect(tenant.Account)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to connect to account database: %v", err)
 		}
@@ -101,7 +101,7 @@ func ctxTenant(ctx context.Context) (*models.Tenant, error) {
 	return tenant, nil
 }
 
-func ctxUsersDB(ctx context.Context) (*models.Tenant, *gorm.DB, error) {
+func usersDB(ctx context.Context) (*models.Tenant, *gorm.DB, error) {
 	tenant, err := ctxTenant(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -113,7 +113,7 @@ func ctxUsersDB(ctx context.Context) (*models.Tenant, *gorm.DB, error) {
 	return tenant, db, nil
 }
 
-func ctxDeployDB(ctx context.Context) (*models.Tenant, *gorm.DB, error) {
+func deployDB(ctx context.Context) (*models.Tenant, *gorm.DB, error) {
 	tenant, err := ctxTenant(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -125,7 +125,7 @@ func ctxDeployDB(ctx context.Context) (*models.Tenant, *gorm.DB, error) {
 	return tenant, db, nil
 }
 
-func ctxAccountDB(ctx context.Context) (*models.Tenant, *gorm.DB, error) {
+func accountDB(ctx context.Context) (*models.Tenant, *gorm.DB, error) {
 	tenant, err := ctxTenant(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -149,7 +149,7 @@ func metaUUID(md metadata.MD, key string) (uuid.UUID, error) {
 	return id, nil
 }
 
-func ctxUserID(ctx context.Context) (uuid.UUID, error) {
+func userID(ctx context.Context) (uuid.UUID, error) {
 	user, ok := ctx.Value(userKey{}).(*models.User)
 	if !ok || user == nil {
 		return uuid.Nil, status.Error(codes.Unauthenticated, "authenticated user is required")

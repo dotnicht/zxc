@@ -26,7 +26,7 @@ func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.Creat
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	_, db, err := ctxUsersDB(ctx)
+	_, db, err := usersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -36,13 +36,13 @@ func (s *User) Create(ctx context.Context, req *user.CreateRequest) (*user.Creat
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create user: %v", err))
 	}
 
-	return &user.CreateResponse{User: userToProto(u)}, nil
+	return &user.CreateResponse{User: s.proto(u)}, nil
 }
 
 func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse, error) {
 	uid := uuid.UUID(req.Id)
 
-	_, db, err := ctxUsersDB(ctx)
+	_, db, err := usersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (s *User) Get(ctx context.Context, req *user.GetRequest) (*user.GetResponse
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to get user: %v", err))
 	}
 
-	return &user.GetResponse{User: userToProto(&u)}, nil
+	return &user.GetResponse{User: s.proto(&u)}, nil
 }
 
 func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.UpdateResponse, error) {
@@ -65,7 +65,7 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	_, db, err := ctxUsersDB(ctx)
+	_, db, err := usersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -91,13 +91,13 @@ func (s *User) Update(ctx context.Context, req *user.UpdateRequest) (*user.Updat
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to fetch updated user: %v", err))
 	}
 
-	return &user.UpdateResponse{User: userToProto(&updated)}, nil
+	return &user.UpdateResponse{User: s.proto(&updated)}, nil
 }
 
 func (s *User) Delete(ctx context.Context, req *user.DeleteRequest) (*user.DeleteResponse, error) {
 	uid := uuid.UUID(req.Id)
 
-	_, db, err := ctxUsersDB(ctx)
+	_, db, err := usersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (s *User) List(ctx context.Context, req *user.ListRequest) (*user.ListRespo
 		size = 10
 	}
 
-	_, db, err := ctxUsersDB(ctx)
+	_, db, err := usersDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -140,13 +140,13 @@ func (s *User) List(ctx context.Context, req *user.ListRequest) (*user.ListRespo
 
 	out := make([]*user.User, len(users))
 	for i, u := range users {
-		out[i] = userToProto(u)
+		out[i] = s.proto(u)
 	}
 
 	return &user.ListResponse{Users: out, Total: int32(total)}, nil
 }
 
-func userToProto(m *models.User) *user.User {
+func (s *User) proto(m *models.User) *user.User {
 	return &user.User{
 		Id:        m.ID[:],
 		Name:      m.Name,

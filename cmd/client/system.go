@@ -86,7 +86,7 @@ func systemListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			w := newTabWriter()
+			w := writer()
 			fmt.Fprintf(w, "ID\tNAME\tCREATED\n")
 			for _, s := range resp.Systems {
 				fmt.Fprintf(w, "%s\t%s\t%s\n", formatUUID(s.Id), s.Name, s.CreatedAt)

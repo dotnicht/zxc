@@ -100,7 +100,7 @@ func targetListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			w := newTabWriter()
+			w := writer()
 			fmt.Fprintf(w, "ID\tADDRESS\tSTATUS\tCREATED\n")
 			for _, t := range resp.Targets {
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", formatUUID(t.Id), t.Address, t.Status, t.CreatedAt)

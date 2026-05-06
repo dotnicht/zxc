@@ -7,8 +7,8 @@ import (
 
 func TestAccountList(t *testing.T) {
 	t.Parallel()
-	out := runTenantClient(t, sharedTenantName, "account", "list")
-	id := firstDataID(t, out)
+	out := runTenant(t, sharedTenantName, "account", "list")
+	id := firstID(t, out)
 	if id == "" {
 		t.Fatal("expected at least one account in list")
 	}
@@ -16,7 +16,7 @@ func TestAccountList(t *testing.T) {
 
 func TestAccountGet(t *testing.T) {
 	t.Parallel()
-	got := parseKVOutput(t, runTenantClient(t, sharedTenantName, "account", "get", "--id", sharedProfileID))
+	got := parseKV(t, runTenant(t, sharedTenantName, "account", "get", "--id", sharedProfileID))
 	if got["id"] != sharedProfileID {
 		t.Fatalf("get returned wrong id: %q", got["id"])
 	}
@@ -45,7 +45,7 @@ func TestAccountDisable(t *testing.T) {
 		t.Fatalf("insert profile: %v", err)
 	}
 
-	got := parseKVOutput(t, runTenantClient(t, sharedTenantName, "account", "disable", "--id", profileID))
+	got := parseKV(t, runTenant(t, sharedTenantName, "account", "disable", "--id", profileID))
 	if got["status"] != "disabled" {
 		t.Fatalf("expected status=disabled, got %q", got["status"])
 	}
