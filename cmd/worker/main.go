@@ -131,12 +131,21 @@ func main() {
 	for {
 		select {
 		case <-ctx.Done():
-			mu.Lock()
-			for jobs_, w := range running {
-				w.WaitForCompletion()
-				slog.Info("worker stopped", "jobs", jobs_)
+			done := make(chan struct{})
+			go func() {
+				mu.Lock()
+				defer mu.Unlock()
+				for jobs_, w := range running {
+					w.WaitForCompletion()
+					slog.Info("worker stopped", "jobs", jobs_)
+				}
+				close(done)
+			}()
+			select {
+			case <-done:
+			case <-time.After(30 * time.Second):
+				slog.Info("shutdown timeout reached, exiting")
 			}
-			mu.Unlock()
 			return
 		case <-ticker.C:
 			discover()

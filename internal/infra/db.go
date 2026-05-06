@@ -59,7 +59,7 @@ func WorkflowBackend(conn string) (b backend.Backend, err error) {
 		wfpostgres.WithPostgresOptions(func(db *sql.DB) {
 			db.SetMaxIdleConns(1)
 			db.SetMaxOpenConns(1)
-			db.SetConnMaxLifetime(time.Hour)
+			db.SetConnMaxLifetime(5 * time.Minute)
 		}),
 	)
 	wfBackendCache[conn] = b
@@ -91,7 +91,7 @@ func NewConnection(conn string) (*gorm.DB, error) {
 
 	sqlDB.SetMaxIdleConns(1)
 	sqlDB.SetMaxOpenConns(1)
-	sqlDB.SetConnMaxLifetime(time.Hour)
+	sqlDB.SetConnMaxLifetime(5 * time.Minute)
 
 	connCache[conn] = db
 	return db, nil
