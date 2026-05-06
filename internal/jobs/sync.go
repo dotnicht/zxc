@@ -57,13 +57,13 @@ func SyncActivity(ctx context.Context, args SyncArgs) error {
 		return err
 	}
 
-	mainDB, err := syncDep.newMain(tenant.Main)
+	mdb, err := syncDep.newMain(tenant.Main)
 	if err != nil {
 		return err
 	}
 
 	var sys models.System
-	if err := mainDB.WithContext(ctx).Where("name = 'default' AND deleted_at IS NULL").First(&sys).Error; err != nil {
+	if err := mdb.WithContext(ctx).Where("name = 'default' AND deleted_at IS NULL").First(&sys).Error; err != nil {
 		return fmt.Errorf("default system not found: %w", err)
 	}
 
@@ -72,18 +72,18 @@ func SyncActivity(ctx context.Context, args SyncArgs) error {
 		return fmt.Errorf("load plugin %q: %w", sys.Sync, err)
 	}
 
-	accountDB, err := syncDep.newAccount(tenant.Account)
+	adb, err := syncDep.newAccount(tenant.Account)
 	if err != nil {
 		return err
 	}
 
 	var profiles []models.Profile
-	if err := accountDB.WithContext(ctx).Where("system_id = ? AND deleted_at IS NULL", sys.ID).Find(&profiles).Error; err != nil {
+	if err := adb.WithContext(ctx).Where("system_id = ? AND deleted_at IS NULL", sys.ID).Find(&profiles).Error; err != nil {
 		return err
 	}
 
 	for _, profile := range profiles {
-		if err := post(ctx, accountDB, profile, gen); err != nil {
+		if err := post(ctx, adb, profile, gen); err != nil {
 			return err
 		}
 	}
