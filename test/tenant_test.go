@@ -21,17 +21,6 @@ func createExternalDB(t *testing.T, name string) string {
 		t.Fatalf("create external database %q: %v", name, err)
 	}
 	admin.Close()
-	t.Cleanup(func() {
-		a, err := sql.Open("postgres", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")
-		if err != nil {
-			t.Logf("cleanup: open admin connection: %v", err)
-			return
-		}
-		defer a.Close()
-		if _, err := a.Exec(fmt.Sprintf(`DROP DATABASE IF EXISTS "%s"`, name)); err != nil {
-			t.Logf("cleanup: drop database %q: %v", name, err)
-		}
-	})
 	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s?sslmode=disable", name)
 }
 

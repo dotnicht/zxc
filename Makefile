@@ -1,6 +1,6 @@
 .PHONY: proto build build-server build-worker build-webhook build-migrator \
 	run run-worker run-webhook migrate migrate-dry-run \
-	test test-integration test-all clean \
+	test test-integration test-coverage test-all clean \
 	docker-up docker-down docker-clean docker-build docker-logs docker-restart \
 	deps
 
@@ -60,6 +60,14 @@ test:
 
 test-integration:
 	$(GO) test -v -timeout 600s ./test/...
+
+test-coverage:
+	rm -rf covdata && mkdir -p covdata
+	COVER=1 $(GO) test -v -timeout 600s ./test/... 2>&1 | tee covdata/test.log; \
+	$(GO) tool covdata percent -i covdata; \
+	$(GO) tool covdata textfmt -i covdata -o covdata/coverage.out; \
+	$(GO) tool cover -html covdata/coverage.out -o covdata/coverage.html; \
+	echo "Report: covdata/coverage.html"
 
 test-all: test test-integration
 

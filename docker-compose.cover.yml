@@ -1,0 +1,24 @@
+services:
+  migrator:
+    build:
+      dockerfile: Dockerfile.cover
+    volumes:
+      - ./covdata:/covdata
+
+  api:
+    build:
+      dockerfile: Dockerfile.cover
+    volumes:
+      - ./covdata:/covdata
+
+  webhook:
+    build:
+      dockerfile: Dockerfile.cover
+    volumes:
+      - ./covdata:/covdata
+
+  worker:
+    build:
+      dockerfile: Dockerfile.cover
+    volumes:
+      - ./covdata:/covdata

@@ -58,12 +58,16 @@ func TestMain(m *testing.M) {
 		fmt.Printf("resolve docker compose command failed: %v\n", err)
 		os.Exit(1)
 	}
-
-	log("stopping any previous docker-compose stack")
-	runCompose(projectRoot, "down", "--remove-orphans")
+	if os.Getenv("COVER") == "1" {
+		// Append coverage override; paths are relative to projectRoot (runCompose sets cmd.Dir).
+		composeCmd = append(composeCmd,
+			"-f", "docker-compose.yml",
+			"-f", "docker-compose.cover.yml",
+		)
+	}
 
 	log("starting docker-compose stack")
-	if out, err := runCompose(projectRoot, "up", "-d", "--build"); err != nil {
+	if out, err := runCompose(projectRoot, "up", "-d", "--build", "--remove-orphans"); err != nil {
 		fmt.Printf("docker compose up failed:\n%s\n%v\n", out, err)
 		os.Exit(1)
 	}
@@ -125,7 +129,8 @@ func TestMain(m *testing.M) {
 
 	log("starting tests")
 	code := m.Run()
-	_ = os.RemoveAll(tmpDir)
+	// Graceful stop so instrumented binaries flush GOCOVERDIR before exit.
+	runCompose(projectRoot, "stop")
 	os.Exit(code)
 }
 
