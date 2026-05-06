@@ -22,13 +22,15 @@ var sentences = []string{
 	"Everything seems to be on track so far.",
 }
 
+const prefix = "zxc-gen:"
+
 func randomText() string {
 	n := rand.Intn(3) + 1
 	picked := make([]string, n)
 	for i := range picked {
 		picked[i] = sentences[rand.Intn(len(sentences))]
 	}
-	return strings.Join(picked, " ")
+	return prefix + " " + strings.Join(picked, " ")
 }
 
 type randomGenerator struct{}

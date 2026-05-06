@@ -570,6 +570,7 @@ func TestE2E(t *testing.T) {
 	}
 	log("webhook pipeline verified: %d requests received, %d accounts created", requests, accounts)
 	verifyAccountFromRequest(t, tenantName, releaseID)
+	verifyGeneratedPost(t, tenantName, 90*time.Second)
 
 	log("end-to-end deploy completed successfully in %s", time.Since(started).Round(time.Millisecond))
 }
@@ -651,6 +652,34 @@ func verifyAccountFromRequest(t *testing.T, name, id string) {
 		t.Fatalf("no profile found with name %q derived from webhook request", nodeName)
 	}
 	log("account name %q matches node_name from webhook request data", nodeName)
+}
+
+func verifyGeneratedPost(t *testing.T, name string, timeout time.Duration) {
+	t.Helper()
+	adb, err := sql.Open("postgres", account(name))
+	if err != nil {
+		t.Fatalf("open account database: %v", err)
+	}
+	defer adb.Close()
+
+	log("waiting for generated post (prefix %q) in account DB with timeout %s", "zxc-gen:", timeout)
+	deadline := time.Now().Add(timeout)
+	var postID, text string
+	for time.Now().Before(deadline) {
+		_ = adb.QueryRow(`
+			SELECT id::text, text FROM posts
+			WHERE text LIKE 'zxc-gen:%' AND deleted_at IS NULL
+			LIMIT 1
+		`).Scan(&postID, &text)
+		if postID != "" {
+			break
+		}
+		time.Sleep(3 * time.Second)
+	}
+	if postID == "" {
+		t.Fatalf("sync job did not produce a generated post within %s", timeout)
+	}
+	log("generated post confirmed: id=%s text=%q", postID, text)
 }
 
 func deploy(name string) string {
