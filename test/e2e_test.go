@@ -67,6 +67,7 @@ func TestMain(m *testing.M) {
 	}
 
 	log("starting docker-compose stack")
+	runCompose(projectRoot, "down", "--volumes", "--remove-orphans")
 	if out, err := runCompose(projectRoot, "up", "-d", "--build", "--remove-orphans"); err != nil {
 		fmt.Printf("docker compose up failed:\n%s\n%v\n", out, err)
 		os.Exit(1)
