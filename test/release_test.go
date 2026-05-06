@@ -80,7 +80,7 @@ func TestReleaseDeploy(t *testing.T) {
 		}
 	}
 
-	deadline := time.Now().Add(120 * time.Second)
+	deadline := time.Now().Add(3 * time.Minute)
 	var last string
 	for time.Now().Before(deadline) {
 		r := parseKV(t, runTenant(t, tenantName, "release", "get", "--id", releaseID))

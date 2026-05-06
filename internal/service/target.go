@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/cschleiden/go-workflows/backend"
 	"github.com/cschleiden/go-workflows/client"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -199,5 +200,8 @@ func (s *Target) enqueue(ctx context.Context, t *models.Tenant, targetID uuid.UU
 	_, err = wfc.CreateWorkflowInstance(ctx, client.WorkflowInstanceOptions{
 		InstanceID: "probe:" + targetID.String(),
 	}, jobs.Probe, jobs.ProbeArgs{TenantID: t.ID, TargetID: targetID})
+	if errors.Is(err, backend.ErrInstanceAlreadyExists) {
+		return nil
+	}
 	return err
 }
